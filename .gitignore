@@ -1,0 +1,33 @@
+# Frontend
+node_modules/
+dist/
+
+# Rust / Tauri
+target/
+apps/desktop/src-tauri/gen/
+
+# Generated third-party binaries and build staging
+vendor/*
+!vendor/README.md
+apps/desktop/src-tauri/binaries/
+apps/desktop/src-tauri/resources/tools/
+
+# Local databases, conversation/session logs and temporary jobs (never track)
+*.db
+*.db-shm
+*.db-wal
+logs/
+*.session.log
+tmp/
+
+# Secrets and machine-local configuration
+.env
+.env.*
+!.env.example
+.impeccable/config.local.json
+
+# Editors / OS
+.idea/
+.vscode/
+Thumbs.db
+Desktop.ini
