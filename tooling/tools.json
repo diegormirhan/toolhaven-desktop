@@ -1,0 +1,133 @@
+{
+  "$schema": "./schemas/tool-manifest.schema.json",
+  "schemaVersion": 1,
+  "target": "x86_64-pc-windows-msvc",
+  "tools": [
+    {
+      "id": "ffmpeg",
+      "displayName": "FFmpeg",
+      "status": "planned",
+      "delivery": "on-demand",
+      "sourceRepository": "https://github.com/FFmpeg/FFmpeg",
+      "licenseExpression": "LGPL-2.1-or-later OR GPL-2.0-or-later",
+      "capabilities": [
+        "media.transcode",
+        "media.extract_audio",
+        "media.compress",
+        "media.trim"
+      ]
+    },
+    {
+      "id": "ffprobe",
+      "displayName": "ffprobe",
+      "status": "planned",
+      "delivery": "on-demand",
+      "sourceRepository": "https://github.com/FFmpeg/FFmpeg",
+      "licenseExpression": "LGPL-2.1-or-later OR GPL-2.0-or-later",
+      "capabilities": ["media.inspect"]
+    },
+    {
+      "id": "yt-dlp",
+      "displayName": "yt-dlp",
+      "status": "planned",
+      "delivery": "on-demand",
+      "dependencies": ["deno", "ffmpeg", "ffprobe"],
+      "sourceRepository": "https://github.com/yt-dlp/yt-dlp",
+      "licenseExpression": "Unlicense AND LicenseRef-Upstream-Third-Party-Notices",
+      "capabilities": ["download.inspect", "download.media"]
+    },
+    {
+      "id": "deno",
+      "displayName": "Deno",
+      "status": "planned",
+      "delivery": "on-demand",
+      "sourceRepository": "https://github.com/denoland/deno",
+      "licenseExpression": "MIT",
+      "capabilities": ["download.javascript_runtime"]
+    },
+    {
+      "id": "qpdf",
+      "displayName": "qpdf",
+      "status": "planned",
+      "delivery": "embedded",
+      "sourceRepository": "https://github.com/qpdf/qpdf",
+      "licenseExpression": "Apache-2.0",
+      "capabilities": [
+        "pdf.merge",
+        "pdf.split",
+        "pdf.rotate",
+        "pdf.linearize",
+        "pdf.encrypt"
+      ]
+    },
+    {
+      "id": "libvips",
+      "displayName": "libvips",
+      "status": "planned",
+      "delivery": "on-demand",
+      "sourceRepository": "https://github.com/libvips/libvips",
+      "licenseExpression": "LGPL-2.1-or-later",
+      "capabilities": [
+        "image.resize",
+        "image.crop",
+        "image.convert",
+        "image.compress",
+        "image.upscale_lanczos"
+      ]
+    },
+    {
+      "id": "jq",
+      "displayName": "jq",
+      "status": "planned",
+      "delivery": "embedded",
+      "sourceRepository": "https://github.com/jqlang/jq",
+      "licenseExpression": "MIT",
+      "capabilities": ["dev.json.format", "dev.json.query"]
+    },
+    {
+      "id": "yq",
+      "displayName": "yq",
+      "status": "planned",
+      "delivery": "embedded",
+      "sourceRepository": "https://github.com/mikefarah/yq",
+      "licenseExpression": "MIT",
+      "capabilities": ["dev.yaml.format", "dev.yaml.query"]
+    },
+    {
+      "id": "ripgrep",
+      "displayName": "ripgrep",
+      "status": "planned",
+      "delivery": "embedded",
+      "sourceRepository": "https://github.com/BurntSushi/ripgrep",
+      "licenseExpression": "MIT OR Unlicense",
+      "capabilities": ["dev.search"]
+    },
+    {
+      "id": "fd",
+      "displayName": "fd",
+      "status": "planned",
+      "delivery": "embedded",
+      "sourceRepository": "https://github.com/sharkdp/fd",
+      "licenseExpression": "MIT OR Apache-2.0",
+      "capabilities": ["dev.files.find"]
+    },
+    {
+      "id": "7zip",
+      "displayName": "7-Zip",
+      "status": "planned",
+      "delivery": "embedded",
+      "sourceRepository": "https://github.com/ip7z/7zip",
+      "licenseExpression": "LGPL-2.1-or-later",
+      "capabilities": ["archive.compress", "archive.extract"]
+    },
+    {
+      "id": "pandoc",
+      "displayName": "Pandoc",
+      "status": "planned",
+      "delivery": "on-demand",
+      "sourceRepository": "https://github.com/jgm/pandoc",
+      "licenseExpression": "GPL-2.0-or-later",
+      "capabilities": ["documents.convert"]
+    }
+  ]
+}
