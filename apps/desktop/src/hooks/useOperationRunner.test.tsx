@@ -21,7 +21,7 @@ const request: OperationRequest = {
   sourceUrl: null,
 };
 
-const meta = { toolName: 'Converter mídia', operationLabel: 'Extrair áudio', sourceLabel: 'clip.mp4', options: {} };
+const meta = { toolName: 'Convert media', operationLabel: 'Extract audio', sourceLabel: 'clip.mp4', options: {} };
 
 function useNativeHost() {
   Object.defineProperty(window, '__TAURI_INTERNALS__', { configurable: true, value: {} });
@@ -37,12 +37,12 @@ it('refuses to claim success in the browser preview and records the failure', as
   await waitFor(() => expect(result.current.finishedJobs).toHaveLength(1));
   expect(invoke).not.toHaveBeenCalled();
   expect(result.current.finishedJobs[0]).toMatchObject({ status: 'failed' });
-  expect(result.current.finishedJobs[0]!.message).toMatch(/abra o app toolhaven/i);
+  expect(result.current.finishedJobs[0]!.message).toMatch(/open the toolhaven app/i);
 });
 
 it('settles a native operation with the message and output path the host returned', async () => {
   useNativeHost();
-  vi.mocked(invoke).mockResolvedValue({ stdout: '', message: 'Operação concluída.', outputPath: 'C:\\clips\\clip.mp3' });
+  vi.mocked(invoke).mockResolvedValue({ stdout: '', message: 'Operation finished.', outputPath: 'C:\\clips\\clip.mp3' });
   const { result } = renderHook(() => useOperationRunner());
 
   act(() => {
@@ -55,7 +55,7 @@ it('settles a native operation with the message and output path the host returne
   });
   expect(result.current.finishedJobs[0]).toMatchObject({
     status: 'succeeded',
-    message: 'Operação concluída.',
+    message: 'Operation finished.',
     outputPath: 'C:\\clips\\clip.mp3',
     progress: 1,
   });

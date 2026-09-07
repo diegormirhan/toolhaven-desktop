@@ -8,9 +8,9 @@ type ThemeSwitchProps = {
 };
 
 const options: Array<{ id: ThemePreference; label: string; icon: typeof Sun }> = [
-  { id: "system", label: "Sistema", icon: Monitor },
-  { id: "light", label: "Claro", icon: Sun },
-  { id: "dark", label: "Escuro", icon: Moon },
+  { id: "system", label: "System", icon: Monitor },
+  { id: "light", label: "Light", icon: Sun },
+  { id: "dark", label: "Dark", icon: Moon },
 ];
 
 export function ThemeSwitch({ preference, onChange, variant = "compact" }: ThemeSwitchProps) {
@@ -18,7 +18,7 @@ export function ThemeSwitch({ preference, onChange, variant = "compact" }: Theme
     <div
       className={`theme-switch theme-switch--${variant}`}
       role="radiogroup"
-      aria-label="Tema da interface"
+      aria-label="Interface theme"
     >
       {options.map((option) => {
         const Icon = option.icon;
@@ -29,7 +29,7 @@ export function ThemeSwitch({ preference, onChange, variant = "compact" }: Theme
             type="button"
             role="radio"
             aria-checked={selected}
-            aria-label={`Tema ${option.label.toLocaleLowerCase("pt-BR")}`}
+            aria-label={`${option.label} theme`}
             title={option.label}
             className={selected ? "theme-switch__option theme-switch__option--selected" : "theme-switch__option"}
             onClick={() => onChange(option.id)}

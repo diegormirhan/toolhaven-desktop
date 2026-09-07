@@ -15,7 +15,7 @@ describe("tool catalog", () => {
 
     expect(filterCatalogRows(rows, "youtube")[0]?.tools[0]?.id).toBe("yt-dlp");
     expect(filterCatalogRows(rows, ".pdf")[0]?.tools[0]?.id).toBe("qpdf");
-    expect(filterCatalogRows(rows, "recortar")[0]?.tools[0]?.id).toBe("libvips");
+    expect(filterCatalogRows(rows, "crop")[0]?.tools[0]?.id).toBe("libvips");
   });
 
   it("removes empty rows from search results", () => {

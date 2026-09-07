@@ -45,10 +45,10 @@ function ToolHavenMark() {
 }
 
 const navigationItems: Array<{ id: NavigationId; label: string; icon: typeof Grid2X2 }> = [
-  { id: "catalog", label: "Ferramentas", icon: Grid2X2 },
-  { id: "queue", label: "Fila", icon: ListTodo },
-  { id: "history", label: "Histórico", icon: FolderClock },
-  { id: "settings", label: "Ajustes", icon: Settings },
+  { id: "catalog", label: "Tools", icon: Grid2X2 },
+  { id: "queue", label: "Queue", icon: ListTodo },
+  { id: "history", label: "History", icon: FolderClock },
+  { id: "settings", label: "Settings", icon: Settings },
 ];
 
 export function App() {
@@ -147,11 +147,11 @@ export function App() {
           </span>
           <span>
             <strong>ToolHaven</strong>
-            <small>Ferramentas locais</small>
+            <small>Local tools</small>
           </span>
         </div>
 
-        <nav aria-label="Navegação principal">
+        <nav aria-label="Main navigation">
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const badge = item.id === "queue" ? runningCount : 0;
@@ -161,7 +161,7 @@ export function App() {
                 type="button"
                 className={activeNavigation === item.id ? "nav-item nav-item--active" : "nav-item"}
                 onClick={() => setActiveNavigation(item.id)}
-                aria-label={badge > 0 ? `${item.label}, ${badge} em execução` : item.label}
+                aria-label={badge > 0 ? `${item.label}, ${badge} running` : item.label}
                 title={item.label}
                 aria-current={activeNavigation === item.id ? "page" : undefined}
               >
@@ -181,7 +181,7 @@ export function App() {
           <span className="status-light" aria-hidden="true" />
           <span>
             <strong>Windows x64</strong>
-            <small>Execução local habilitada</small>
+            <small>Local execution enabled</small>
           </span>
         </div>
       </aside>
@@ -199,8 +199,8 @@ export function App() {
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Busque uma ação, formato ou ferramenta"
-              aria-label="Buscar ferramentas"
+              placeholder="Search an action, a format or a tool"
+              aria-label="Search tools"
             />
             <kbd aria-hidden="true">Ctrl K</kbd>
           </div>
@@ -211,7 +211,7 @@ export function App() {
               type="button"
               onClick={() => setActiveNavigation("history")}
             >
-              <Clock3 size={16} aria-hidden="true" /> Histórico · {runner.finishedJobs.length}
+              <Clock3 size={16} aria-hidden="true" /> History · {runner.finishedJobs.length}
             </button>
           </div>
         </header>
@@ -220,10 +220,9 @@ export function App() {
           <div className="catalog-view">
             <section className="drop-workspace" aria-labelledby="workspace-title">
               <div className="drop-workspace__copy">
-                <h1 id="workspace-title">O que você quer fazer?</h1>
+                <h1 id="workspace-title">What do you want to do?</h1>
                 <p>
-                  Escolha uma ferramenta abaixo. Você também pode arrastar um arquivo para esta janela
-                  ou selecioná-lo primeiro.
+                  Pick a tool below. You can also drop a file onto this window, or choose one first.
                 </p>
               </div>
               <button
@@ -232,7 +231,7 @@ export function App() {
                 data-dragging={fileDrop.isDraggingOver ? "true" : undefined}
                 onClick={async () => {
                   if (!isNativeHost()) {
-                    setFileMessage("Abra o ToolHaven no Windows para escolher arquivos locais.");
+                    setFileMessage("Open ToolHaven on Windows to pick local files.");
                     return;
                   }
                   try {
@@ -250,10 +249,10 @@ export function App() {
                 <span>
                   <strong>
                     {fileDrop.isDraggingOver
-                      ? "Solte o arquivo aqui"
-                      : (pendingFile?.split(/[\\/]/).pop() ?? "Arraste um arquivo ou escolha")}
+                      ? "Drop the file here"
+                      : (pendingFile?.split(/[\\/]/).pop() ?? "Drop a file, or choose one")}
                   </strong>
-                  <small>{pendingFile ? "Agora abra uma ferramenta abaixo" : "Processamento no seu computador"}</small>
+                  <small>{pendingFile ? "Now open a tool below" : "Processed on your own machine"}</small>
                 </span>
               </button>
               {fileMessage && (
@@ -278,10 +277,10 @@ export function App() {
             ) : (
               <section className="empty-state">
                 <Search size={24} aria-hidden="true" />
-                <h2>Nenhuma ferramenta encontrada</h2>
-                <p>Tente uma ação como “converter”, uma extensão como “.pdf” ou o nome da ferramenta.</p>
+                <h2>No tool matches that</h2>
+                <p>Try an action like “convert”, an extension like “.pdf”, or the name of the tool.</p>
                 <button className="button button--light" type="button" onClick={() => setQuery("")}>
-                  Limpar busca
+                  Clear search
                 </button>
               </section>
             )}
@@ -354,16 +353,16 @@ function JobView({
 }) {
   const isQueue = activeNavigation === "queue";
   const jobs = isQueue ? runningJobs : finishedJobs;
-  const title = isQueue ? "Fila de operações" : "Histórico de resultados";
-  const emptyTitle = isQueue ? "Nenhuma operação em andamento" : "Nenhum resultado ainda";
+  const title = isQueue ? "Operation queue" : "Result history";
+  const emptyTitle = isQueue ? "Nothing running" : "No results yet";
   const emptyDescription = isQueue
-    ? "Operações iniciadas no painel de uma ferramenta continuam aqui mesmo depois de você fechar o painel. Cancelamento ainda não está disponível."
-    : "As operações concluídas ou com falha nesta sessão aparecem aqui.";
+    ? "An operation started from a tool panel keeps running here after you close the panel. Cancelling is not available yet."
+    : "Operations from this session, finished or failed, show up here.";
   const lead = jobs.length
-    ? `${jobs.length} operação(ões) nesta seção.`
+    ? `${jobs.length} operation${jobs.length === 1 ? "" : "s"} in this section.`
     : isQueue
-      ? "Nada sendo executado agora."
-      : "Nada concluído nesta sessão.";
+      ? "Nothing is running right now."
+      : "Nothing finished in this session.";
 
   return (
     <section className="job-view">
@@ -373,7 +372,7 @@ function JobView({
         <p>{lead}</p>
         {!isQueue && jobs.length > 0 && (
           <button className="button button--quiet button--small" type="button" onClick={onClearHistory}>
-            Limpar histórico da sessão
+            Clear this session
           </button>
         )}
       </div>
@@ -388,7 +387,7 @@ function JobView({
           <h2>{emptyTitle}</h2>
           <p>{emptyDescription}</p>
           <button className="button button--light" type="button" onClick={onReturn}>
-            Voltar às ferramentas
+            Back to the tools
           </button>
         </div>
       )}
@@ -397,9 +396,9 @@ function JobView({
 }
 
 const statusLabels: Record<ToolJob["status"], string> = {
-  running: "Executando",
-  succeeded: "Concluída",
-  failed: "Falhou",
+  running: "Running",
+  succeeded: "Done",
+  failed: "Failed",
 };
 
 function JobRow({ job }: { job: ToolJob }) {
@@ -433,7 +432,7 @@ function JobRow({ job }: { job: ToolJob }) {
           <span className="job-row__output">
             <code>{job.outputPath}</code>
             <button className="button button--quiet button--small" type="button" onClick={() => void copyOutputPath()}>
-              <Copy size={13} aria-hidden="true" /> {copied ? "Copiado" : "Copiar caminho"}
+              <Copy size={13} aria-hidden="true" /> {copied ? "Copied" : "Copy path"}
             </button>
           </span>
         )}
@@ -449,7 +448,7 @@ function JobRow({ job }: { job: ToolJob }) {
           <div
             className={`progress-track${percentage == null ? " progress-track--indeterminate" : ""}`}
             role="progressbar"
-            aria-label={`Progresso de ${job.operationLabel}`}
+            aria-label={`Progress of ${job.operationLabel}`}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={percentage ?? undefined}
@@ -475,32 +474,32 @@ function SettingsView({
     <section className="settings-view">
       <div className="job-view__header">
         <span className="placeholder-view__line" aria-hidden="true" />
-        <h1>Ajustes</h1>
-        <p>O que já é configurável nesta versão fica aqui. O restante permanece explicitamente pendente.</p>
+        <h1>Settings</h1>
+        <p>What this version can already configure lives here. The rest stays explicitly pending.</p>
       </div>
 
       <div className="settings-card">
         <div className="settings-card__copy">
-          <h2>Tema</h2>
-          <p>“Sistema” acompanha a preferência do Windows. A escolha fica salva neste computador.</p>
+          <h2>Theme</h2>
+          <p>“System” follows the Windows preference. Your choice is saved on this machine.</p>
         </div>
         <ThemeSwitch preference={preference} onChange={onThemeChange} variant="labelled" />
       </div>
 
       <div className="settings-card settings-card--pending">
         <div className="settings-card__copy">
-          <h2>Ainda não disponível</h2>
+          <h2>Not available yet</h2>
           <ul>
-            <li>Destino padrão, política de conflito e limite de concorrência.</li>
-            <li>Cancelamento de operações em andamento.</li>
-            <li>Fila e histórico persistidos entre reinícios.</li>
-            <li>Download interno dos componentes pesados.</li>
+            <li>Default destination, conflict policy and concurrency limit.</li>
+            <li>Cancelling an operation that is already running.</li>
+            <li>A queue and history that survive a restart.</li>
+            <li>In-app download for the four tools that are still pinned by hand.</li>
           </ul>
         </div>
       </div>
 
       <button className="button button--light" type="button" onClick={onReturn}>
-        Voltar às ferramentas
+        Back to the tools
       </button>
     </section>
   );

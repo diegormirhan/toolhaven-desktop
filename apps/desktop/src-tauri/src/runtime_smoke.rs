@@ -143,7 +143,7 @@ fn every_catalog_operation_executes_on_generated_fixtures() {
         &[("query", "NoSuchFixtureValue9382")]
     ))
     .stdout
-    .contains("Nenhuma correspondência"));
+    .contains("No match found"));
     assert!(run(request(
         "fd",
         "find",
@@ -184,7 +184,7 @@ fn every_catalog_operation_executes_on_generated_fixtures() {
         Some(json),
         &[],
     ));
-    assert!(overwrite.unwrap_err().contains("já existe"));
+    assert!(overwrite.unwrap_err().contains("already exists"));
     let markdown = root.join("sample.md");
     std::fs::write(&markdown, "# ToolHaven\n\nFixture document.\n").unwrap();
     let html = root.join("sample.html");
@@ -505,7 +505,7 @@ Fixture,5
             None,
             &[],
         ));
-        assert!(single.unwrap_err().contains("dois arquivos"));
+        assert!(single.unwrap_err().contains("both files"));
         println!("PASS difftastic/compare");
     } else {
         skipped.push("difftastic");

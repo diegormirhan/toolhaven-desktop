@@ -136,7 +136,7 @@ export function useInstallationState() {
       refreshDetection();
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : typeof error === "string" ? error : "A instalação falhou.";
+        error instanceof Error ? error.message : typeof error === "string" ? error : "The installation failed.";
       for (const id of pending) apply(id, { type: "operation.failed", message });
     } finally {
       installing.current.delete(toolId);

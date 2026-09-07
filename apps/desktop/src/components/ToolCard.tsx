@@ -12,10 +12,10 @@ type ToolCardProps = {
 
 const phaseLabels: Record<InstallationState["phase"], string> = {
   idle: "",
-  resolving: "Preparando",
-  downloading: "Baixando",
-  verifying: "Verificando",
-  installing: "Instalando",
+  resolving: "Preparing",
+  downloading: "Downloading",
+  verifying: "Verifying",
+  installing: "Installing",
 };
 
 export function ToolCard({ tool, installation, onOpen, onInstall }: ToolCardProps) {
@@ -23,14 +23,14 @@ export function ToolCard({ tool, installation, onOpen, onInstall }: ToolCardProp
   const isReady = installation.availability === "ready";
   const progress = Math.round((installation.progress ?? 0) * 100);
   const readyLabel =
-    installation.activeVersion === "system" ? "Disponível" : tool.delivery === "embedded" ? "Incluída" : "Pronta";
+    installation.activeVersion === "bundled" ? "Included" : "Ready";
 
   return (
     <article className={`tool-card tool-card--${tool.size} tool-card--${tool.accent}`}>
       <ToolArtwork toolId={tool.id} label={tool.integrationName} />
       <span className={`availability availability--${isReady ? "ready" : "available"}`}>
         {isReady ? <Check size={12} aria-hidden="true" /> : <Download size={12} aria-hidden="true" />}
-        {isReady ? readyLabel : (tool.downloadLabel ?? "Indisponível")}
+        {isReady ? readyLabel : (tool.downloadLabel ?? "Not installed")}
       </span>
 
       <div className="tool-card__content">
@@ -43,7 +43,7 @@ export function ToolCard({ tool, installation, onOpen, onInstall }: ToolCardProp
           <div className="install-error" role="alert">
             <span>{installation.lastError}</span>
             <button className="button button--light button--small" type="button" onClick={() => onInstall(tool)}>
-              Tentar novamente
+              Try again
             </button>
           </div>
         ) : isBusy ? (
@@ -55,7 +55,7 @@ export function ToolCard({ tool, installation, onOpen, onInstall }: ToolCardProp
             <div
               className={`progress-track ${installation.progress === null ? "progress-track--indeterminate" : ""}`}
               role="progressbar"
-              aria-label={`Progresso de ${tool.integrationName}`}
+              aria-label={`Progress of ${tool.integrationName}`}
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={installation.progress === null ? undefined : progress}
@@ -63,7 +63,7 @@ export function ToolCard({ tool, installation, onOpen, onInstall }: ToolCardProp
               <span style={{ inlineSize: installation.progress === null ? undefined : `${progress}%` }} />
             </div>
             {installation.phase !== "installing" && (
-              <span className="install-progress__note">Aguarde o host concluir a operação.</span>
+              <span className="install-progress__note">Waiting for the host to finish.</span>
             )}
           </div>
         ) : (
@@ -71,9 +71,9 @@ export function ToolCard({ tool, installation, onOpen, onInstall }: ToolCardProp
             className={`button ${isReady ? "button--light" : "button--primary"}`}
             type="button"
             onClick={(event) => (isReady ? onOpen(tool, event.currentTarget) : onInstall(tool))}
-            aria-label={`${isReady ? "Abrir" : "Ver disponibilidade de"} ${tool.integrationName}`}
+            aria-label={`${isReady ? "Open" : "Get"} ${tool.integrationName}`}
           >
-            {isReady ? "Abrir" : "Ver disponibilidade"}
+            {isReady ? "Open" : "Get it"}
             <ArrowUpRight size={16} aria-hidden="true" />
           </button>
         )}

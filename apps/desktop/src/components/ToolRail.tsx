@@ -22,12 +22,12 @@ export function ToolRail({ row, installations, onOpen, onInstall }: ToolRailProp
           <h2 id={`${row.id}-heading`}>{row.title}</h2>
           <p>{row.description}</p>
         </div>
-        <div className="rail-controls" aria-label={`Navegar por ${row.title}`} hidden={!hasOverflow}>
+        <div className="rail-controls" aria-label={`Browse ${row.title}`} hidden={!hasOverflow}>
           <button
             type="button"
             onClick={() => rail.scrollByPage(-1)}
             disabled={!rail.scrollable.start}
-            aria-label="Cards anteriores"
+            aria-label="Previous cards"
           >
             <ChevronLeft size={18} aria-hidden="true" />
           </button>
@@ -35,7 +35,7 @@ export function ToolRail({ row, installations, onOpen, onInstall }: ToolRailProp
             type="button"
             onClick={() => rail.scrollByPage(1)}
             disabled={!rail.scrollable.end}
-            aria-label="Próximos cards"
+            aria-label="Next cards"
           >
             <ChevronRight size={18} aria-hidden="true" />
           </button>

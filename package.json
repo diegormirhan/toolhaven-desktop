@@ -18,7 +18,8 @@
     "audit:capabilities": "node scripts/tool-manifest/audit-capabilities.mjs",
     "tauri:dev": "tauri dev --config apps/desktop/src-tauri/tauri.conf.json",
     "tauri:build": "tauri build --config apps/desktop/src-tauri/tauri.conf.json",
-    "tools:stage": "node scripts/tools/stage-embedded-tools.mjs"
+    "tools:stage": "node scripts/tools/stage-embedded-tools.mjs",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",

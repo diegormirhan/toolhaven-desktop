@@ -14,11 +14,11 @@ type InstallDialogProps = {
 };
 
 const phaseLabels: Record<InstallationState["phase"], string> = {
-  idle: "Na fila",
-  resolving: "Preparando",
-  downloading: "Baixando",
-  verifying: "Verificando",
-  installing: "Instalando",
+  idle: "Queued",
+  resolving: "Preparing",
+  downloading: "Downloading",
+  verifying: "Verifying",
+  installing: "Installing",
 };
 
 export function InstallDialog({
@@ -42,20 +42,20 @@ export function InstallDialog({
       onMouseDown={(event) => event.target === event.currentTarget && !busy && onClose()}
     >
       <section className="install-dialog" role="dialog" aria-modal="true" aria-labelledby="install-title">
-        <button className="icon-button install-dialog__close" type="button" onClick={onClose} aria-label="Fechar">
+        <button className="icon-button install-dialog__close" type="button" onClick={onClose} aria-label="Close">
           <X size={18} />
         </button>
         <div className="dialog-icon">
           <Download size={24} aria-hidden="true" />
         </div>
-        <h2 id="install-title">Instalar {tool.integrationName}</h2>
+        <h2 id="install-title">Install {tool.integrationName}</h2>
         <p className="install-dialog__lead">
           {canInstall
-            ? "O ToolHaven baixa e instala tudo abaixo sozinho. Você não precisa sair do aplicativo nem instalar nada por fora."
-            : "Este componente ainda não tem artefato versionado e hash publicados, então o app não pode instalá-lo. Ele só funciona se já estiver neste Windows."}
+            ? "ToolHaven downloads and installs everything below on its own. You never leave the app, and you never install anything by hand."
+            : "This component has no pinned artifact and hash yet, so the app cannot install it. It only works if this Windows already has it."}
         </p>
 
-        <div className="plan-list" aria-label="Plano de instalação">
+        <div className="plan-list" aria-label="Installation plan">
           {steps.map((step, index) => {
             const state = states[step.toolId];
             const progress = state?.progress == null ? null : Math.round(state.progress * 100);
@@ -67,19 +67,19 @@ export function InstallDialog({
                   <strong>{labelsById[step.toolId] ?? step.toolId}</strong>
                   <small>
                     {ready
-                      ? "Pronta"
+                      ? "Ready"
                       : state && state.phase !== "idle"
                         ? `${phaseLabels[state.phase]}${progress == null ? "…" : ` ${progress}%`}`
                         : step.reason === "dependency"
-                          ? "Dependência"
-                          : "Ferramenta solicitada"}
+                          ? "Dependency"
+                          : "Requested tool"}
                   </small>
                 </span>
                 {state && state.phase !== "idle" && !ready && (
                   <div
                     className={`progress-track${state.progress == null ? " progress-track--indeterminate" : ""}`}
                     role="progressbar"
-                    aria-label={`Progresso de ${labelsById[step.toolId] ?? step.toolId}`}
+                    aria-label={`Progress of ${labelsById[step.toolId] ?? step.toolId}`}
                     aria-valuemin={0}
                     aria-valuemax={100}
                     aria-valuenow={progress ?? undefined}
@@ -100,19 +100,19 @@ export function InstallDialog({
 
         <div className="dialog-assurances">
           <span>
-            <ShieldCheck size={16} aria-hidden="true" /> SHA-256 conferido antes de ativar
+            <ShieldCheck size={16} aria-hidden="true" /> SHA-256 checked before anything is activated
           </span>
           <span>
-            <HardDrive size={16} aria-hidden="true" /> Instalação isolada por versão, sem privilégio de administrador
+            <HardDrive size={16} aria-hidden="true" /> Installed per version, with no administrator rights
           </span>
         </div>
         <div className="dialog-actions">
           <button className="button button--quiet" type="button" onClick={onClose} disabled={busy}>
-            Fechar
+            Close
           </button>
           {canInstall && !done && (
             <button className="button button--primary" type="button" onClick={onInstall} disabled={busy}>
-              {busy ? "Instalando…" : failure ? "Tentar novamente" : "Baixar e instalar"}
+              {busy ? "Installing…" : failure ? "Try again" : "Download and install"}
             </button>
           )}
         </div>

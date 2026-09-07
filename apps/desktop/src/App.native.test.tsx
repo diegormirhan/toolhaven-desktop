@@ -78,10 +78,10 @@ async function startDownload() {
   const operation = pendingOperation();
   const user = userEvent.setup();
   render(<App />);
-  await user.click(await screen.findByRole('button', { name: /abrir yt-dlp/i }));
-  await user.type(screen.getByLabelText('URL de mídia'), 'https://example.com/video');
+  await user.click(await screen.findByRole('button', { name: /open yt-dlp/i }));
+  await user.type(screen.getByLabelText('Media URL'), 'https://example.com/video');
   vi.mocked(save).mockResolvedValue('C:\\videos\\video.mp4');
-  await user.click(screen.getByRole('button', { name: 'Executar' }));
+  await user.click(screen.getByRole('button', { name: 'Run' }));
   return { operation, user };
 }
 
@@ -94,29 +94,29 @@ it('keeps a running operation in the queue after its tool panel is closed', asyn
     operationId: 'download-video',
     phase: 'downloading',
     progress: 0.37,
-    message: 'Baixando mídia…',
+    message: 'Downloading media…',
   });
 
-  await user.click(screen.getByRole('button', { name: 'Fechar ferramenta' }));
-  await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Baixar mídia' })).not.toBeInTheDocument());
+  await user.click(screen.getByRole('button', { name: 'Close tool' }));
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Download media' })).not.toBeInTheDocument());
 
-  await user.click(screen.getByRole('button', { name: /fila, 1 em execução/i }));
+  await user.click(screen.getByRole('button', { name: /queue, 1 running/i }));
 
-  const row = screen.getByRole('article', { name: /baixar vídeo/i });
-  expect(within(row).getByText(/Executando 37%/)).toBeVisible();
+  const row = screen.getByRole('article', { name: /download video/i });
+  expect(within(row).getByText(/Running 37%/)).toBeVisible();
   expect(within(row).getByRole('progressbar')).toHaveAttribute('aria-valuenow', '37');
 });
 
 it('moves a finished background operation to the history with its output path', async () => {
   const { operation, user } = await startDownload();
 
-  await user.click(screen.getByRole('button', { name: 'Fechar ferramenta' }));
+  await user.click(screen.getByRole('button', { name: 'Close tool' }));
   operation.finish({ stdout: '', outputPath: 'C:\\videos\\video.mp4' });
 
-  await user.click(screen.getByRole('button', { name: 'Histórico' }));
+  await user.click(screen.getByRole('button', { name: 'History' }));
 
-  const row = await screen.findByRole('article', { name: /baixar vídeo/i });
-  expect(within(row).getByText('Concluída')).toBeVisible();
+  const row = await screen.findByRole('article', { name: /download video/i });
+  expect(within(row).getByText('Done')).toBeVisible();
   expect(within(row).getByText('C:\\videos\\video.mp4')).toBeVisible();
 });
 
@@ -128,16 +128,16 @@ it('records a failed background operation instead of dropping it', async () => {
   const user = userEvent.setup();
   render(<App />);
 
-  await user.click(await screen.findByRole('button', { name: /abrir yt-dlp/i }));
-  await user.type(screen.getByLabelText('URL de mídia'), 'https://example.com/video');
+  await user.click(await screen.findByRole('button', { name: /open yt-dlp/i }));
+  await user.type(screen.getByLabelText('Media URL'), 'https://example.com/video');
   vi.mocked(save).mockResolvedValue('C:\\videos\\video.mp4');
-  await user.click(screen.getByRole('button', { name: 'Executar' }));
+  await user.click(screen.getByRole('button', { name: 'Run' }));
 
-  await user.click(screen.getByRole('button', { name: 'Fechar ferramenta' }));
-  await user.click(screen.getByRole('button', { name: 'Histórico' }));
+  await user.click(screen.getByRole('button', { name: 'Close tool' }));
+  await user.click(screen.getByRole('button', { name: 'History' }));
 
-  const row = await screen.findByRole('article', { name: /baixar vídeo/i });
-  expect(within(row).getByText('Falhou')).toBeVisible();
+  const row = await screen.findByRole('article', { name: /download video/i });
+  expect(within(row).getByText('Failed')).toBeVisible();
   expect(within(row).getByText(/yt-dlp.exe falhou/)).toBeVisible();
 });
 
@@ -149,10 +149,10 @@ it('sends a job id so the host can address progress to one queue entry', async (
 it('accepts a file dropped on the window instead of only the picker button', async () => {
   vi.mocked(invoke).mockResolvedValue(['qpdf']);
   render(<App />);
-  await screen.findByRole('button', { name: /abrir qpdf/i });
+  await screen.findByRole('button', { name: /open qpdf/i });
 
   act(() => emitDragDrop({ type: 'enter', paths: ['C:\\fixtures\\contrato.pdf'] }));
-  expect(await screen.findByText('Solte o arquivo aqui')).toBeVisible();
+  expect(await screen.findByText('Drop the file here')).toBeVisible();
 
   act(() => emitDragDrop({ type: 'drop', paths: ['C:\\fixtures\\contrato.pdf'] }));
   expect(await screen.findByText('contrato.pdf')).toBeVisible();
@@ -163,20 +163,20 @@ it('hands a dropped file to the tool panel that is already open', async () => {
   const user = userEvent.setup();
   render(<App />);
 
-  await user.click(await screen.findByRole('button', { name: /abrir qpdf/i }));
+  await user.click(await screen.findByRole('button', { name: /open qpdf/i }));
   act(() => emitDragDrop({ type: 'drop', paths: ['C:\\fixtures\\contrato.pdf'] }));
 
-  const panel = screen.getByRole('dialog', { name: 'Organizar PDFs' });
+  const panel = screen.getByRole('dialog', { name: 'Organise PDFs' });
   expect(await within(panel).findByText('contrato.pdf')).toBeVisible();
 });
 
 it('does not claim a percentage before the tool reports one', async () => {
   const { user } = await startDownload();
 
-  await user.click(screen.getByRole('button', { name: /fila, 1 em execução/i }));
+  await user.click(screen.getByRole('button', { name: /queue, 1 running/i }));
 
-  const row = screen.getByRole('article', { name: /baixar vídeo/i });
-  expect(within(row).getByText('Executando')).toBeVisible();
+  const row = screen.getByRole('article', { name: /download video/i });
+  expect(within(row).getByText('Running')).toBeVisible();
   expect(within(row).queryByText(/%/)).not.toBeInTheDocument();
   expect(within(row).getByRole('progressbar')).not.toHaveAttribute('aria-valuenow');
 });
@@ -190,12 +190,12 @@ it('shows the live host message on the queued row', async () => {
     operationId: 'download-video',
     phase: 'downloading',
     progress: null,
-    message: 'Juntando vídeo e áudio…',
+    message: 'Merging video and audio…',
   });
 
-  await user.click(screen.getByRole('button', { name: /fila, 1 em execução/i }));
+  await user.click(screen.getByRole('button', { name: /queue, 1 running/i }));
 
-  expect(within(screen.getByRole('article', { name: /baixar vídeo/i })).getByText('Juntando vídeo e áudio…')).toBeVisible();
+  expect(within(screen.getByRole('article', { name: /download video/i })).getByText('Merging video and audio…')).toBeVisible();
 });
 
 it('installs a component from inside the app and shows its progress', async () => {
@@ -213,17 +213,17 @@ it('installs a component from inside the app and shows its progress', async () =
 
   const user = userEvent.setup();
   render(<App />);
-  await user.click(await screen.findByRole('button', { name: /ver disponibilidade de qpdf/i }));
-  await user.click(screen.getByRole('button', { name: 'Baixar e instalar' }));
+  await user.click(await screen.findByRole('button', { name: /get qpdf/i }));
+  await user.click(screen.getByRole('button', { name: 'Download and install' }));
 
   expect(invoke).toHaveBeenCalledWith('install_component', { toolId: 'qpdf' });
 
   act(() => emitOn('component-progress', { toolId: 'qpdf', phase: 'downloading', progress: 0.5, message: 'Baixando…' }));
-  const dialog = screen.getByRole('dialog', { name: /instalar qpdf/i });
-  expect(within(dialog).getByText(/Baixando 50%/)).toBeVisible();
+  const dialog = screen.getByRole('dialog', { name: /install qpdf/i });
+  expect(within(dialog).getByText(/Downloading 50%/)).toBeVisible();
 
   await act(async () => { finishInstall?.(); });
-  expect(await screen.findByRole('button', { name: /abrir qpdf/i })).toBeVisible();
+  expect(await screen.findByRole('button', { name: /open qpdf/i })).toBeVisible();
 });
 
 it('keeps a component that cannot be pinned out of the install flow', async () => {
@@ -231,8 +231,8 @@ it('keeps a component that cannot be pinned out of the install flow', async () =
   const user = userEvent.setup();
   render(<App />);
 
-  await user.click(await screen.findByRole('button', { name: /ver disponibilidade de 7-zip/i }));
+  await user.click(await screen.findByRole('button', { name: /get 7-zip/i }));
 
-  expect(screen.queryByRole('button', { name: 'Baixar e instalar' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Download and install' })).not.toBeInTheDocument();
   expect(invoke).not.toHaveBeenCalledWith('install_component', expect.anything());
 });

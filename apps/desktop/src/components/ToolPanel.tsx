@@ -88,7 +88,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
           className="icon-button"
           type="button"
           onClick={onClose}
-          aria-label="Fechar ferramenta"
+          aria-label="Close tool"
         >
           <X size={18} />
         </button>
@@ -99,9 +99,9 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
 
         {tool.operations.length > 0 && (
           <label className="operation-select">
-            <span>Operação</span>
+            <span>Operation</span>
             <select
-              aria-label="Operação"
+              aria-label="Operation"
               value={selectedOperationId}
               onChange={(event) => {
                 setSelectedOperationId(event.target.value);
@@ -132,9 +132,9 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
 
         {tool.id === "yt-dlp" && (
           <label className="source-url">
-            <span>URL de mídia</span>
+            <span>Media URL</span>
             <input
-              aria-label="URL de mídia"
+              aria-label="Media URL"
               type="url"
               placeholder="https://..."
               value={sourceUrl}
@@ -151,13 +151,13 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
         {requiresOutput(tool.id, selectedOperationId) && (
           <div className="tool-option">
             <span>
-              <strong>Destino</strong>
-              <small>{outputPath || "Escolha o destino ao executar. A extensão define o formato."}</small>
+              <strong>Destination</strong>
+              <small>{outputPath || "Choose the destination when you run it. The extension decides the format."}</small>
             </span>
             <button
               className="icon-button"
               type="button"
-              aria-label="Escolher destino"
+              aria-label="Choose destination"
               onClick={() => void chooseNativeOutput().catch(handleFormError)}
             >
               <FolderOpen size={18} />
@@ -185,7 +185,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
               <div
                 className={`progress-track progress-track--operation${currentJob.progress == null ? " progress-track--indeterminate" : ""}`}
                 role="progressbar"
-                aria-label="Progresso da operação"
+                aria-label="Operation progress"
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={currentJob.progress == null ? undefined : Math.round(currentJob.progress * 100)}
@@ -194,17 +194,17 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
                   style={{ inlineSize: currentJob.progress == null ? undefined : `${currentJob.progress * 100}%` }}
                 />
               </div>
-              <p className="tool-panel__hint">Pode fechar esta ferramenta: a tarefa continua na Fila.</p>
+              <p className="tool-panel__hint">You can close this tool: the job keeps running in the Queue.</p>
             </>
           ) : (
             <p>
               {currentJob?.status === "succeeded" ? (
                 <>
-                  <Check size={14} aria-hidden="true" /> Tarefa concluída e registrada no histórico.
+                  <Check size={14} aria-hidden="true" /> Done, and recorded in the history.
                 </>
               ) : currentJob?.status === "failed" ? (
                 <>
-                  <AlertTriangle size={14} aria-hidden="true" /> A tarefa falhou. O arquivo original foi preservado.
+                  <AlertTriangle size={14} aria-hidden="true" /> The job failed. Your original file was left untouched.
                 </>
               ) : (
                 idleHint(tool.id)
@@ -218,7 +218,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
           disabled={!canRun || isRunning}
           onClick={() => void startOperation()}
         >
-          <Play size={16} aria-hidden="true" /> {isRunning ? "Executando" : "Executar"}
+          <Play size={16} aria-hidden="true" /> {isRunning ? "Running" : "Run"}
         </button>
       </div>
     </aside>
@@ -228,13 +228,13 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
     const label = selectedFileNames.length
       ? selectedFileNames.join(", ")
       : folderTools.includes(tool.id)
-        ? "Escolher pasta do projeto"
+        ? "Choose the project folder"
         : tool.id === "difftastic"
-          ? "Escolher os dois arquivos"
-          : "Escolher arquivos";
+          ? "Choose both files"
+          : "Choose files";
     const hint = selectedFileNames.length
-      ? `${selectedFileNames.length} arquivo(s) selecionado(s)`
-      : "ou clique para escolher";
+      ? `${selectedFileNames.length} file${selectedFileNames.length === 1 ? "" : "s"} selected`
+      : "or click to choose";
 
     // The native host must receive real Windows paths, so it opens a system dialog.
     // A file input would only expose a bare file name to the WebView.
@@ -257,7 +257,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
         <input
           type="file"
           multiple
-          aria-label="Escolher arquivos"
+          aria-label="Choose files"
           onChange={(event) => {
             setSelectedFiles(Array.from(event.target.files ?? []).map((file) => ({ name: file.name, path: file.name })));
             resetFeedback();
@@ -317,7 +317,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
           sourceUrl: sourceUrl.trim() || null,
         },
         toolName: tool.title,
-        operationLabel: selectedOperation?.label ?? "Executar operação",
+        operationLabel: selectedOperation?.label ?? "Run operation",
         sourceLabel: sourceUrl.trim() || selectedFileNames.join(", ") || tool.integrationName,
       });
       if (jobId) setCurrentJobId(jobId);
@@ -329,14 +329,14 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
   async function pickOutputForOperation() {
     if (tool.id === "7zip" && selectedOperationId === "extract") {
       const selected = await open({ directory: true, multiple: false });
-      if (typeof selected !== "string") throw new Error("Escolha uma pasta de destino para continuar.");
+      if (typeof selected !== "string") throw new Error("Choose a destination folder to continue.");
       setOutputPath(selected);
       return selected;
     }
     const selected = await save({
       defaultPath: suggestedOutputName(selectedFiles[0]?.path, selectedOperationId, tool.id),
     });
-    if (!selected) throw new Error("Escolha um arquivo de saída para continuar.");
+    if (!selected) throw new Error("Choose an output file to continue.");
     setOutputPath(selected);
     return selected;
   }
@@ -347,21 +347,21 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
         ? error.message
         : typeof error === "string"
           ? error
-          : "Não foi possível executar a operação.",
+          : "The operation could not be started.",
     );
   }
 }
 
 function jobResultText(job: ToolJob): string {
-  return job.outputPath ? `${job.message}\nSaída: ${job.outputPath}` : job.message;
+  return job.outputPath ? `${job.message}\nOutput: ${job.outputPath}` : job.message;
 }
 
 function idleHint(toolId: string): string {
-  if (toolId === "yt-dlp") return "Adicione uma URL ou arquivo para habilitar a execução.";
-  if (toolId === "deno") return "Consulte a versão instalada no host Windows.";
-  if (toolId === "difftastic") return "Escolha dois arquivos para comparar.";
-  if (folderTools.includes(toolId)) return "Escolha uma pasta para habilitar a execução.";
-  return "Adicione arquivos para habilitar a execução.";
+  if (toolId === "yt-dlp") return "Add a URL or a file to enable the run.";
+  if (toolId === "deno") return "Reports the version installed on this Windows.";
+  if (toolId === "difftastic") return "Choose two files to compare.";
+  if (folderTools.includes(toolId)) return "Choose a folder to enable the run.";
+  return "Add files to enable the run.";
 }
 
 function OperationOptions({
@@ -378,7 +378,7 @@ function OperationOptions({
   const fields = operationFields(toolId, operationId);
   if (fields.length === 0) return null;
   return (
-    <div className="operation-options" aria-label="Opções da operação">
+    <div className="operation-options" aria-label="Operation options">
       {fields.map((field) => (
         <label key={field.key}>
           <span>{field.label}</span>
@@ -407,49 +407,49 @@ function operationFields(
 }> {
   if (toolId === "ffmpeg" && operationId === "trim")
     return [
-      { key: "start", label: "Início (segundos)", type: "number", defaultValue: "0" },
-      { key: "end", label: "Fim (segundos)", type: "number", defaultValue: "10" },
+      { key: "start", label: "Start (seconds)", type: "number", defaultValue: "0" },
+      { key: "end", label: "End (seconds)", type: "number", defaultValue: "10" },
     ];
   if (toolId === "ffmpeg" && operationId === "compress")
-    return [{ key: "crf", label: "Qualidade (CRF)", type: "number", defaultValue: "23" }];
+    return [{ key: "crf", label: "Quality (CRF)", type: "number", defaultValue: "23" }];
   if (toolId === "qpdf" && operationId === "split")
-    return [{ key: "pages", label: "Páginas", type: "text", defaultValue: "1-z" }];
+    return [{ key: "pages", label: "Pages", type: "text", defaultValue: "1-z" }];
   if (toolId === "qpdf" && operationId === "rotate")
-    return [{ key: "degrees", label: "Graus", type: "number", defaultValue: "90" }];
+    return [{ key: "degrees", label: "Degrees", type: "number", defaultValue: "90" }];
   if (toolId === "qpdf" && operationId === "protect")
-    return [{ key: "password", label: "Senha do PDF", type: "password", placeholder: "Digite uma senha" }];
+    return [{ key: "password", label: "PDF password", type: "password", placeholder: "Type a password" }];
   if ((toolId === "jq" || toolId === "yq") && operationId === "query")
-    return [{ key: "query", label: "Expressão", type: "text", defaultValue: "." }];
+    return [{ key: "query", label: "Expression", type: "text", defaultValue: "." }];
   if (toolId === "ripgrep" && operationId === "search")
-    return [{ key: "query", label: "Texto ou regex", type: "text", placeholder: "ex.: TODO" }];
+    return [{ key: "query", label: "Text or regex", type: "text", placeholder: "e.g. TODO" }];
   if (toolId === "fd" && operationId === "find")
-    return [{ key: "query", label: "Nome ou extensão", type: "text", placeholder: "ex.: .ts" }];
+    return [{ key: "query", label: "Name or extension", type: "text", placeholder: "e.g. .ts" }];
   if (toolId === "libvips" && (operationId === "resize" || operationId === "upscale"))
-    return [{ key: "scale", label: "Escala", type: "number", defaultValue: operationId === "upscale" ? "2" : "1" }];
+    return [{ key: "scale", label: "Scale", type: "number", defaultValue: operationId === "upscale" ? "2" : "1" }];
   if (toolId === "libvips" && operationId === "crop")
     return [
-      { key: "left", label: "Esquerda", type: "number", defaultValue: "0" },
-      { key: "top", label: "Topo", type: "number", defaultValue: "0" },
-      { key: "width", label: "Largura", type: "number", defaultValue: "100" },
-      { key: "height", label: "Altura", type: "number", defaultValue: "100" },
+      { key: "left", label: "Left", type: "number", defaultValue: "0" },
+      { key: "top", label: "Top", type: "number", defaultValue: "0" },
+      { key: "width", label: "Width", type: "number", defaultValue: "100" },
+      { key: "height", label: "Height", type: "number", defaultValue: "100" },
     ];
   if (toolId === "libvips" && operationId === "compress")
-    return [{ key: "quality", label: "Qualidade", type: "number", defaultValue: "80" }];
+    return [{ key: "quality", label: "Quality", type: "number", defaultValue: "80" }];
   if (toolId === "poppler" && operationId === "rasterize")
     return [
-      { key: "page", label: "Página", type: "number", defaultValue: "1" },
-      { key: "dpi", label: "Resolução (DPI)", type: "number", defaultValue: "150" },
+      { key: "page", label: "Page", type: "number", defaultValue: "1" },
+      { key: "dpi", label: "Resolution (DPI)", type: "number", defaultValue: "150" },
     ];
   if (toolId === "oxipng" && operationId === "optimize")
-    return [{ key: "level", label: "Nível (0–6 ou max)", type: "text", defaultValue: "2" }];
+    return [{ key: "level", label: "Level (0–6 or max)", type: "text", defaultValue: "2" }];
   if (toolId === "exiftool" && operationId === "set-title")
-    return [{ key: "title", label: "Título", type: "text", placeholder: "ex.: Contrato assinado" }];
+    return [{ key: "title", label: "Title", type: "text", placeholder: "e.g. Signed contract" }];
   if (toolId === "hexyl" && operationId === "preview")
     return [{ key: "length", label: "Bytes", type: "number", defaultValue: "256" }];
   if (toolId === "dust" && operationId === "usage")
     return [
-      { key: "depth", label: "Profundidade", type: "number", defaultValue: "2" },
-      { key: "lines", label: "Linhas", type: "number", defaultValue: "20" },
+      { key: "depth", label: "Depth", type: "number", defaultValue: "2" },
+      { key: "lines", label: "Rows", type: "number", defaultValue: "20" },
     ];
   return [];
 }

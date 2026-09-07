@@ -46,7 +46,7 @@ export function useJobQueue() {
         status: "running",
         // Null, not zero: until the tool reports a percentage there is none to show.
         progress: null,
-        message: "Preparando operação…",
+        message: "Preparing the operation…",
         outputPath: null,
         startedAt: Date.now(),
       },

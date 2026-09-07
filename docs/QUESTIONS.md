@@ -33,9 +33,9 @@ contorna.
 Estas são o estado atual da implementação. Se a resposta for outra, o custo de mudar
 ainda é baixo — por isso continuam listadas.
 
-11. **Idioma da interface:** hoje é português do Brasil, com identificadores e
-   comentários em inglês. Uma segunda língua não está planejada nem preparada
-   (não há infraestrutura de i18n). Confirmar se v1 é monolíngue pt-BR.
+11. **Idioma da interface:** decidido em 2026-09-07 — a interface, as mensagens do host
+    e o README são em inglês. Não há infraestrutura de i18n, então uma segunda língua
+    seria reescrever cada string. Os documentos em `docs/` seguem em português.
 12. **Ponto de partida do fluxo:** o catálogo é a rota principal e “escolher arquivo
     primeiro” é um atalho opcional na tela inicial. A recomendação anterior era o
     inverso; a implementação seguiu o catálogo por causa dos estados de instalação.

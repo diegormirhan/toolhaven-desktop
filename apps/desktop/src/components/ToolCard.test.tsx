@@ -6,8 +6,8 @@ import { ToolCard } from "./ToolCard";
 const tool: CatalogTool = {
   id: "ffmpeg",
   integrationName: "FFmpeg",
-  title: "Converter mídia",
-  description: "Converta mídia localmente.",
+  title: "Convert media",
+  description: "Convert media locally.",
   category: "downloads",
   availability: "available",
   delivery: "on-demand",
@@ -31,14 +31,14 @@ describe("ToolCard error state", () => {
           activeVersion: null,
           candidateVersion: null,
           progress: null,
-          lastError: "Não foi possível verificar o arquivo.",
+          lastError: "The file could not be verified.",
         }}
         onOpen={vi.fn()}
         onInstall={vi.fn()}
       />,
     );
 
-    expect(screen.getByRole("alert")).toHaveTextContent("Não foi possível verificar o arquivo.");
-    expect(screen.getByRole("button", { name: "Tentar novamente" })).toBeEnabled();
+    expect(screen.getByRole("alert")).toHaveTextContent("The file could not be verified.");
+    expect(screen.getByRole("button", { name: "Try again" })).toBeEnabled();
   });
 });

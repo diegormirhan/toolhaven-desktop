@@ -24,7 +24,7 @@ type OperationProgressEvent = {
 };
 
 const browserPreviewNotice =
-  "Abra o app ToolHaven para executar operações no Windows. Esta página é apenas a interface de pré-visualização.";
+  "Open the ToolHaven app to run operations on Windows. This page is the interface preview only.";
 
 /**
  * Runs operations against the native host and mirrors them in the session queue.
@@ -68,7 +68,7 @@ export function useOperationRunner() {
 
     void executeOnHost(request, jobId)
       .then((result) => {
-        const message = result.stdout.trim() || result.message || "Operação concluída no host Windows.";
+        const message = result.stdout.trim() || result.message || "Finished on the Windows host.";
         queue.settleJob(jobId, { status: "succeeded", message, outputPath: result.outputPath ?? null });
       })
       .catch((error: unknown) => {
@@ -89,7 +89,7 @@ async function executeOnHost(request: OperationRequest, jobId: string): Promise<
 function describeError(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
-  return "Não foi possível executar a operação.";
+  return "The operation could not be run.";
 }
 
 export function isNativeHost(): boolean {

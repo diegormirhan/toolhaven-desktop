@@ -121,7 +121,7 @@ async fn install_component(app: tauri::AppHandle, tool_id: String) -> Result<Vec
         Ok(installed)
     })
     .await
-    .map_err(|error| format!("A instalação foi interrompida: {error}"))?
+    .map_err(|error| format!("The installation was interrupted: {error}"))?
 }
 
 #[tauri::command]
@@ -135,7 +135,7 @@ async fn execute_operation(
         })
     })
     .await
-    .map_err(|error| format!("A tarefa foi interrompida: {error}"))?
+    .map_err(|error| format!("The job was interrupted: {error}"))?
 }
 
 #[cfg(test)]
@@ -180,10 +180,10 @@ fn execute_operation_with_progress(
         command.creation_flags(0x08000000); // CREATE_NO_WINDOW keeps CLI children out of the desktop.
     }
     let completion_message = if request.tool_id == "yt-dlp" {
-        "Download concluído.".into()
+        "Download finished.".into()
     } else if request.tool_id == "libvips" && request.operation_id == "upscale" {
         format!(
-            "Imagem ampliada em {}× com Lanczos3.",
+            "Image enlarged {}× with Lanczos3.",
             request
                 .options
                 .get("scale")
@@ -191,7 +191,7 @@ fn execute_operation_with_progress(
                 .unwrap_or("2")
         )
     } else {
-        "Operação concluída.".into()
+        "Operation finished.".into()
     };
     report_progress(OperationProgress {
         job_id: request.job_id.clone(),
@@ -207,11 +207,11 @@ fn execute_operation_with_progress(
             "download-video" | "download-audio"
         ) {
         run_download_process(&mut command, &request, report_progress)
-            .map_err(|error| format!("Não foi possível iniciar {executable}: {error}"))?
+            .map_err(|error| format!("Could not start {executable}: {error}"))?
     } else {
         command
             .output()
-            .map_err(|error| format!("Não foi possível iniciar {executable}: {error}"))?
+            .map_err(|error| format!("Could not start {executable}: {error}"))?
     };
 
     let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
@@ -245,7 +245,7 @@ fn execute_operation_with_progress(
     Ok(OperationResult {
         executable,
         stdout: if no_matches {
-            "Nenhuma correspondência encontrada.".into()
+            "No match found.".into()
         } else {
             stdout
         },
@@ -317,15 +317,15 @@ fn parse_download_percentage(line: &str) -> Option<f64> {
 fn friendly_download_message(line: &str) -> String {
     let normalized = line.trim();
     if normalized.is_empty() {
-        "Baixando mídia…".into()
+        "Downloading media…".into()
     } else if normalized.contains("Extracting") || normalized.contains("[ExtractAudio]") {
-        "Convertendo o áudio…".into()
+        "Converting the audio…".into()
     } else if normalized.contains("[Merger]") {
-        "Juntando vídeo e áudio…".into()
+        "Merging video and audio…".into()
     } else if normalized.contains("[VideoRemuxer]") || normalized.contains("[VideoConvertor]") {
-        "Ajustando o contêiner…".into()
+        "Adjusting the container…".into()
     } else if normalized.contains("Destination:") {
-        "Preparando arquivo de destino…".into()
+        "Preparing the destination file…".into()
     } else {
         normalized.to_string()
     }
@@ -339,30 +339,30 @@ fn validate_request(request: &OperationRequest) -> Result<(), String> {
             ("deno", "runtime")
         )
     {
-        return Err("Selecione um arquivo ou informe uma URL.".into());
+        return Err("Select a file or provide a URL.".into());
     }
     for path in &request.input_paths {
         if path.trim().is_empty() || path.contains('\0') {
-            return Err("O caminho de entrada é inválido.".into());
+            return Err("That input path is not valid.".into());
         }
         if !std::path::Path::new(path).exists() {
             return Err(format!(
-                "Arquivo ou pasta de entrada não encontrado: {path}"
+                "Input file or folder not found: {path}"
             ));
         }
     }
     if request.tool_id == "difftastic" && request.input_paths.len() < 2 {
-        return Err("Escolha os dois arquivos que devem ser comparados.".into());
+        return Err("Choose both files that should be compared.".into());
     }
     if let Some(output_path) = &request.output_path {
         if output_path.trim().is_empty() || output_path.contains('\0') {
-            return Err("O caminho de saída é inválido.".into());
+            return Err("That output path is not valid.".into());
         }
         let target = std::path::Path::new(output_path);
         let extracting = request.tool_id == "7zip" && request.operation_id == "extract";
         if operation_writes_file(request) && target.exists() && !extracting {
             return Err(
-                "O destino já existe. Escolha outro nome para preservar o arquivo original.".into(),
+                "That destination already exists. Choose another name so the original survives.".into(),
             );
         }
         if extracting
@@ -373,7 +373,7 @@ fn validate_request(request: &OperationRequest) -> Result<(), String> {
                     .next()
                     .is_some())
         {
-            return Err("Escolha uma pasta vazia para extrair sem sobrescrever arquivos.".into());
+            return Err("Choose an empty folder so extracting overwrites nothing.".into());
         }
     }
     if let Some(source_url) = &request.source_url {
@@ -381,7 +381,7 @@ fn validate_request(request: &OperationRequest) -> Result<(), String> {
         if request.tool_id != "yt-dlp"
             || !(trimmed.starts_with("https://") || trimmed.starts_with("http://"))
         {
-            return Err("A URL de origem deve ser HTTP(S) e só é aceita pelo yt-dlp.".into());
+            return Err("The source URL must be HTTP(S), and only yt-dlp accepts one.".into());
         }
     }
     validate_options(request)?;
@@ -398,7 +398,7 @@ fn validate_options(request: &OperationRequest) -> Result<(), String> {
             .map(|title| title.trim().is_empty())
             .unwrap_or(true)
     {
-        return Err("Informe o título que deve ser gravado no arquivo.".into());
+        return Err("Type the title that should be written into the file.".into());
     }
     if request.tool_id == "poppler" && request.operation_id == "rasterize" {
         let dpi = request
@@ -407,9 +407,9 @@ fn validate_options(request: &OperationRequest) -> Result<(), String> {
             .map(String::as_str)
             .unwrap_or("150")
             .parse::<f64>()
-            .map_err(|_| "A resolução deve ser um número.".to_string())?;
+            .map_err(|_| "The resolution must be a number.".to_string())?;
         if !dpi.is_finite() || dpi <= 0.0 || dpi > 2400.0 {
-            return Err("A resolução precisa estar entre 1 e 2400 DPI.".into());
+            return Err("The resolution must be between 1 and 2400 DPI.".into());
         }
         let page = request
             .options
@@ -417,9 +417,9 @@ fn validate_options(request: &OperationRequest) -> Result<(), String> {
             .map(String::as_str)
             .unwrap_or("1")
             .parse::<u32>()
-            .map_err(|_| "A página deve ser um número inteiro.".to_string())?;
+            .map_err(|_| "The page must be a whole number.".to_string())?;
         if page == 0 {
-            return Err("A primeira página é a número 1.".into());
+            return Err("Page numbering starts at 1.".into());
         }
     }
     if request.tool_id == "oxipng" && request.operation_id == "optimize" {
@@ -430,7 +430,7 @@ fn validate_options(request: &OperationRequest) -> Result<(), String> {
             .unwrap_or("2");
         let accepted = level == "max" || matches!(level.parse::<u8>(), Ok(0..=6));
         if !accepted {
-            return Err("O nível de otimização vai de 0 a 6, ou \"max\".".into());
+            return Err("The optimisation level runs from 0 to 6, or \"max\".".into());
         }
     }
     if request.tool_id == "libvips" && matches!(request.operation_id.as_str(), "resize" | "upscale")
@@ -446,13 +446,13 @@ fn validate_options(request: &OperationRequest) -> Result<(), String> {
             .map(String::as_str)
             .unwrap_or(default_scale)
             .parse::<f64>()
-            .map_err(|_| "A escala deve ser um número.".to_string())?;
+            .map_err(|_| "The scale must be a number.".to_string())?;
         if !scale.is_finite() || scale <= 0.0 || (request.operation_id == "upscale" && scale <= 1.0)
         {
             return Err(if request.operation_id == "upscale" {
-                "O aumento precisa ser maior que 1×.".into()
+                "An upscale has to be larger than 1×.".into()
             } else {
-                "A escala precisa ser maior que zero.".into()
+                "The scale has to be greater than zero.".into()
             });
         }
     }
@@ -484,7 +484,7 @@ fn executable_name(tool_id: &str) -> Result<String, String> {
         "tokei" => "tokei.exe",
         "difftastic" => "difft.exe",
         "dust" => "dust.exe",
-        _ => return Err(format!("Ferramenta não cadastrada: {tool_id}")),
+        _ => return Err(format!("Unregistered tool: {tool_id}")),
     };
     Ok(executable.into())
 }
@@ -509,7 +509,7 @@ fn resolve_suite_executable(tool_id: &str, executable: &str) -> Result<std::path
         return Ok(sibling);
     }
     Err(format!(
-        "{executable} não foi encontrado junto do Poppler em {}.",
+        "{executable} was not found beside Poppler in {}.",
         probe.parent().map(|parent| parent.display().to_string()).unwrap_or_default()
     ))
 }
@@ -555,7 +555,7 @@ fn resolve_executable(executable: &str) -> Result<std::path::PathBuf, String> {
         return Ok(candidate);
     }
     Err(format!(
-        "{executable} ainda não está disponível. Ele não vem no instalador e o download integrado deste componente ainda não foi implementado."
+        "{executable} is not available yet. It does not ship in the installer, and the in-app download for this component is not implemented."
     ))
 }
 
@@ -832,7 +832,7 @@ fn resolve_args(request: &OperationRequest) -> Result<Vec<String>, String> {
                 .input_paths
                 .get(1)
                 .cloned()
-                .ok_or("Escolha os dois arquivos que devem ser comparados.")?,
+                .ok_or("Choose both files that should be compared.")?,
         ]),
         ("dust", "usage") => Ok(vec![
             "--no-colors".into(),
@@ -903,7 +903,7 @@ fn resolve_args(request: &OperationRequest) -> Result<Vec<String>, String> {
         ]),
         ("libvips", "convert") => Ok(vec!["copy".into(), input, output]),
         _ => Err(format!(
-            "Operação não suportada: {}/{}",
+            "Unsupported operation: {}/{}",
             request.tool_id, request.operation_id
         )),
     }
@@ -1013,11 +1013,11 @@ mod tests {
         );
         assert_eq!(
             friendly_download_message("[ExtractAudio] Destination: audio.mp3"),
-            "Convertendo o áudio…"
+            "Converting the audio…"
         );
         assert_eq!(
             friendly_download_message("[Merger] Merging formats into \"video.mp4\""),
-            "Juntando vídeo e áudio…"
+            "Merging video and audio…"
         );
     }
 
@@ -1169,7 +1169,7 @@ mod tests {
         };
         assert!(validate_request(&request)
             .unwrap_err()
-            .contains("maior que 1"));
+            .contains("larger than 1"));
     }
 
     #[test]
