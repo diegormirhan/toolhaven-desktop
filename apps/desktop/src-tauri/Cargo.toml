@@ -1,6 +1,6 @@
 [package]
 name = "toolhaven"
-version = "0.1.0"
+version = "1.0.0"
 description = "Desktop toolkit for local media, image, PDF and developer workflows"
 authors = ["Mirha"]
 license = "MIT"

@@ -6,6 +6,9 @@ dist/
 target/
 apps/desktop/src-tauri/gen/
 
+# Local release artifacts staged for GitHub Releases
+/release-*/
+
 # Generated third-party binaries and build staging
 vendor/*
 !vendor/README.md
