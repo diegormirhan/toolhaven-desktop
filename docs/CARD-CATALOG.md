@@ -1,46 +1,46 @@
 # Dynamic tool catalog
 
-## Intenção
+## Intent
 
-O catálogo deve ter a facilidade de descoberta por faixas associada à Netflix e o
-peso visual dos tiles associados ao Fortnite, adaptados a uma ferramenta desktop.
-O card não é decoração: ele é a porta de entrada, o status de instalação e a ação
-primária de cada ferramenta.
+The catalog should have the discoverability people associate with Netflix's rails and the
+visual weight of Fortnite's tiles, adapted to a desktop tool. A card is not decoration:
+it is the entry point, the installation status and the primary action for one tool.
 
-## Estrutura da primeira tela
+## The first screen
 
-1. **Continue de onde parou:** jobs recentes ou ferramentas usadas recentemente.
-2. **Instaladas:** ferramentas prontas, fixadas primeiro.
-3. **Mídia e downloads:** vídeo, áudio e yt-dlp.
-4. **Arquivos, imagens e documentos:** resize, crop, compressão, conversão e PDFs.
-5. **Dev tools:** utilidades leves, prioritariamente nativas e imediatamente abertas.
-6. **Todas:** catálogo pesquisável e filtrável.
+1. **Continue where you left off:** recent jobs or recently used tools.
+2. **Installed:** ready tools, pinned first.
+3. **Media and downloads:** video, audio and yt-dlp.
+4. **Files, images and documents:** resize, crop, compression, conversion and PDFs.
+5. **Dev tools:** small utilities, preferably native and immediately open.
+6. **All:** the searchable, filterable catalog.
 
-A ordem é determinística: fixados, atividade recente e ordem editorial do manifesto.
-Não existe recomendação por IA, perfil oculto ou feed remoto personalizado.
+The order is deterministic: pinned, then recent activity, then the manifest's editorial
+order. There is no AI recommendation, no hidden profile, no personalised remote feed.
 
-## Tipos de card
+## Card types
 
-- **Featured:** uma capacidade ou fluxo em destaque; no máximo um por viewport.
-- **Tool:** card padrão que representa uma ferramenta específica.
-- **Compact:** utilidade leve e frequente, adequada a uma faixa mais densa.
-- **Active job:** variante transitória com progresso e ação de abrir a fila.
+- **Featured:** one highlighted capability or flow, at most one per viewport.
+- **Tool:** the standard card representing one tool.
+- **Compact:** a light, frequently used utility, suited to a denser rail.
+- **Active job:** a transient variant with progress and an action to open the queue.
 
-Variação de tamanho cria ritmo, mas a navegação usa uma grade previsível. Evitar
-masonry irregular, porque torna teclado, redimensionamento e memória espacial frágeis.
+Size variation creates rhythm, but navigation uses a predictable grid. Avoid irregular
+masonry, which makes keyboard use, resizing and spatial memory fragile.
 
-## Conteúdo mínimo
+## Minimum content
 
-- Nome direto da ferramenta.
-- Resultado que ela produz, em uma linha.
-- Estado de disponibilidade.
-- Tamanho de download quando aplicável.
-- Ação primária contextual.
-- Selo discreto para “Incluída”, “Download” ou “Atualização”.
+- The tool's direct name.
+- The result it produces, in one line.
+- Its availability state.
+- The download size where that applies.
+- One contextual primary action.
+- A quiet badge for "Included", "Download" or "Update".
 
-Licença e dependências aparecem no detalhe/instalação, não poluem todos os cards.
+Licence and dependencies belong to the detail and installation views. They do not clutter
+every card.
 
-## Máquina de estados do card
+## The card state machine
 
 ```text
 embedded ───────────────────────────────────────────────► open
@@ -52,47 +52,48 @@ available ► resolving ► downloading ► verifying ► installing ► ready �
 ready ► update_available ► updating ► ready
 ```
 
-- `embedded`: ação “Abrir”.
-- `available`: ação “Baixar”, com tamanho visível.
-- `resolving`: calcula dependências e espaço; skeleton curto, sem spinner solto.
-- `downloading`: progresso real, velocidade opcional, pausar/cancelar se suportado.
-- `verifying`: progresso indeterminado honesto; não inventar percentual.
-- `installing`: desabilita apenas ações conflitantes, nunca toda a interface.
-- `ready`: ação vira “Abrir” no mesmo lugar.
-- `failed`: motivo curto, “Tentar novamente” e detalhes técnicos expansíveis.
+- `embedded`: the action is "Open".
+- `available`: the action is "Get it", with the size visible.
+- `resolving`: dependencies and space are being worked out; a short skeleton, not a loose
+  spinner.
+- `downloading`: real progress, optional speed, pause and cancel where supported.
+- `verifying`: honestly indeterminate; do not invent a percentage.
+- `installing`: disable only the conflicting actions, never the whole interface.
+- `ready`: the action becomes "Open", in the same place.
+- `failed`: a short reason, "Try again", and expandable technical detail.
 
-## Interação e movimento
+## Interaction and motion
 
-- Resposta visual começa no pointer-down.
-- Hover/focus eleva e amplia discretamente em uma camada sobreposta, sem reflow.
-- A expansão nasce do próprio card e retorna pelo mesmo caminho.
-- Movimento padrão: spring sem overshoot, resposta de 300–400 ms.
-- Carrossel por arrasto: tracking 1:1, captura do ponteiro, projeção de momentum e
-  rubber-banding no começo/fim.
-- Setas do teclado movem por cards; Enter abre/instala; Escape fecha o detalhe.
-- O card pode ser interrompido e revertido durante a animação.
-- `prefers-reduced-motion`: substitui escala/deslocamento por cross-fade curto.
-- High contrast: borda de foco definida; estado nunca depende apenas de cor.
+- Visual response starts on pointer-down.
+- Hover and focus lift and scale subtly in an overlay, without reflow.
+- The expansion grows out of the card itself and returns along the same path.
+- Default motion: a spring without overshoot, responding in 300–400 ms.
+- Drag on a rail: 1:1 tracking, pointer capture, momentum projection, and rubber-banding
+  at both ends.
+- Arrow keys move between cards; Enter opens or installs; Escape closes the detail.
+- A card can be interrupted and reversed mid-animation.
+- `prefers-reduced-motion` replaces scale and translation with a short cross-fade.
+- High contrast: a defined focus border, and no state that depends on colour alone.
 
-## Layout responsivo para desktop
+## Responsive desktop layout
 
-- Janela larga: featured + faixas horizontais com cards parcialmente visíveis na borda.
-- Janela média: faixas com menos cards e featured reduzido.
-- Janela estreita: grade vertical; nenhuma rolagem horizontal obrigatória.
-- Densidade configurável no futuro, sem mudar hierarquia ou terminologia.
+- Wide window: featured plus horizontal rails with cards partly visible at the edge.
+- Medium window: fewer cards per rail, and a smaller featured card.
+- Narrow window: a vertical grid; no mandatory horizontal scrolling.
+- Density becomes configurable later, without changing hierarchy or terminology.
 
 ## Performance
 
-- Imagens e previews locais com lazy loading.
-- Virtualizar apenas catálogos grandes; não pagar complexidade antes da necessidade.
-- Animar `transform` e `opacity`; não animar layout de dezenas de cards.
-- Desmontar previews pesados fora da área visível.
-- Estado de download vem de uma fonte única no backend, refletido em todos os cards.
+- Local images and previews load lazily.
+- Virtualise only large catalogs; do not pay that complexity before it is needed.
+- Animate `transform` and `opacity`; never the layout of dozens of cards.
+- Unmount heavy previews outside the visible area.
+- Download state comes from a single source in the backend and is reflected in every card.
 
-## Limites de referência
+## Boundaries of the reference
 
-- Não reproduzir identidade, artes, tipografia ou paleta de Netflix/Fortnite.
-- Não autoplay de vídeo no catálogo.
-- Não transformar ferramentas em “conteúdo infinito”.
-- Não esconder busca, instalação ou fila para favorecer impacto visual.
-- Não mover cards automaticamente enquanto o usuário navega.
+- Do not reproduce Netflix's or Fortnite's identity, art, typography or palette.
+- No video autoplay in the catalog.
+- Do not turn tools into infinite content.
+- Do not hide search, installation or the queue to favour visual impact.
+- Do not move cards on their own while the user is browsing.

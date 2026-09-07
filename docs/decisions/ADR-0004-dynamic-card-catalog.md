@@ -5,22 +5,20 @@
 
 ## Context
 
-O produto contém muitas ferramentas com diferentes estados de disponibilidade. O
-usuário pediu cards dinâmicos inspirados na descoberta da Netflix e nos tiles do
-Fortnite, usando princípios de interação do Apple Design.
+The product holds many tools in different states of availability. The owner asked for
+dynamic cards, taking Netflix's discovery and Fortnite's tiles as behavioural
+references, with interaction guided by Apple's design principles.
 
 ## Decision
 
-Cada ferramenta tem um card estável que reúne descoberta, instalação, progresso,
-atualização e abertura. A home usa faixas temáticas e tamanhos controlados de card.
-A ordenação pessoal é determinística por fixados e uso recente; não usa IA.
+Every tool gets one stable card that carries discovery, installation, progress, updates
+and opening. The home screen uses themed rails and a controlled set of card sizes.
+Personal ordering is deterministic — pinned first, then recent use. No AI ranks anything.
 
 ## Consequences
 
-- O usuário entende o catálogo antes de conhecer nomes de CLIs.
-- A instalação sob demanda é parte do fluxo principal, não uma tela técnica separada.
-- Cards exigem uma máquina de estados única compartilhada com o backend.
-- Movimento deve ser imediato, espacialmente consistente, interrompível e acessível.
-- A linguagem visual final ainda precisa de checkpoint; a referência define interação
-  e composição, não marca ou paleta.
-
+- The user understands the catalog before learning any CLI's name.
+- On-demand installation belongs to the main flow, not to a separate technical screen.
+- Cards require a single state machine shared with the backend.
+- Motion has to be immediate, spatially consistent, interruptible and accessible.
+- The references define interaction and composition, never brand or palette.

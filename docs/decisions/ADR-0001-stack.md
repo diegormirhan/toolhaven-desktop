@@ -5,20 +5,20 @@
 
 ## Context
 
-O produto é Windows-first, processa arquivos localmente e precisa distribuir CLIs e
-bibliotecas existentes com uma UI rica. O usuário escolheu Tauri como builder e
-delegou o restante da stack.
+The product is Windows-first, processes files locally, and has to distribute existing
+CLIs and libraries behind a rich interface. The owner chose Tauri as the builder and
+delegated the rest of the stack.
 
 ## Decision
 
-Usar Tauri 2, Rust no host e React + TypeScript + Vite no frontend. SQLite é a
-persistência local recomendada.
+Use Tauri 2, Rust on the host, and React + TypeScript + Vite on the frontend. SQLite is
+the recommended local persistence.
 
 ## Consequences
 
-- Reaproveita experiência do autor com React/TypeScript.
-- Rust é adequado para processos, filesystem, concorrência e contratos tipados.
-- WebView reduz o tamanho do shell, mas o bundle total continuará dominado pelos
-  binários de terceiros.
-- Mais de uma linguagem aumenta a disciplina necessária nos contratos IPC.
-- O usuário confirmou a stack delegada e a plataforma inicial Windows x64.
+- Reuses the author's existing experience with React and TypeScript.
+- Rust suits processes, the filesystem, concurrency and typed contracts.
+- The WebView keeps the shell small, but the total bundle stays dominated by the
+  third-party binaries.
+- More than one language raises the discipline the IPC contracts demand.
+- The owner confirmed the delegated stack and Windows x64 as the first platform.

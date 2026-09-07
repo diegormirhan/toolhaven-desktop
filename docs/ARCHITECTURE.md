@@ -1,10 +1,10 @@
 # Architecture
 
-## Decisão central
+## The central decision
 
-Usar um monólito modular local: uma UI React em WebView, um host Tauri/Rust e um
-catálogo fechado de ferramentas embutidas ou instaláveis sob demanda. Não há servidor
-local separado no MVP.
+A local modular monolith: a React interface in a WebView, a Tauri/Rust host, and a closed
+catalog of tools that are either bundled or installable on demand. There is no separate
+local server in the MVP.
 
 ```text
 React UI
@@ -15,182 +15,183 @@ Tauri command boundary
   ▼
 Application use cases ─── Job registry/history (SQLite)
   │
-  ├── Component installer ─ signed catalog / downloads / activation
+  ├── Component installer ─ pinned catalog / downloads / activation
   │
   ├── Media adapter ───── ffmpeg / ffprobe
   ├── Download adapter ── yt-dlp / deno
   ├── Image adapter ───── libvips CLI or Rust image path
-  └── PDF adapter ─────── qpdf / PDFium boundary
+  └── PDF adapter ─────── qpdf / Poppler boundary
         │
         ▼
 Temporary workspace → validated output → atomic publish
 ```
 
-## Por que essa forma
+## Why this shape
 
-- Rust mantém validação, processos e filesystem fora do WebView.
-- Casos de uso não dependem de Tauri nem do formato de stdout de uma CLI.
-- Adaptadores traduzem pedidos tipados para argumentos permitidos.
-- Um único motor de jobs resolve progresso, logs, cancelamento e concorrência para
-  todas as categorias.
-- Sidecars preservam as ferramentas upstream e permitem atualizar integrações sem
-  reimplementar codecs.
+- Rust keeps validation, processes and the filesystem out of the WebView.
+- Use cases depend on neither Tauri nor the stdout format of any CLI.
+- Adapters translate typed requests into permitted arguments.
+- A single job engine handles progress, logs, cancellation and concurrency for every
+  category.
+- Sidecars preserve the upstream tools, so an integration can be updated without
+  reimplementing a codec.
 
-## Fluxo de uma operação
+## The life of an operation
 
-1. UI envia um DTO tipado como `TranscodeVideoRequest`.
-2. Boundary valida schema, caminhos, permissões e conflito de saída.
-3. Caso de uso cria um `Job` imutável e um workspace temporário exclusivo.
-4. Adaptador produz um `ExecutionPlan`; não recebe strings de shell.
-5. Supervisor inicia o executável conhecido com array de argumentos.
-6. Parser converte stdout/stderr em eventos de domínio normalizados.
-7. UI recebe progresso, warning, conclusão ou erro.
-8. Em sucesso, o arquivo temporário é validado e movido para o destino final.
-9. Em cancelamento/falha, temporários são limpos e o original nunca é alterado.
+1. The interface sends a typed DTO such as `TranscodeVideoRequest`.
+2. The boundary validates the schema, the paths, the permissions and any output conflict.
+3. The use case creates an immutable `Job` and an exclusive temporary workspace.
+4. The adapter produces an `ExecutionPlan`; it never receives a shell string.
+5. The supervisor starts the known executable with an argument array.
+6. The parser turns stdout and stderr into normalised domain events.
+7. The interface receives progress, a warning, completion or an error.
+8. On success the temporary file is validated and moved to its final destination.
+9. On cancellation or failure the temporaries are cleaned and the original is untouched.
 
-## Módulos Rust propostos
+## Proposed Rust modules
 
 - `toolkit-domain`: Job, Operation, InputFile, OutputPlan, Progress, Failure.
-- `toolkit-application`: casos de uso e portas; não conhece Tauri ou CLIs.
-- `toolkit-runner`: supervisor de processos, cancelamento e limites de concorrência.
-- `toolkit-files`: caminhos, workspaces temporários e publicação atômica.
-- `toolkit-catalog`: manifesto, versões, hashes, licenças e capacidades.
-- `toolkit-adapters`: um submódulo por ferramenta externa.
-- `toolkit-persistence`: SQLite para jobs, presets e configurações.
-- `desktop-host`: commands/events Tauri e composição das dependências.
+- `toolkit-application`: use cases and ports; knows nothing about Tauri or CLIs.
+- `toolkit-runner`: the process supervisor, cancellation and concurrency limits.
+- `toolkit-files`: paths, temporary workspaces and atomic publication.
+- `toolkit-catalog`: the manifest, versions, hashes, licences and capabilities.
+- `toolkit-adapters`: one submodule per external tool.
+- `toolkit-persistence`: SQLite for jobs, presets and settings.
+- `desktop-host`: Tauri commands and events, and dependency composition.
 
-Só criar um crate quando houver pelo menos um limite real a proteger. O scaffold
-inicial pode começar com módulos no `src-tauri` e extrair crates conforme os testes
-provarem a necessidade.
+Create a crate only when there is a real boundary to protect. The scaffold can start as
+modules inside `src-tauri` and extract crates as the tests prove the need.
 
-## Contratos importantes
+## The contracts that matter
 
 ### Operation
 
-Representa intenção estável (`extract_audio`, `merge_pdf`), nunca o nome de uma CLI.
+A stable intent (`extract_audio`, `merge_pdf`), never the name of a CLI.
 
 ### ExecutionPlan
 
-Contém executável registrado, argumentos separados, ambiente mínimo, diretório de
-trabalho, parser de progresso e regra de cancelamento. Não contém comando de shell.
+Holds the registered executable, separated arguments, a minimal environment, a working
+directory, a progress parser and a cancellation rule. It holds no shell command.
 
 ### ToolDescriptor
 
-Fonte única para ID, versão, alvo, arquivos do bundle, origem, hash, licença,
-notices e capacidades.
+The single source for id, version, target, bundle files, origin, hash, licence, notices
+and capabilities.
 
 ### Job lifecycle
 
 `queued → validating → running → finalizing → succeeded | failed | cancelled`
 
-Transições inválidas falham de forma explícita. Reiniciar o app marca processos
-interrompidos como `abandoned`, nunca como sucesso.
+Invalid transitions fail loudly. Restarting the app marks interrupted processes as
+`abandoned`, never as successful.
 
-## Processos e concorrência
+## Processes and concurrency
 
-- Limite global conservador e limite específico para jobs pesados.
-- Cancelamento gracioso primeiro; encerramento forçado após timeout.
-- Process tree encerrada com Windows Job Objects para não deixar filhos órfãos.
-- Backpressure: arquivos adicionados entram na fila, não iniciam todos juntos.
-- Logs estruturados com redaction de URLs, cookies e paths sensíveis na UI.
+- A conservative global limit, and a separate limit for heavy jobs.
+- Graceful cancellation first; forced termination after a timeout.
+- The process tree is terminated through Windows Job Objects so no child is orphaned.
+- Backpressure: added files join the queue instead of all starting at once.
+- Structured logs, with URLs, cookies and sensitive paths redacted in the interface.
 
-## Empacotamento
+## Packaging
 
-Existem dois canais de entrega:
+There are two delivery channels:
 
-- **Embedded:** núcleo e ferramentas leves seguem no instalador como recursos Tauri.
-- **On-demand:** pacotes pesados são baixados pelo app para um component store no
-  diretório de dados da aplicação.
+- **Embedded:** the core and the light tools travel in the installer as Tauri resources.
+- **On-demand:** heavy packages are downloaded by the app into a component store inside
+  the application data directory.
 
-Executáveis simples embutidos podem entrar como `externalBin`. Distribuições com DLLs,
-dados ou fontes auxiliares usam recursos versionados. Componentes sob demanda nunca
-dependem do PATH: o backend resolve a versão ativa no component store.
+Simple embedded executables can enter as `externalBin`. Distributions with DLLs, data or
+auxiliary fonts use versioned resources. On-demand components never depend on PATH: the
+backend resolves the active version inside the component store.
 
-**Implementado:** `scripts/tools/stage-embedded-tools.mjs` baixa cada artefato marcado
-como `bundled`, confere o SHA-256 fixado — divergência aborta o build — e o coloca em
-`resources/tools/`, que o bundler do Tauri leva para junto do executável. Em tempo de
-execução, `resolve_executable` procura primeiro nesse diretório: a versão que foi fixada,
-verificada e testada ganha de qualquer coisa que exista no PATH da máquina. O script
-também gera `THIRD-PARTY-NOTICES.txt` e `tool-inventory.json`.
+**Implemented.** `scripts/tools/stage-embedded-tools.mjs` downloads every artifact marked
+`bundled`, checks the pinned SHA-256 — a mismatch aborts the build — and stages it in
+`resources/tools/`, which the Tauri bundler carries next to the executable. At runtime
+`resolve_executable` looks there first: the version that was pinned, verified and tested
+beats whatever the machine happens to have on PATH. The script also generates
+`THIRD-PARTY-NOTICES.txt` and `tool-inventory.json`.
 
-### Instalação sob demanda
+### On-demand installation
 
-1. Resolver a ferramenta e suas dependências no catálogo assinado.
-2. Mostrar tamanho total, versão, licença e espaço necessário no card.
-3. Baixar para staging com retomada quando o servidor permitir.
-4. Verificar assinatura do catálogo e SHA-256 de todos os arquivos.
-5. Extrair em diretório isolado da versão e executar health check.
-6. Ativar a nova versão com troca atômica de ponteiro.
-7. Manter a versão anterior até o primeiro uso saudável; depois permitir limpeza.
+1. Resolve the tool and its dependencies in the pinned catalog.
+2. Show the total size, version, licence and required space on the card.
+3. Download into staging, resuming where the server allows it.
+4. Verify the SHA-256 of every file.
+5. Extract into a directory isolated per version and run a health check.
+6. Activate the new version with an atomic swap.
+7. Keep the previous version until the first healthy use, then allow cleanup.
 
-O domínio separa disponibilidade estável (`available` ou `ready`) da fase transitória
-(`idle`, `resolving`, `downloading`, `verifying`, `installing`). Assim uma atualização
-falha sem apagar a versão ativa. Cancelamento nunca deixa versão parcialmente ativa.
+The domain separates stable availability (`available` or `ready`) from the transient phase
+(`idle`, `resolving`, `downloading`, `verifying`, `installing`), so an update can fail
+without erasing the active version. Cancelling never leaves a partially active version.
 
-**Implementado** em `apps/desktop/src-tauri/src/components.rs`. O host compila o próprio
-`tooling/tools.json` com `include_str!`, então build, catálogo e runtime leem a mesma
-fonte. Cada artefato é instalado em um diretório nomeado pelo seu SHA-256, o que torna a
-reinstalação idempotente e faz ferramentas que compartilham um pacote — ffmpeg e ffprobe
-vêm do mesmo build — ocuparem uma cópia só. A extração acontece em um diretório
-`.staging` ao lado do destino final, no mesmo volume, e a ativação é um `rename`: uma
-falha nunca deixa componente meio instalado ativo. A resolução de executáveis consulta,
-nessa ordem, o que veio no instalador, o component store e só então o PATH.
+**Implemented** in `apps/desktop/src-tauri/src/components.rs`. The host compiles
+`tooling/tools.json` in with `include_str!`, so the build, the catalog and the runtime all
+read one source. Each artifact installs into a directory named after its SHA-256, which
+makes reinstalling idempotent and lets tools that share a package — ffmpeg and ffprobe
+come from the same build — occupy a single copy. Extraction happens in a `.staging`
+directory beside the final target, on the same volume, and activation is a `rename`: a
+failure never leaves a half-installed component live. Executable resolution consults, in
+order, what came in the installer, then the component store, and only then PATH.
 
-Enquanto Rust não estiver autorizado no ambiente, os módulos Node em
-`scripts/component-installation/` funcionam como especificação executável. Eles não
-fazem I/O e serão portados para Rust, mantendo os mesmos casos de aceitação.
+The Node modules under `scripts/component-installation/` were the executable specification
+while Rust was not yet authorised in the environment. They perform no I/O, and the Rust
+implementation now mirrors them; they remain as cross-language acceptance cases.
 
-Pipeline planejado:
+The planned pipeline:
 
-1. Ler `tooling/tools.json` e validá-lo contra o contrato versionado.
-2. Baixar artefatos upstream fixados.
-3. Verificar hash/assinatura e extrair em staging.
-4. Rodar smoke test de cada executável.
-5. Copiar ferramentas `embedded` para o bundle e publicar pacotes `on-demand` no canal
-   de componentes.
-6. Gerar `THIRD-PARTY-NOTICES`, SBOM e inventário JSON consumido pela UI.
-7. Construir e assinar NSIS/MSI e manifesto do updater.
+1. Read `tooling/tools.json` and validate it against the versioned contract.
+2. Download the pinned upstream artifacts.
+3. Verify the hash and signature, and extract into staging.
+4. Run a smoke test for each executable.
+5. Copy `embedded` tools into the bundle and publish `on-demand` packages to the
+   component channel.
+6. Generate `THIRD-PARTY-NOTICES`, an SBOM and the JSON inventory the interface consumes.
+7. Build and sign the NSIS/MSI bundles and the updater manifest.
 
-## Persistência
+## Persistence
 
-SQLite guarda metadados de jobs, presets e preferências. Não guarda conteúdo dos
-arquivos. Logs detalhados têm retenção configurável. Segredos de cookies ou tokens,
-se o download autenticado for aprovado, usam Windows Credential Manager e nunca o
-banco em texto puro.
+SQLite holds job metadata, presets and preferences. It does not hold file contents.
+Detailed logs have a configurable retention. Cookie or token secrets, if authenticated
+downloads are ever approved, belong in the Windows Credential Manager and never in the
+database as plain text.
 
-## Estratégia de testes
+## Testing strategy
 
-- Unitários: validação, naming de saída, estados e montagem de argumentos.
-- Contrato: parsers contra stdout/stderr gravados de versões fixadas.
-- Integração: fixtures pequenas executadas com binários reais.
-- Empacotamento: VM limpa confirma recursos, licenças e smoke tests.
-- Componentes: download interrompido, hash inválido, rollback e dependências transitivas.
-- E2E: um caminho feliz e um erro útil por fluxo vertical.
+- **Unit:** validation, output naming, states and argument assembly.
+- **Contract:** parsers against recorded stdout and stderr from pinned versions.
+- **Integration:** small fixtures executed with the real binaries.
+- **Packaging:** a clean VM confirms resources, licences and smoke tests.
+- **Components:** interrupted download, invalid hash, rollback and transitive dependencies.
+- **End to end:** one happy path and one useful error per vertical flow.
 
-## Estrutura do repositório
+## Repository structure
 
 ```text
 toolhaven-desktop/
+├─ setup.ps1               # one command: toolchain, deps, tools, checks, installer
 ├─ .agents/skills/
 ├─ apps/desktop/
 │  ├─ src/                 # React UI
-│  └─ src-tauri/           # host Tauri e composição Rust
-├─ crates/                 # extraídos apenas quando limites se provarem
+│  └─ src-tauri/           # Tauri host and Rust composition
+├─ crates/                 # extracted only when a boundary proves itself
 ├─ docs/
-│  └─ decisions/
-├─ scripts/                # fetch, verify, notice, SBOM, package
+│  ├─ decisions/
+│  └─ screenshots/         # generated by scripts/screenshots.mjs
+├─ scripts/                # fetch, verify, notices, SBOM, package, screenshots
 ├─ tooling/
 │  ├─ tools.json
 │  └─ schemas/
-├─ vendor/                 # gerado; binários não são editados manualmente
+├─ vendor/                 # generated; binaries are never edited by hand
 └─ tests/
    ├─ contracts/
    ├─ fixtures/
    └─ packaging/
 ```
 
-## Fontes técnicas verificadas
+## Verified technical sources
 
 - Tauri sidecars: https://v2.tauri.app/develop/sidecar/
 - Tauri updater: https://v2.tauri.app/plugin/updater/
-- Assinatura no Windows: https://v2.tauri.app/distribute/sign/windows/
+- Signing on Windows: https://v2.tauri.app/distribute/sign/windows/

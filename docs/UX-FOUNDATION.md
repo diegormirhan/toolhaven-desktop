@@ -2,15 +2,15 @@
 
 ## Status
 
-Fundação provisória; não é `DESIGN.md`. O sistema visual final depende de aprovação
-do usuário e só será documentado depois de existir na implementação.
+A provisional foundation, not `DESIGN.md`. The visual system that shipped is documented
+there; this file records the navigation model and the required states that shaped it.
 
-## Design Read provisório
+## Provisional design read
 
 ```yaml
 artifact: Windows desktop utility
 audience: power users, creators and developers who want common file jobs without CLI setup
-visual-language: precise native-feeling workbench, calm rather than decorative
+visual-language: precise native-feeling bench, calm rather than decorative
 mode: greenfield / operate
 visual-variance: 4/10
 motion-intensity: 3/10
@@ -19,72 +19,70 @@ asset-dependence: 2/10
 brand-fidelity: 1/10 (brand not defined)
 ```
 
-## Modelo de navegação proposto
+## Navigation model
 
-- **Discover:** catálogo visual de ferramentas em cards e faixas dinâmicas.
-- **Workbench:** ferramenta aberta, drop zone, operação e opções.
-- **Queue:** jobs ativos, progresso, cancelamento e ordem.
-- **History:** resultados, reabrir pasta, repetir e inspecionar logs.
-- **Settings:** destinos, conflito, concorrência, updates e privacidade.
+- **Discover:** a visual catalog of tools in cards and dynamic rails.
+- **Workbench:** the open tool, its drop zone, its operation and its options.
+- **Queue:** running jobs, progress, cancellation and order.
+- **History:** results, open the folder, repeat, inspect the logs.
+- **Settings:** destinations, conflicts, concurrency, updates and privacy.
 
-Categorias não devem virar uma sidebar enorme. O catálogo usa a descoberta por faixas
-da Netflix e a presença forte dos tiles do Fortnite como referências de comportamento,
-não como cópia visual. Busca por ação e extensão resolve “tenho este arquivo, o que
-posso fazer?”; fixados e recentes são ordenados de forma determinística, sem IA.
+Categories must not become an enormous sidebar. The catalog borrows Netflix's rail
+discovery and Fortnite's tile presence as behavioural references, not as visual copies.
+Searching by action and by extension answers "I have this file, what can I do with it?".
+Pinned and recent items are ordered deterministically, with no AI.
 
-## Fluxo principal
+## The main flow
 
-1. Escolher um card ou soltar um arquivo na área global.
-2. Se a ferramenta não estiver instalada, o próprio card mostra tamanho, dependências
-   e ação de download.
-3. Após instalação, o card mantém a posição e sua ação vira “Abrir”.
-4. App identifica tipo e mostra ações válidas.
-5. Usuário escolhe tarefa e preset; opções avançadas ficam recolhidas.
-6. Executar adiciona à fila sem bloquear a janela.
-7. Conclusão oferece abrir arquivo, abrir pasta, repetir ou desfazer quando possível.
+1. Choose a card, or drop a file onto the global area.
+2. If the tool is not installed, the card itself shows the size, the dependencies and the
+   action to download it.
+3. After installation the card keeps its position, and its action becomes "Open".
+4. The app identifies the type and shows the valid actions.
+5. The user picks a task and a preset; advanced options stay collapsed.
+6. Running adds it to the queue without blocking the window.
+7. Completion offers to open the file, open the folder, repeat, or undo where possible.
 
-## Estados obrigatórios
+## Required states
 
-- vazio útil, com exemplos reais de ações;
-- arquivo incompatível;
-- combinação experimental;
-- conflito de nome;
-- espaço insuficiente;
-- executando, pausável quando suportado e cancelável;
-- finalizando, sem prometer cancelamento instantâneo;
-- concluído, warning, falha recuperável e falha técnica;
-- binário ausente/corrompido detectado no health check.
-- card disponível, resolvendo dependências, baixando, verificando, instalando, pronto,
-  atualização disponível e falha recuperável.
+- a useful empty state, with real example actions;
+- an incompatible file;
+- an experimental combination;
+- a name conflict;
+- not enough disk space;
+- running, pausable where supported, and cancellable;
+- finalising, without promising instant cancellation;
+- finished, warning, recoverable failure and technical failure;
+- a missing or corrupted binary caught by the health check;
+- a card that is available, resolving dependencies, downloading, verifying, installing,
+  ready, has an update, or failed recoverably.
 
-## Comportamento e movimento
+## Behaviour and motion
 
-- Feedback no pointer-down e ações principais com latência visual imediata.
-- Cards focados elevam em overlay sem empurrar a grade; teclado e ponteiro preservam
-  a mesma posição mental.
-- Springs criticamente amortecidas (`damping 1.0`, `response 0.3–0.4`) para foco e
-  abertura; bounce somente após arrasto com momentum.
-- Faixas arrastáveis acompanham o ponteiro 1:1, herdam velocidade e usam resistência
-  suave nos limites.
-- Progresso contínuo; não inventar percentual quando a ferramenta não oferece um.
-- Transições curtas e interrompíveis; sem bounce em menus ou progresso.
-- Entrada e saída pelo mesmo caminho espacial.
-- Reduced motion preserva feedback com cross-fade.
-- Controles próximos do resultado que afetam; labels específicos.
+- Feedback on pointer-down, and immediate visual latency on the primary actions.
+- A focused card lifts in an overlay without pushing the grid; keyboard and pointer keep
+  the same mental position.
+- Critically damped springs (`damping 1.0`, `response 0.3–0.4`) for focus and opening;
+  bounce only after a drag with momentum.
+- Draggable rails follow the pointer 1:1, inherit its velocity, and resist softly at the
+  limits.
+- Continuous progress; never invent a percentage the tool does not report.
+- Short, interruptible transitions; no bounce in menus or progress.
+- Entry and exit along the same spatial path.
+- Reduced motion preserves the feedback as a cross-fade.
+- Controls sit near the result they affect, with specific labels.
 
-## Desktop Windows
+## Windows desktop
 
-- Priorizar teclado, drag-and-drop, menus de contexto e atalhos descobríveis.
-- Alvos confortáveis sem parecer UI móvel inflada.
-- Respeitar tema, escala de texto, high contrast e navegação por foco.
-- Não imitar macOS; aplicar princípios de clareza, resposta e agência ao vocabulário
-  esperado no Windows.
+- Prioritise the keyboard, drag and drop, context menus and discoverable shortcuts.
+- Comfortable targets without looking like an inflated mobile interface.
+- Respect the theme, text scaling, high contrast and focus navigation.
+- Do not imitate macOS; apply the principles of clarity, response and agency to the
+  vocabulary Windows users expect.
 
-## Checkpoint pendente
+## The checkpoint, in hindsight
 
-Antes do v0 visual, confirmar direção, marca, densidade, idioma e preferência entre
-comp-first e code-first. Só então declarar paleta, tipografia, spacing, radius, sombras
-e gramática de movimento.
-
-O contrato funcional dos cards está em `CARD-CATALOG.md`; paleta e linguagem visual
-continuam deliberadamente abertas até o checkpoint.
+This file ended with a pending checkpoint on direction, brand, density and language. All
+four are now settled and recorded: the direction and palette in `DESIGN.md`, the name and
+the English interface in `QUESTIONS.md`. The functional contract for the cards lives in
+`CARD-CATALOG.md`.

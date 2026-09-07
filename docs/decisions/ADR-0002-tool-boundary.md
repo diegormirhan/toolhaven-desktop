@@ -5,21 +5,22 @@
 
 ## Context
 
-Expor flags das CLIs diretamente seria rápido, mas acoplaria UX, segurança e testes a
-interfaces instáveis e permitiria combinações perigosas.
+Exposing the CLIs' flags directly would be fast, but it would couple the interface, the
+security model and the tests to unstable surfaces, and it would allow dangerous
+combinations.
 
 ## Decision
 
-A UI envia operações de domínio tipadas. Adaptadores Rust transformam somente valores
-validados em programa conhecido + array de argumentos. O frontend não recebe uma API
-de shell genérica.
+The interface sends typed domain operations. Rust adapters turn validated values — and
+only validated values — into a known program plus an argument array. The frontend never
+receives a generic shell API.
 
 ## Consequences
 
-- Menor superfície para command injection.
-- UX consistente entre ferramentas.
-- Cada nova capacidade exige contrato e teste explícitos.
-- Usuários avançados não terão todas as flags upstream no MVP; presets customizáveis
-  podem ser adicionados depois sem aceitar command line livre.
-- A decisão vale para todo o escopo amplo do pedido; cada capacidade nova entra por
-  contrato, adapter e fixture, não por exposição direta da CLI.
+- A much smaller surface for command injection.
+- Consistent behaviour across tools.
+- Every new capability costs an explicit contract and test.
+- Advanced users will not have every upstream flag in the first version. Customisable
+  presets can come later without accepting a free-form command line.
+- The decision covers the whole scope of the request: a new capability arrives through a
+  contract, an adapter and a fixture, never by exposing the CLI directly.

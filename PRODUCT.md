@@ -2,83 +2,86 @@
 
 <!-- impeccable:product-schema 1 -->
 
-> Registro inicial inferido do pedido explícito. Itens marcados como hipótese ou
-> decisão aberta ainda não foram confirmados pelo dono do produto.
+> Initial record inferred from the explicit request. Anything marked as a hypothesis or
+> an open decision has not been confirmed by the product owner.
 
 ## Platform
 
 web
 
-O valor acima descreve a superfície renderizada em WebView conforme o schema da
-skill. O produto distribuído é um aplicativo desktop nativo para Windows via Tauri.
+The value above describes the surface rendered in a WebView, as the skill's schema
+requires. What ships is a native Windows desktop application built with Tauri.
 
 ## Stack
 
-Tauri 2 + Rust no host, React + TypeScript + Vite na UI e SQLite local.
+Tauri 2 with a Rust host, React + TypeScript + Vite for the interface, SQLite locally.
 
 ## Users
 
-Hipótese: pessoas que usam Windows e alternam frequentemente entre sites,
-instaladores e CLIs para converter, inspecionar ou manipular arquivos. O autor do
-projeto é o primeiro usuário e quer também apresentar o trabalho em portfólio.
+Hypothesis: people on Windows who keep switching between websites, installers and CLIs
+to convert, inspect or manipulate files. The author is the first user, and also wants to
+show the work as a portfolio piece.
 
 ## Product Purpose
 
-Oferecer uma única instalação para operações recorrentes de mídia, imagem, PDF,
-downloads, arquivos e utilidades técnicas, usando ferramentas abertas existentes
-em vez de reimplementar codecs e formatos.
+Offer a single installation for the recurring media, image, PDF, download, file and
+technical operations, using existing open-source tools rather than reimplementing codecs
+and formats.
 
-Sucesso inicial: uma pessoa instala o app, abre ferramentas leves imediatamente e
-instala ferramentas pesadas sem sair do aplicativo. Depois acompanha o progresso,
-cancela com segurança e encontra o arquivo de saída sem usar terminal.
+Early success: someone installs the app, opens the light tools immediately, and installs
+the heavy ones without leaving it. Then they follow the progress, cancel safely, and find
+the output file without touching a terminal.
 
 ## Positioning
 
-Uma bancada local orientada a tarefas, não uma coleção de CLIs expostas. Cada
-ferramenta é traduzida em uma operação coerente, com presets, previsão da saída,
-progresso, histórico e erros compreensíveis.
+A local, task-oriented bench — not a collection of exposed CLIs. Every tool is translated
+into a coherent operation, with presets, a predictable output, progress, history and
+errors a person can act on.
 
 ## Operating Context
 
 - Windows desktop.
-- Arquivos locais e operações potencialmente longas ou em lote.
-- Alguns fluxos usam rede por natureza, especialmente downloads e atualizações.
-- O produto não usa IA.
-- O instalador inclui o núcleo e ferramentas leves.
-- Ferramentas pesadas são baixadas, verificadas e instaladas dentro do app sob demanda.
+- Local files, and operations that may be long or batched.
+- Some flows use the network by nature, especially downloads and updates.
+- The product does not use AI.
+- The installer carries the core and the light tools.
+- Heavy tools are downloaded, verified and installed inside the app, on demand.
 
 ## Capabilities and Constraints
 
-Confirmado: Tauri como builder; integração de ferramentas abertas; FFmpeg, yt-dlp,
-PDFs, imagens, vídeos, conversão de formatos e as utilidades de desenvolvimento
-cobradas no pedido inicial; sem IA. A primeira versão terá somente Windows x64.
+Confirmed: Tauri as the builder; integration of open-source tools; FFmpeg, yt-dlp, PDFs,
+images, video, format conversion and the developer utilities named in the original
+request; no AI. The first version targets Windows x64 only.
 
-O repositório será público e o código próprio usará MIT. Isso não altera as licenças
-dos componentes de terceiros, que continuam registradas individualmente.
+The repository is public and the project's own code is MIT. That does not change the
+licences of the third-party components, which stay recorded individually.
 
-Decisões abertas: decomposição da lista ampla em fatias entregáveis; política de
-atualização; suporte a formatos proprietários; telemetria; nome e idioma inicial da
-interface. Não há limite rígido de tamanho, mas o instalador inicial deve permanecer
-leve porque componentes pesados não vêm nele.
+Decided since: the product is called **ToolHaven**; the interface is in **English**;
+delivery is **hybrid** — light tools in the installer, heavy ones downloaded by the app,
+so the user never installs anything by hand.
 
-yt-dlp entra na primeira versão como instalação sob demanda. Ao escolhê-lo, o app
-também instala automaticamente Deno e os componentes de mídia necessários.
+Still open: how to slice the broad list into deliverable pieces; the update policy;
+support for proprietary formats; telemetry. There is no hard size limit, but the
+installer has to stay light, because the heavy components do not travel in it.
 
-“Aumentar resolução” sem IA significa upscale por reamostragem de alta qualidade.
-Ele aumenta dimensões, mas não recupera detalhes inexistentes.
+yt-dlp is in the first version as an on-demand install. Choosing it also installs Deno
+and the media components it needs.
+
+"Upscale" without AI means high-quality resampling. It increases dimensions; it does not
+recover detail that was never there.
 
 ## Evidence on Hand
 
-- Pedido original do produto.
-- `Diego.md` foi lido somente como contexto de colaboração; não é requisito nem
-  foi copiado para o projeto.
-- Não há ainda marca, logo, métricas, pesquisa com usuários ou referência visual.
-  Trabalho futuro não deve inventar esses elementos.
+- The original product request.
+- `Diego.md` was read only as collaboration context. It is neither a requirement nor
+  copied into the project.
+- There is still no brand, logo, metric, user research or visual reference beyond the
+  icon and the design system built here. Future work must not invent those.
 
 ## Product Principles
 
-1. Um único app gerencia instalações; nenhuma configuração externa obrigatória.
-2. Local por padrão e transparente quando houver acesso à rede.
-3. Tarefas, não flags: a interface fala o idioma do resultado desejado.
-4. Controle e recuperação: prévia, cancelamento, histórico e saídas atômicas.
-5. Integrações substituíveis e auditáveis, com versão, hash e licença registrados.
+1. One app manages every installation; no mandatory external setup.
+2. Local by default, and transparent whenever the network is used.
+3. Tasks, not flags: the interface speaks in terms of the result you want.
+4. Control and recovery: preview, cancellation, history, atomic outputs.
+5. Replaceable, auditable integrations, each with its version, hash and licence recorded.

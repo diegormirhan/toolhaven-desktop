@@ -2,28 +2,26 @@
 
 ## Communication
 
-- Conversa e explicações em português.
-- Comentários de código em inglês, apenas para decisões não óbvias.
-- Explicar causa e trade-off; não bajular decisões frágeis.
-- Tratar `PRODUCT.md` e os ADRs como fontes de verdade, sem preencher lacunas com
-  suposições silenciosas.
+- Conversation and explanations in Portuguese; everything written into the project —
+  interface, code, comments, documentation — in English.
+- Code comments only where a decision is not obvious from the code.
+- Explain the cause and the trade-off; do not flatter a fragile decision.
+- Treat `PRODUCT.md` and the ADRs as sources of truth. Do not fill a gap with a silent
+  assumption.
 
 ## Engineering
 
-- Começar pelo menor fluxo vertical que prova a arquitetura.
-- Aplicar TDD a comportamento novo e regressões.
-- Separar domínio, orquestração, filesystem/processos e glue do Tauri.
-- Usar nomes específicos; evitar módulos `manager`, `helper`, `utils` e serviços
-  genéricos.
-- Manter configuração e versões de ferramentas em uma fonte única.
-- Nenhuma execução arbitrária de shell pelo frontend.
-- Não commitar, criar branch ou publicar sem pedido explícito.
+- Start with the smallest vertical slice that proves the architecture.
+- Apply TDD to new behaviour and to regressions.
+- Keep domain, orchestration, filesystem/processes and Tauri glue apart.
+- Use specific names; avoid `manager`, `helper`, `utils` modules and generic services.
+- Keep tool configuration and versions in a single source.
+- No arbitrary shell execution from the frontend.
+- Do not commit, branch or publish without being asked.
 
 ## Product boundaries
 
-- Não adicionar IA.
-- Não afirmar suporte a um formato sem fixture e teste de contrato.
-- Não incluir binário de terceiro sem licença, origem, versão e hash.
-- Não implementar a interface final antes da confirmação do fluxo e do sistema
-  visual.
-
+- Do not add AI.
+- Do not claim support for a format without a fixture and a contract test.
+- Do not ship a third-party binary without its licence, origin, version and hash.
+- Do not build the final interface before the flow and the visual system are confirmed.

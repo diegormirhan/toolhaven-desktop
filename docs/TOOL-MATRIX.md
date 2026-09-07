@@ -1,54 +1,55 @@
 # Tool matrix
 
-> Candidatos, não dependências aprovadas. Cada linha precisa passar por revisão de
-> licença, origem do binário, tamanho e teste antes de entrar no manifesto real.
+## How each tool reaches the user
 
-| Área | Ferramenta candidata | Papel | Entrega | Estado inicial | Observação |
-|---|---|---|---|---|---|
-| Vídeo/áudio | FFmpeg + ffprobe | transcode, remux, trim, metadata, thumbnails | Sob demanda | MVP | Build e codecs determinam LGPL/GPL e risco de patentes |
-| Download | yt-dlp | extração e download de mídia | Sob demanda | MVP | Executável oficial inclui componentes com licenças adicionais |
-| Runtime yt-dlp | Deno | resolver desafios JS do YouTube | Dependência sob demanda | MVP | Recomendado pelo upstream; fixar versão compatível |
-| Imagem | libvips CLI | resize, crop, convert, compress, batch | Sob demanda | spike | Rápido e econômico; distribuição Windows inclui DLLs |
-| Imagem simples | Rust `image` | operações pequenas sem processo externo | Embutida | avaliar | Menor bundle, mas cobertura de formatos é mais estreita |
-| PDF estrutural | qpdf | merge, split, rotate, encrypt, linearize | Embutida inicialmente | MVP | Apache-2.0; não renderiza nem extrai texto |
-| PDF render | PDFium | preview e rasterização | A decidir | spike | BSD-style no core, com notices transitivos a auditar |
-| Metadados | ExifTool | leitura/edição ampla | Sob demanda | pós-MVP | Perl Artistic/GPL; empacotamento e notices precisam revisão |
-| Arquivos | 7-Zip | compactar/extrair | Embutida se o pacote continuar leve | pós-MVP | LGPL com restrição separada no código unRAR |
-| Documentos | LibreOffice headless | Office ↔ PDF/formatos abertos | Sob demanda | futuro | Muito grande; fidelidade varia; distribuição complexa |
-| Conversão texto | Pandoc | documentos markup e ebooks | Sob demanda | futuro | GPL; impacto da redistribuição precisa de parecer jurídico |
-| Checksums | Rust nativo | hash e verificação | Embutida | pós-MVP | Não precisa de sidecar |
-| JSON/YAML | Rust nativo | formatar, validar, converter | Embutida | pós-MVP | “Dev tools” precisa de definição de usuário |
+The user never installs anything by hand. Either the tool travels in the installer, or
+the app downloads it.
 
-## Dev tools incluídas no catálogo inicial
+| Channel | Tools |
+|---|---|
+| **In the installer** (9) | jq, yq, ripgrep, fd, Miller, tokei, hexyl, Dust, Oxipng |
+| **Downloaded by the app** (9) | FFmpeg, ffprobe, yt-dlp, Deno, qpdf, libvips, Poppler, Pandoc, Difftastic |
+| **No pinned artifact yet** (4) | 7-Zip, MKVToolNix, ImageMagick, ExifTool |
 
-O catálogo agora reserva cards para `jq` (JSON), `yq` (YAML), `ripgrep` (busca),
-`fd` (localização de arquivos), Deno (runtime do yt-dlp), 7-Zip (compactação) e
-Pandoc (conversão de documentos). Todas entram como `planned` até versões, artefatos,
-hashes e notices serem fixados; isso evita prometer uma instalação embutida sem os
-metadados de distribuição aprovados.
+Why the last four are not in the automatic channel:
 
-## Candidatos validados em 2026-09-07
+| Tool | Obstacle |
+|---|---|
+| 7-Zip | Distributed as an NSIS `.exe` installer or as a `.7z`. Extracting a `.7z` needs 7-Zip itself — the app would need it in order to install it. |
+| MKVToolNix | The same: an `.exe` installer or a portable `.7z`. |
+| ImageMagick | GitHub publishes only a 728 MB `.7z`. The portable `.zip` has no versioned URL that resolves. |
+| ExifTool | `exiftool.org` keeps only the current release online, so there is no stable versioned URL to pin. SourceForge has one, but behind a mirror redirect. |
 
-Cada linha abaixo teve licença, origem e disponibilidade de build Windows conferidas
-nas fontes upstream na data indicada. Todas as cinco foram **integradas em 2026-09-07**:
-têm card, adaptador Rust com argv tipado, operações no painel e teste de contrato.
+None of those is a licensing block — it is distribution format. Solving it means either
+supporting `.7z` and NSIS in the component installer, or repackaging the artifacts into a
+channel of our own, which brings redistribution responsibility with it.
 
-As cinco rodaram contra o binário real: o sweep de contrato executa cada operação sobre
-fixtures geradas e passou em todas. Quando uma ferramenta não está instalada, o teste a
-pula e **nomeia o que não verificou** em vez de fingir aprovação; e o app não mente sobre
-ela — sem o binário, o card mostra “Ver disponibilidade”, não “Abrir”.
+**On FFmpeg:** the project publishes no Windows binaries. What is pinned is the **LGPL**
+build from `BtbN/FFmpeg-Builds`, at the dated tag `autobuild-2026-09-06-13-06`, which is
+immutable — the same repository's `latest` tag is rolling and cannot be pinned. The LGPL
+variant is the conservative route `LICENSING.md` recommends: it avoids `--enable-gpl` at
+the cost of a few codecs.
 
-### Aprovadas para o manifesto
+## Validated on 2026-09-07
 
-| Ferramenta | Operações integradas | Licença verificada | Contrato real |
+Every row below had its licence, origin and Windows build availability checked against
+the upstream sources on that date. All five were **integrated the same day**: a card, a
+Rust adapter with typed argv, operations in the panel, and a contract test.
+
+All five ran against the real binary. The contract sweep executes every operation over
+generated fixtures and passed on all of them. When a tool is not installed, the test skips
+it and **names what it could not verify** rather than passing quietly; and the app does not
+lie about it either — without the binary, the card offers "Get it", not "Open".
+
+| Tool | Operations integrated | Licence verified | Real contract |
 |---|---|---|---|
-| ExifTool 13.59 | ler metadados, remover metadados, definir título | `Artistic-1.0-Perl OR GPL-1.0-or-later` (“same terms as Perl itself”) | ✅ verificado |
-| Poppler 25.07 | extrair texto, página como imagem | `GPL-2.0-only OR GPL-3.0-only` | ✅ verificado |
-| Oxipng 10.1.1 | otimizar PNG sem perdas | `MIT` | ✅ verificado |
-| MKVToolNix 100 | converter para MKV, inspecionar faixas | `GPL-2.0-or-later` | ✅ verificado |
-| ImageMagick 7.1.2 | converter formato, converter para cinza, inspecionar | `ImageMagick` (permissiva, exige atribuição e cópia da licença) | ✅ verificado |
+| ExifTool 13.59 | read metadata, strip metadata, set title | `Artistic-1.0-Perl OR GPL-1.0-or-later` ("same terms as Perl itself") | ✅ verified |
+| Poppler 25.07 | extract text, page as image | `GPL-2.0-only OR GPL-3.0-only` | ✅ verified |
+| Oxipng 10.1.1 | lossless PNG optimisation | `MIT` | ✅ verified |
+| MKVToolNix 100 | convert to MKV, inspect tracks | `GPL-2.0-or-later` | ✅ verified |
+| ImageMagick 7.1.2 | convert format, convert to grey, inspect | `ImageMagick` (permissive; requires attribution and a copy of the licence) | ✅ verified |
 
-Instaladas nesta máquina com:
+Installed on this machine with:
 
 ```powershell
 winget install -e --id Shssoichiro.Oxipng
@@ -56,37 +57,37 @@ winget install -e --id MoritzBunkus.MKVToolNix
 winget install -e --id oschwartz10612.Poppler
 ```
 
-Ressalvas que precisam virar tarefa antes de qualquer uma passar a `bundled`:
+Caveats that have to become tasks before any of them turns `bundled`:
 
-- **Poppler e MKVToolNix são GPL.** ToolHaven os invoca como processos separados, com
-  array de argumentos, sem linkagem — a posição usual de agregação. Ainda assim os dois
-  entram apenas como pacote sob demanda, com oferta de código correspondente.
-- **A distribuição Windows do ImageMagick embute delegates** com licenças próprias.
-  A licença do ImageMagick ser permissiva não basta: o inventário do artefato exato
-  precisa ser feito antes de fixar hash.
-- **ExifTool é Perl empacotado.** O executável Windows carrega um interpretador; os
-  notices desse empacotamento precisam entrar junto.
-- **Xpdf não é Poppler.** O `pdftotext.exe` que aparece no PATH de muitas máquinas vem
-  do Git for Windows e é o Xpdf 4.06, um projeto diferente com licenciamento comercial
-  próprio — e, com o Poppler instalado, ele **continua vindo antes no PATH**. Por isso a
-  detecção usa `pdftoppm.exe`, que o Xpdf não distribui, e todos os comandos do Poppler
-  são resolvidos no diretório dessa instalação, nunca por PATH.
-- **O instalador do MKVToolNix não mexe no PATH.** Ele fica em
-  `%ProgramFiles%\MKVToolNix`, que passou a ser um diretório conhecido do host.
+- **Poppler and MKVToolNix are GPL.** ToolHaven invokes them as separate processes, with
+  an argument array, with no linking — the usual aggregation position. Even so, both enter
+  only as on-demand packages, with a corresponding source offer.
+- **ImageMagick's Windows distribution embeds delegates** under their own licences. The
+  ImageMagick licence being permissive is not enough: the exact artifact needs its
+  inventory before a hash is pinned.
+- **ExifTool is packaged Perl.** The Windows executable carries an interpreter, and the
+  notices for that packaging have to travel with it.
+- **Xpdf is not Poppler.** The `pdftotext.exe` that appears on many machines' PATH comes
+  from Git for Windows and is Xpdf 4.06, a different project with its own commercial
+  licensing — and with Poppler installed, it **still comes first on PATH**. So detection
+  uses `pdftoppm.exe`, which Xpdf does not ship, and every Poppler command resolves from
+  that installation's directory rather than from PATH.
+- **The MKVToolNix installer does not touch PATH.** It lands in `%ProgramFiles%\MKVToolNix`,
+  which is now a directory the host knows about.
 
-### Dev tools adicionadas em 2026-09-07
+## Dev tools added on 2026-09-07
 
-Todas de licença permissiva, binário Windows oficial, instaladas via winget e verificadas
-pelo sweep de contrato. Todas são **somente leitura**: escrevem em stdout, nunca em disco,
-então não têm destino nem risco de sobrescrever um arquivo.
+All permissively licensed, with official Windows binaries, installed through winget and
+verified by the contract sweep. All of them are **read-only**: they write to stdout, never
+to disk, so they have no destination and no risk of overwriting a file.
 
-| Ferramenta | Lacuna que fecha | Licença | Comando |
+| Tool | Gap it closes | Licence | Command |
 |---|---|---|---|
-| Miller 6.20 | CSV, TSV e JSON — o catálogo não tinha nada tabular | `BSD-2-Clause` | `mlr.exe` |
-| Difftastic 0.70 | comparar dois arquivos pela sintaxe, não por linha | `MIT` | `difft.exe` |
-| tokei 12.1 | estatística de código por linguagem | `MIT OR Apache-2.0` | `tokei.exe` |
-| hexyl 0.17 | ver os bytes de um arquivo desconhecido | `MIT OR Apache-2.0` | `hexyl.exe` |
-| Dust 1.2 | descobrir o que ocupa espaço em disco | `Apache-2.0` | `dust.exe` |
+| Miller 6.20 | CSV, TSV and JSON — the catalog had nothing tabular | `BSD-2-Clause` | `mlr.exe` |
+| Difftastic 0.70 | compare two files by syntax rather than by line | `MIT` | `difft.exe` |
+| tokei 12.1 | code statistics per language | `MIT OR Apache-2.0` | `tokei.exe` |
+| hexyl 0.17 | look at the bytes of an unfamiliar file | `MIT OR Apache-2.0` | `hexyl.exe` |
+| Dust 1.2 | find out what is taking the disk space | `Apache-2.0` | `dust.exe` |
 
 ```powershell
 winget install -e --id Miller.Miller
@@ -96,53 +97,90 @@ winget install -e --id sharkdp.hexyl
 winget install -e --id bootandy.dust
 ```
 
-Notas:
+Notes:
 
-- **tokei sem serialização.** O binário pré-compilado é publicado sem os formatos de
-  serialização, então `--output json` não funciona. O adaptador usa a saída em tabela.
-- **Difftastic exige dois arquivos.** É a primeira operação do catálogo com essa forma;
-  o host recusa antes de iniciar o processo e o painel só habilita "Executar" com dois.
+- **tokei without serialisation.** The prebuilt binary is published without the
+  serialisation formats, so `--output json` does not work. The adapter uses the table
+  output instead of promising something that would break.
+- **Difftastic needs two files.** It is the first operation in the catalog with that
+  shape; the host refuses before starting the process, and the panel only enables "Run"
+  once both are chosen.
+- **tokei has no current Windows binary.** Upstream stopped publishing them; the latest
+  tag has no assets at all. What ships is 12.1.2, from January 2021. A five-year-old
+  binary is bad and a permanently dead card is worse, so it is pinned and flagged here —
+  building from source in CI is the actual fix.
 
-### Como cada ferramenta chega ao usuário (2026-09-07)
+## Rejected, with the reason
 
-O usuário nunca instala nada por fora. Ou a ferramenta vem no instalador, ou o próprio
-app a baixa.
-
-| Canal | Ferramentas |
+| Tool | Why it stays out |
 |---|---|
-| **No instalador** (9) | jq, yq, ripgrep, fd, Miller, tokei, hexyl, Dust, Oxipng |
-| **Baixadas pelo app** (9) | FFmpeg, ffprobe, yt-dlp, Deno, qpdf, libvips, Poppler, Pandoc, Difftastic |
-| **Sem artefato fixado** (4) | 7-Zip, MKVToolNix, ImageMagick, ExifTool |
+| Ghostscript | AGPL-3.0, with a parallel commercial licence from Artifex, who treat distribution alongside non-AGPL software as a violation and state they act on it. Incompatible with an MIT app that installs the component for the user. It would enter only if ToolHaven itself became AGPL. |
+| Tesseract | The Apache-2.0 licence is not the problem. The engine in versions 4 and 5 is an LSTM neural network, and `PRODUCT.md` says the product does not use AI; the roadmap lists "neural OCR" as out of scope. Rejected on product grounds, not licensing. |
+| pngquant | GPL-3.0-or-later, with a commercial licence offered explicitly for non-GPL applications. Even across a process boundary, upstream frames that use as a commercial case — precisely the legal ambiguity `LICENSING.md` says to avoid. Held until there is an opinion. |
+| hyperfine | The MIT/Apache-2.0 licence is fine. What rejects it is what it does: hyperfine times **arbitrary shell commands supplied by the user**. Integrating it would mean offering arbitrary shell execution through the interface — exactly what ADR-0002 and the security model forbid. |
 
-Por que as quatro últimas ainda não entram no canal automático:
+## The original survey
 
-| Ferramenta | Obstáculo |
-|---|---|
-| 7-Zip | Distribuída como instalador NSIS `.exe` ou como `.7z`. Extrair um `.7z` exige o próprio 7-Zip — o app precisaria dele para instalá-lo. |
-| MKVToolNix | Mesmo caso: instalador `.exe` ou portátil `.7z`. |
-| ImageMagick | O GitHub publica só um `.7z` de 728 MB. O `.zip` portátil não tem URL versionada que resolva. |
-| ExifTool | O `exiftool.org` mantém apenas a versão corrente no ar, então não há URL versionada estável para fixar. O SourceForge tem, mas por trás de redirecionamento de espelho. |
+The table below is the first pass, kept as history. It was a list of candidates, not of
+approved dependencies, and most of its rows have since been decided above.
 
-Nenhuma delas é bloqueio de licença — é formato de distribuição. Resolver exige ou
-suporte a `.7z` e NSIS no instalador de componentes, ou reempacotar os artefatos em um
-canal próprio, o que traz responsabilidade de redistribuição.
+| Area | Candidate | Role | Delivery | Initial state | Note |
+|---|---|---|---|---|---|
+| Video/audio | FFmpeg + ffprobe | transcode, remux, trim, metadata, thumbnails | On demand | MVP | The build and its codecs decide LGPL vs GPL and the patent risk |
+| Download | yt-dlp | media extraction and download | On demand | MVP | The official executable includes components under additional licences |
+| yt-dlp runtime | Deno | solve YouTube's JS challenges | On-demand dependency | MVP | Recommended upstream; pin a compatible version |
+| Images | libvips CLI | resize, crop, convert, compress, batch | On demand | spike | Fast and frugal; the Windows distribution includes DLLs |
+| Simple images | Rust `image` | small operations with no external process | Embedded | evaluate | A smaller bundle, but narrower format coverage |
+| Structural PDF | qpdf | merge, split, rotate, encrypt, linearize | Embedded at first | MVP | Apache-2.0; neither renders nor extracts text |
+| PDF rendering | PDFium | preview and rasterisation | Undecided | spike | BSD-style core, with transitive notices to audit |
+| Metadata | ExifTool | broad reading and editing | On demand | post-MVP | Perl Artistic/GPL; packaging and notices need review |
+| Archives | 7-Zip | compress and extract | Embedded if the package stays light | post-MVP | LGPL, with a separate restriction on the unRAR code |
+| Documents | LibreOffice headless | Office ↔ PDF and open formats | On demand | future | Very large; fidelity varies; complex to distribute |
+| Text conversion | Pandoc | markup documents and ebooks | On demand | future | GPL; the redistribution impact needs a legal opinion |
+| Checksums | Native Rust | hashing and verification | Embedded | post-MVP | Needs no sidecar |
+| JSON/YAML | Native Rust | format, validate, convert | Embedded | post-MVP | "Dev tools" needed a user definition |
 
-**Sobre o FFmpeg:** o projeto não publica binários para Windows. Está fixado o build
-**LGPL** do `BtbN/FFmpeg-Builds`, na tag datada `autobuild-2026-09-06-13-06`, que é
-imutável — a tag `latest` do mesmo repositório é rolante e não serve para fixar. A
-variante LGPL é a rota conservadora que o `LICENSING.md` recomenda: evita `--enable-gpl`
-ao custo de alguns codecs.
+## Recommended capability profiles
 
-### Reprovadas, com o motivo
+### Media
 
-| Ferramenta | Por que não entra |
-|---|---|
-| Ghostscript | AGPL-3.0 com licenciamento comercial paralelo da Artifex, que trata distribuição junto a aplicativo não-AGPL como violação e declara que age judicialmente. Incompatível com um app MIT que instala o componente para o usuário. Só entraria se o ToolHaven inteiro virasse AGPL. |
-| Tesseract | Licença Apache-2.0 não é o problema. O motor das versões 4 e 5 é uma rede neural LSTM, e `PRODUCT.md` diz que o produto não usa IA; o roadmap lista “OCR neural” fora de escopo. Reprovada por produto, não por licença. |
-| pngquant | GPL-3.0-or-later com licença comercial oferecida explicitamente para uso em aplicativos não-GPL. Mesmo com fronteira de processo, o upstream enquadra esse uso como caso comercial — exatamente a ambiguidade jurídica que `LICENSING.md` manda evitar. Fica retida até haver parecer. |
-| hyperfine | Licença MIT/Apache-2.0 sem problema. O que reprova é a função: hyperfine mede o tempo de **comandos de shell arbitrários** fornecidos pelo usuário. Integrá-lo seria oferecer execução arbitrária de shell pela interface, exatamente o que a ADR-0002 e o modelo de segurança proíbem. |
+- Convert the container or the format.
+- Extract audio.
+- Compress towards a simple target — approximate quality or size.
+- Trim without re-encoding where possible, and explain when a re-encode is unavoidable.
+- Inspect streams and metadata.
 
-### Fontes conferidas
+### Images
+
+- Resize by dimensions, percentage or bound.
+- Manual crop and aspect-ratio presets.
+- Batch conversion with a conflict policy.
+- Compression with an estimated preview.
+- Classic upscaling (Lanczos), with no promise of "recovering detail".
+
+### PDFs
+
+- Merge, split, reorder, rotate, extract pages.
+- Optimise or linearise, and compress where applicable.
+- Add or remove a password where the document allows it.
+- Preview through a renderer separate from the structural tool.
+
+### Downloads
+
+- A public URL, its metadata, a video or audio choice, and a destination.
+- A queue, a concurrency limit and progress.
+- Cookies and authentication only if explicitly approved later.
+- A clear message about the user's responsibility and the site's terms.
+
+## What not to promise
+
+- "Any file", without a tested input/output matrix.
+- Compression to an exact size in a single pass.
+- Upscaling with real detail gain and no AI.
+- DRM removal, access bypass, or downloading unauthorised content.
+- Perfect fidelity for proprietary documents.
+
+## Sources checked
 
 - Miller: https://github.com/johnkerl/miller
 - Difftastic: https://github.com/Wilfred/difftastic
@@ -150,60 +188,16 @@ ao custo de alguns codecs.
 - hexyl: https://github.com/sharkdp/hexyl
 - Dust: https://github.com/bootandy/dust
 - hyperfine: https://github.com/sharkdp/hyperfine
-- ExifTool: https://exiftool.org/ e https://github.com/exiftool/exiftool
-- Poppler: https://poppler.freedesktop.org/ e https://github.com/oschwartz10612/poppler-windows
+- ExifTool: https://exiftool.org/ and https://github.com/exiftool/exiftool
+- Poppler: https://poppler.freedesktop.org/ and https://github.com/oschwartz10612/poppler-windows
 - Oxipng: https://github.com/oxipng/oxipng
 - MKVToolNix: https://mkvtoolnix.download/
 - ImageMagick: https://imagemagick.org/license/
-- Ghostscript: https://ghostscript.com/licensing/ e https://artifex.com/licensing
+- Ghostscript: https://ghostscript.com/licensing/ and https://artifex.com/licensing
 - Tesseract: https://github.com/tesseract-ocr/tesseract
 - pngquant: https://github.com/kornelski/pngquant
-
-## Perfis de capacidade recomendados
-
-### Media
-
-- Converter contêiner/formato.
-- Extrair áudio.
-- Comprimir por alvo simples (qualidade/tamanho aproximado).
-- Cortar sem reencode quando possível; explicar quando reencode é necessário.
-- Inspecionar streams e metadados.
-
-### Images
-
-- Resize por dimensões, percentual ou limite.
-- Crop manual e presets de proporção.
-- Conversão em lote com política de conflito.
-- Compressão com preview estimado.
-- Upscale clássico (Lanczos); sem promessa de “recuperar detalhes”.
-
-### PDFs
-
-- Merge, split, reorder, rotate, extract pages.
-- Optimize/linearize e compressão quando aplicável.
-- Add/remove password quando autorizado pelo documento.
-- Preview com renderer separado da ferramenta estrutural.
-
-### Downloads
-
-- URL pública, metadados, escolha de vídeo/áudio e destino.
-- Fila, limite de concorrência e progresso.
-- Cookies/autenticação somente se explicitamente aprovados depois.
-- Mensagem clara sobre responsabilidade do usuário e termos do site.
-
-## O que não prometer
-
-- “Qualquer arquivo” sem matriz de entrada/saída testada.
-- Compressão para tamanho exato em uma única passada.
-- Upscale com ganho real de detalhe sem IA.
-- Remoção de DRM, bypass de acesso ou download de conteúdo não autorizado.
-- Fidelidade perfeita de documentos proprietários.
-
-## Fontes verificadas
-
 - FFmpeg legal: https://ffmpeg.org/legal.html
-- yt-dlp license/readme: https://github.com/yt-dlp/yt-dlp
-- yt-dlp EJS: https://github.com/yt-dlp/yt-dlp/wiki/EJS
+- yt-dlp: https://github.com/yt-dlp/yt-dlp and https://github.com/yt-dlp/yt-dlp/wiki/EJS
 - libvips: https://github.com/libvips/libvips
 - qpdf: https://github.com/qpdf/qpdf
 - PDFium: https://github.com/chromium/pdfium

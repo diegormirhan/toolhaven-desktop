@@ -1,49 +1,59 @@
 # Security model
 
-## Ameaça principal
+## The threat that matters
 
-O app recebe paths, URLs e opções controlados pelo usuário e os entrega a programas
-complexos que leem formatos não confiáveis. O limite crítico é a tradução de uma
-intenção de UI para um processo local.
+The app takes paths, URLs and options controlled by the user and hands them to complex
+programs that read untrusted formats. The critical boundary is the translation from an
+interface intent into a local process.
 
-## Regras obrigatórias
+## Mandatory rules
 
-1. Frontend não executa shell nem escolhe executável.
-2. Argumentos são construídos por adaptadores a partir de enums e valores validados.
-3. Nunca concatenar uma command line; sempre passar programa e argumentos separados.
-4. Canonicalizar entrada e destino, sem seguir saída para diretórios inesperados.
-5. Nunca sobrescrever o original; publicar saída somente depois da validação.
-6. Cada job usa diretório temporário exclusivo com permissões mínimas.
-7. URLs, cookies, cabeçalhos e paths pessoais são redigidos antes de logs exportáveis.
-8. Binários só entram no build ou component store por origem allowlisted, hash fixado
-   e smoke test.
-9. Capacidades Tauri são mínimas e específicas por janela/comando.
-10. Atualizações exigem assinatura; a chave privada não vive no repositório.
+1. The frontend never runs a shell and never chooses an executable.
+2. Arguments are built by adapters from enums and validated values.
+3. Never concatenate a command line; always pass the program and its arguments separately.
+4. Canonicalise input and destination; never follow an output into an unexpected directory.
+5. Never overwrite the original; publish the output only after it is validated.
+6. Every job gets its own temporary directory with minimal permissions.
+7. URLs, cookies, headers and personal paths are redacted before logs leave the machine.
+8. A binary enters the build or the component store only from an allowlisted origin, with
+   a pinned hash and a smoke test.
+9. Tauri capabilities stay minimal and specific per window and per command.
+10. Updates require a signature; the private key does not live in the repository.
 
-## Execução de binários
+## Running binaries
 
-- Resolver pelo resource directory da instalação, nunca por PATH.
-- Ambiente allowlist: não herdar variáveis desnecessárias.
-- Timeout e limite de output para impedir crescimento ilimitado de logs.
-- Windows Job Object agrupa o processo e filhos para cancelamento confiável.
-- Parser trata stdout/stderr como texto não confiável.
-- Arquivos temporários recebem nomes gerados, não fragmentos brutos da URL.
+- Resolve from the installation's resource directory first, then the component store,
+  never from PATH alone.
+- Allowlist the environment: do not inherit variables the tool does not need.
+- A timeout and an output limit, so logs cannot grow without bound.
+- A Windows Job Object groups the process and its children for reliable cancellation.
+- The parser treats stdout and stderr as untrusted text.
+- Temporary files get generated names, never raw fragments of a URL.
 
-## Rede
+## What the component store enforces
 
-Por padrão, módulos de arquivo não acessam a rede. O instalador de componentes, yt-dlp
-e updater declaram rede explicitamente. A UI mostra tamanho e origem antes de baixar.
-Telemetria é uma decisão de produto ainda aberta e deve ser opt-in se existir.
+- Every artifact is pinned by URL and SHA-256 in the manifest, and the digest is checked
+  before anything is activated.
+- Extraction rejects absolute paths and `..` inside an archive, so a hostile package
+  cannot write outside the store.
+- Extraction happens in a staging directory beside the target, and activation is an
+  atomic rename. A failure never leaves a half-installed component live.
+- Components land under `%LOCALAPPDATA%`, so no installation needs administrator rights.
 
-## Atualizações
+## Network
 
-Tauri exige assinatura para pacotes do updater. Tool packs sob demanda usam um catálogo
-assinado separado, hashes fixados, staging isolado e ativação atômica. O app nunca deve
-executar um pacote apenas porque o download terminou; verificação e health check vêm
-antes da ativação.
+By default, the file modules do not touch the network. The component installer, yt-dlp and
+the updater declare it explicitly. The interface shows the size and the origin before
+downloading. Telemetry is still an open product decision, and would have to be opt-in.
 
-## Relato de vulnerabilidade
+## Updates
 
-Antes do lançamento público, adicionar `SECURITY.md` de divulgação responsável,
-canal de contato, versões suportadas e SLA realista. Este documento é o modelo
-técnico interno, não a política pública final.
+Tauri requires signed updater packages. On-demand tool packs use a separate signed
+catalog, pinned hashes, isolated staging and atomic activation. The app must never run a
+package merely because the download finished: verification and the health check come first.
+
+## Reporting a vulnerability
+
+Before a public release, add a `SECURITY.md` for responsible disclosure with a contact
+channel, the supported versions and a realistic SLA. This document is the internal
+technical model, not the public policy.

@@ -1,577 +1,648 @@
 # Progress
 
-> Ordem: mais recente primeiro. Entradas antigas são mantidas como registro; quando
-> uma decisão posterior as substitui, isso é dito na própria entrada.
+> Newest first. Older entries are kept as a record; when a later decision supersedes one,
+> the entry says so itself.
 
-## Incremento atual — o app instala os próprios componentes
+## Current increment — the interface speaks English, and a README to match
 
-Status: concluído em 2026-09-07.
+Status: finished on 2026-09-07.
 
-A outra metade da entrega híbrida. Nove ferramentas que não cabem no instalador agora
-são baixadas, verificadas e ativadas pelo próprio ToolHaven: FFmpeg, ffprobe, yt-dlp,
-Deno, qpdf, libvips, Poppler, Pandoc e Difftastic.
+The app is English end to end: catalog copy, panel labels, queue and history states, the
+settings screen, and every message the Rust host returns. `index.html` declares
+`lang="en"`, and the search normaliser no longer folds accents through a pt-BR collation.
 
-### Modelo
+Tool ids, operation ids and the manifest were untouched, so nothing about the execution
+contract moved — only the words a user reads. The tests assert the English strings rather
+than being loosened to ignore them. The documentation under `docs/` followed.
 
-- O manifesto ganhou um terceiro estado, `downloadable`: artefato fixado com versão e
-  SHA-256, mas fora do instalador. `planned` continua significando "só identidade".
-  Schema na versão 2, validador e fixtures acompanhando.
-- Artefatos podem declarar `binaryDirectory`, o caminho dos executáveis dentro do
-  pacote — `qpdf-12.4.1-msvc64/bin`, `poppler-26.07.0/Library/bin`, e assim por diante.
-- `apps/desktop/src-tauri/src/components.rs` compila o `tools.json` com `include_str!`.
-  Build, catálogo e runtime passaram a ler a mesma fonte de verdade.
+### Screenshots that can be regenerated
 
-### Instalação
+`scripts/screenshots.mjs` drives headless Chrome over the DevTools protocol to produce
+every image in the README. It captures the page and nothing else, and re-running it
+reproduces the whole set. A screenshot nobody can regenerate quietly starts lying after
+the next change to the interface.
 
-- Download com progresso real (um evento por ponto percentual), SHA-256 conferido antes
-  de qualquer coisa tocar o disco final, extração em `.staging` no mesmo volume e
-  ativação por `rename` — atômica. Falha em qualquer etapa não deixa componente meio
-  instalado ativo.
-- O diretório é nomeado pelo digest do artefato. Reinstalar a mesma versão é no-op, e
-  ferramentas que compartilham um pacote ocupam uma cópia só: ffmpeg e ffprobe vêm do
-  mesmo build de 140 MB e são baixados uma vez.
-- Instala em `%LOCALAPPDATA%\ToolHaven\components`, então **nunca pede administrador**.
-- O plano resolve dependências primeiro e pula o que o instalador já traz. Pedir yt-dlp
-  instala Deno, FFmpeg, ffprobe e yt-dlp, nessa ordem.
-- Resolução de executável passou a consultar, nessa ordem: o que veio no instalador, o
-  component store, o PATH.
+The theme is set through `localStorage` before the document runs, so the switch shows the
+segment that is actually active instead of sitting on "System".
+
+Worth recording as a mistake: the first attempt captured the screen with the app in the
+foreground, and twice grabbed unrelated windows instead, because Windows refuses to raise
+a window from a background process. Both images were deleted. Capturing the page rather
+than the screen is both safer and reproducible.
+
+### One command from a clean checkout
+
+`setup.ps1` checks the toolchain, installs the npm dependencies, downloads and verifies
+the nine pinned artifacts, runs every check, and builds the installer. Each step checks
+whether its work is already done, so re-running it is safe; a full pass takes about a
+minute and a half.
+
+Nothing is installed on the machine unless asked. A missing prerequisite is reported with
+the exact winget command that fixes it, and `-InstallPrerequisites` is what runs those.
+
+Two things the script surfaced:
+
+- **Under `$ErrorActionPreference = 'Stop'`, PowerShell 5.1 turns every stderr line from a
+  native command into a terminating error.** Both `cargo test` and `tauri build` write
+  progress to stderr, so the build failed on its own informational output. Native calls
+  now run with the preference relaxed and are judged by their exit code.
+- **`cargo` warned that `ManifestTool::version` was never read outside tests.** It now goes
+  into the install progress message, so a download says which version it is fetching.
+
+### Evidence
+
+- 22 domain tests, 53 interface tests and 21 host tests passing.
+- The contract sweep still prints "Every catalog operation passed against a real binary".
+- `setup.ps1` runs to exit code 0 in 1:44, producing a 15.6 MB NSIS installer and a
+  21.8 MB MSI.
+
+## Increment — the app installs its own components
+
+Status: finished on 2026-09-07.
+
+The other half of hybrid delivery. Nine tools that do not fit in the installer are now
+downloaded, verified and activated by ToolHaven itself: FFmpeg, ffprobe, yt-dlp, Deno,
+qpdf, libvips, Poppler, Pandoc and Difftastic.
+
+### The model
+
+- The manifest gained a third state, `downloadable`: an artifact pinned by version and
+  SHA-256, but outside the installer. `planned` still means "identity only". Schema at
+  version 2, with the validator and the fixtures following.
+- An artifact can declare `binaryDirectory`, the path to the executables inside the
+  package — `qpdf-12.4.1-msvc64/bin`, `poppler-26.07.0/Library/bin`, and so on.
+- `apps/desktop/src-tauri/src/components.rs` compiles `tools.json` in with `include_str!`.
+  The build, the catalog and the runtime read one source of truth.
+
+### Installation
+
+- Download with real progress (one event per percentage point), SHA-256 checked before
+  anything touches the final location, extraction into `.staging` on the same volume, and
+  activation by `rename` — atomic. A failure at any stage leaves no half-installed
+  component live.
+- The directory is named after the artifact's digest. Reinstalling the same version is a
+  no-op, and tools that share a package occupy one copy: ffmpeg and ffprobe come from the
+  same 140 MB build and are downloaded once.
+- It installs into `%LOCALAPPDATA%\ToolHaven\components`, so it **never asks for
+  administrator rights**.
+- The plan resolves dependencies first and skips whatever the installer already carries.
+  Asking for yt-dlp installs Deno, FFmpeg, ffprobe and yt-dlp, in that order.
+- Executable resolution now consults, in order: what came in the installer, the component
+  store, then PATH.
 
 ### Interface
 
-O diálogo de instalação deixou de ser um plano somente-leitura. Ele mostra o plano com
-o progresso de cada dependência, tem botão "Baixar e instalar", exibe o erro quando
-falha e oferece "Tentar novamente". Para as quatro ferramentas ainda sem artefato
-fixado, ele não oferece botão nenhum — explica por que não pode instalar.
+The install dialog stopped being a read-only plan. It shows the plan with per-dependency
+progress, has a "Download and install" button, surfaces the error when it fails and offers
+"Try again". For the four tools that still have no pinned artifact it offers no button at
+all, and explains why it cannot install them.
 
-### O que sobra
+### What is left
 
-7-Zip, MKVToolNix, ImageMagick e ExifTool continuam dependendo de instalação prévia.
-Nenhuma é bloqueio de licença: é formato de distribuição — `.7z` e instalador NSIS, que
-o extrator ainda não lê, e ausência de URL versionada estável. Detalhes por ferramenta
-em `docs/TOOL-MATRIX.md`.
+7-Zip, MKVToolNix, ImageMagick and ExifTool still depend on being installed beforehand.
+None of them is a licensing block: it is distribution format — `.7z` and NSIS installers,
+which the extractor does not read, and the absence of a stable versioned URL. Per-tool
+detail in `docs/TOOL-MATRIX.md`.
 
-### Evidência
+### Evidence
 
-- 22 testes de domínio, 53 de UI e 21 Rust aprovados.
-- Teste de integração real: baixa o Difftastic da internet, confere o hash, extrai,
-  ativa, confirma `difft.exe` no lugar e prova que reinstalar não baixa de novo.
-- Sweep de contrato seguiu com “Every catalog operation passed against a real binary”.
-- Instalador NSIS 15,6 MB.
+- 22 domain tests, 53 interface tests and 21 host tests passing.
+- A real integration test: it downloads Difftastic from the internet, checks the hash,
+  extracts, activates, confirms `difft.exe` is in place, and proves that reinstalling does
+  not download again.
+- The contract sweep continued with "Every catalog operation passed against a real binary".
+- NSIS installer at 15.6 MB.
 
-## Incremento — nove ferramentas passaram a vir no instalador
+## Increment — nine tools started shipping in the installer
 
-Status: concluído em 2026-09-07.
+Status: finished on 2026-09-07.
 
-Até aqui o app **só detectava** ferramentas já instaladas no Windows. Numa máquina limpa,
-todos os cards diriam "Ver disponibilidade" e nada funcionaria — as ferramentas usadas
-nos testes tinham sido instaladas por fora, com winget. Isso foi corrigido para nove
-delas e registrado abertamente para as outras treze.
+Until this point the app **only detected** tools already installed on Windows. On a clean
+machine every card would say "Not installed" and nothing would work — the tools used in
+the tests had been installed externally, with winget. That was fixed for nine of them and
+recorded openly for the other thirteen.
 
-### Pipeline de aquisição
+### The acquisition pipeline
 
-- `tooling/tools.json` deixou de ter só identidade: nove ferramentas viraram `bundled`,
-  com **versão e SHA-256 fixados** apontando para o artefato exato do release upstream.
-- `scripts/tools/stage-embedded-tools.mjs` baixa cada artefato para um cache, confere o
-  hash — **divergência aborta o build**, porque um artefato que não bate com o digest não
-  é o artefato que foi revisado —, extrai o executável e o coloca em `resources/tools/`.
-- `bundle.resources` no `tauri.conf.json` leva esse diretório para dentro do MSI e do
-  NSIS. `npm run build` roda o staging antes do Vite, então o instalador nunca sai sem as
-  ferramentas.
-- O script também emite `THIRD-PARTY-NOTICES.txt` e `tool-inventory.json` com nome,
-  versão, licença, origem, URL do artefato e hash.
+- `tooling/tools.json` stopped being identity alone: nine tools became `bundled`, with a
+  **pinned version and SHA-256** pointing at the exact upstream release artifact.
+- `scripts/tools/stage-embedded-tools.mjs` downloads each artifact into a cache, checks the
+  hash — **a mismatch aborts the build**, because an artifact that does not match the
+  digest is not the artifact anyone reviewed — extracts the executable and stages it in
+  `resources/tools/`.
+- `bundle.resources` in `tauri.conf.json` carries that directory into the MSI and the NSIS
+  bundle. `npm run build` stages before Vite runs, so the installer never leaves without
+  the tools.
+- The script also emits `THIRD-PARTY-NOTICES.txt` and `tool-inventory.json` with name,
+  version, licence, origin, artifact URL and hash.
 
-### Resolução passou a preferir o que foi distribuído
+### Resolution started preferring what we distribute
 
-`resolve_executable` procura primeiro em `<pasta do executável>/tools`. A versão fixada,
-verificada e testada ganha de qualquer coisa no PATH da máquina — que é a regra que o
-`ARCHITECTURE.md` já definia e que nenhuma ferramenta seguia ainda. Há teste: um binário
-plantado nesse diretório vence um nome que existe no PATH do sistema.
+`resolve_executable` looks first in `<executable directory>/tools`. The version that was
+pinned, verified and tested beats anything on the machine's PATH — the rule
+`ARCHITECTURE.md` already stated and no tool had followed yet. There is a test: a binary
+planted in that directory beats a name that exists on the system PATH.
 
-### O que entrou e por quê
+### What went in, and why
 
 | | |
 |---|---|
-| Incluídas | jq, yq, ripgrep, fd, Miller, tokei, hexyl, Dust, Oxipng |
-| Tamanho | ~47 MB de executáveis, instalador NSIS de **14,9 MB** |
-| Licenças | todas permissivas: MIT, Apache-2.0, BSD-2, Unlicense |
+| Included | jq, yq, ripgrep, fd, Miller, tokei, hexyl, Dust, Oxipng |
+| Size | ~47 MB of executables, a **14.9 MB** NSIS installer |
+| Licences | all permissive: MIT, Apache-2.0, BSD-2, Unlicense |
 
-O critério foi executável único, sem DLL, licença permissiva e tamanho pequeno. Nenhuma
-ferramenta copyleft entrou no instalador — é a posição conservadora que o `LICENSING.md`
-recomenda para a primeira versão.
+The criteria were a single executable, no DLLs, a permissive licence and a small size. No
+copyleft tool went into the installer — the conservative position `LICENSING.md`
+recommends for a first version.
 
-Duas exclusões deliberadas:
+Two deliberate exclusions:
 
-- **Difftastic (112 MB)** é permissiva e caberia pelo critério de licença, mas sozinha
-  multiplicaria o instalador por oito. Vai para o canal sob demanda.
-- **tokei** foi incluída na versão 12.1.2, de janeiro de 2021, porque o upstream **parou
-  de publicar binários Windows** — a tag atual v15.0.0 não tem nenhum artefato. Ficar com
-  um binário antigo é ruim; deixar um card permanentemente morto é pior. Fica registrado
-  para revisão, e a alternativa é compilar do fonte no build.
+- **Difftastic (112 MB)** is permissive and would qualify on licence, but on its own it
+  would multiply the installer eightfold. It goes to the on-demand channel.
+- **tokei** was included at version 12.1.2, from January 2021, because upstream **stopped
+  publishing Windows binaries** — the current v15.0.0 tag has no artifacts at all. Keeping
+  an old binary is bad; leaving a permanently dead card is worse. It is recorded here for
+  review, and the alternative is building from source in the build.
 
-### O que ainda falta
+### What was still missing
 
-As outras treze ferramentas continuam dependendo de instalação externa. O canal sob
-demanda — baixar, verificar, instalar e ativar dentro do app — ainda não existe: hoje há
-só o contrato em Node de `scripts/component-installation/`. Enquanto isso, a mensagem de
-erro do host diz exatamente isso, em vez de sugerir que o usuário resolva sozinho.
+The other thirteen tools still depended on an external installation. The on-demand channel
+— download, verify, install and activate inside the app — did not exist yet: only the Node
+contracts in `scripts/component-installation/`. Meanwhile the host's error message said
+exactly that, instead of implying the user should sort it out.
 
-### Evidência
+### Evidence
 
-- 22 testes de domínio, 50 de UI e 15 Rust aprovados.
-- Manifesto validado com 22 ferramentas, 9 `bundled` com hash fixado.
-- `7z l` no instalador NSIS confirma `tools\*.exe` ao lado de `toolhaven.exe`.
-- Instalador NSIS 14,9 MB; MSI 20,9 MB.
+- 22 domain tests, 50 interface tests and 15 host tests passing.
+- Manifest validated with 22 tools, 9 `bundled` with a pinned hash.
+- `7z l` on the NSIS installer confirms `tools\*.exe` beside `toolhaven.exe`.
+- NSIS installer 14.9 MB; MSI 20.9 MB.
 
-## Incremento — cinco dev tools
+## Increment — five dev tools
 
-Status: concluído em 2026-09-07.
+Status: finished on 2026-09-07.
 
-A faixa de dev tools tinha sete cards e nenhuma capacidade tabular, de bytes ou de
-comparação. Cinco ferramentas novas fecham essas lacunas — pesquisadas, validadas por
-licença e origem, instaladas via winget e verificadas pelo sweep de contrato.
+The dev tools rail had seven cards and nothing tabular, nothing for bytes, nothing for
+comparison. Five new tools close those gaps — researched, validated by licence and origin,
+installed through winget and verified by the contract sweep.
 
-| Ferramenta | Operações | Licença |
+| Tool | Operations | Licence |
 |---|---|---|
-| Miller | CSV para JSON, JSON para CSV, resumir colunas | `BSD-2-Clause` |
-| Difftastic | comparar dois arquivos pela sintaxe | `MIT` |
-| tokei | contar código por linguagem | `MIT OR Apache-2.0` |
-| hexyl | prévia em hexadecimal | `MIT OR Apache-2.0` |
-| Dust | maiores pastas em disco | `Apache-2.0` |
+| Miller | CSV to JSON, JSON to CSV, summarise columns | `BSD-2-Clause` |
+| Difftastic | compare two files by syntax | `MIT` |
+| tokei | count code per language | `MIT OR Apache-2.0` |
+| hexyl | hex preview | `MIT OR Apache-2.0` |
+| Dust | largest folders on disk | `Apache-2.0` |
 
-### Decisões
+### Decisions
 
-- **Todas são somente leitura.** Escrevem em stdout e nada em disco, então não têm
-  destino nem chance de sobrescrever um arquivo. É a mesma forma do jq e do ripgrep.
-- **Primeira operação com dois arquivos de entrada.** O Difftastic obrigou o painel a
-  aprender seleção múltipla fora do `merge` do qpdf, e o host a recusar antes de iniciar
-  o processo quando falta o segundo arquivo.
-- **Primeira vez que "pasta" deixou de ser uma exceção codificada.** `folderTools` e
-  `multiInputOperations` substituíram as comparações espalhadas por `fd` e `ripgrep`.
-- **tokei não expõe JSON.** O binário pré-compilado vem sem os formatos de serialização,
-  então o adaptador usa a saída em tabela em vez de prometer `--output json`.
+- **All of them are read-only.** They write to stdout and nothing to disk, so they have no
+  destination and no chance of overwriting a file. The same shape as jq and ripgrep.
+- **The first operation with two input files.** Difftastic forced the panel to learn
+  multiple selection outside qpdf's `merge`, and the host to refuse before starting the
+  process when the second file is missing.
+- **The first time "folder" stopped being a hardcoded exception.** `folderTools` and
+  `multiInputOperations` replaced comparisons scattered across `fd` and `ripgrep`.
+- **tokei does not expose JSON.** The prebuilt binary ships without the serialisation
+  formats, so the adapter uses the table output instead of promising `--output json`.
 
-### Uma reprovada que valia registrar
+### One rejection worth recording
 
-**hyperfine** tem licença permissiva e seria útil, mas ele mede o tempo de **comandos de
-shell arbitrários** dados pelo usuário. Integrá-lo seria oferecer execução arbitrária de
-shell pela interface — exatamente o que a ADR-0002 e o modelo de segurança proíbem. É a
-primeira reprovação por arquitetura, não por licença nem por produto.
+**hyperfine** has a permissive licence and would be useful, but it times **arbitrary shell
+commands** given by the user. Integrating it would mean offering arbitrary shell execution
+through the interface — exactly what ADR-0002 and the security model forbid. It is the
+first rejection on architectural grounds rather than licensing or product.
 
-### Evidência
+### Evidence
 
-- 22 testes de domínio, 50 de UI e 15 Rust aprovados.
-- Sweep de contrato: “Every catalog operation passed against a real binary”, cobrindo as
-  22 ferramentas do manifesto sem nenhuma pulada.
-- Auditoria de 43 capacidades aprovada; TypeScript estrito e build Windows aprovados.
+- 22 domain tests, 50 interface tests and 15 host tests passing.
+- Contract sweep: "Every catalog operation passed against a real binary", covering all 22
+  tools in the manifest with none skipped.
+- Capability audit of 43 passing; strict TypeScript and the Windows build passing.
 
-## Incremento — cinco ferramentas integradas
+## Increment — five tools integrated
 
-Status: concluído em 2026-09-07.
+Status: finished on 2026-09-07.
 
-As cinco candidatas validadas deixaram de ser só entradas de manifesto e passaram a
-funcionar: card, adaptador Rust com argv tipado, opções no painel, nome de saída próprio
-e teste de contrato.
+The five validated candidates stopped being manifest entries and started working: a card,
+a Rust adapter with typed argv, options in the panel, their own output naming, and a
+contract test.
 
-| Ferramenta | Operações | Executável |
+| Tool | Operations | Executable |
 |---|---|---|
-| ExifTool | ler metadados, remover metadados, definir título | `exiftool.exe` |
-| Poppler | extrair texto, página como imagem | `pdftotext.exe`, `pdftoppm.exe` |
-| Oxipng | otimizar PNG sem perdas | `oxipng.exe` |
-| MKVToolNix | converter para MKV, inspecionar faixas | `mkvmerge.exe` |
-| ImageMagick | converter formato, converter para cinza, inspecionar | `magick.exe` |
+| ExifTool | read metadata, strip metadata, set title | `exiftool.exe` |
+| Poppler | extract text, page as image | `pdftotext.exe`, `pdftoppm.exe` |
+| Oxipng | lossless PNG optimisation | `oxipng.exe` |
+| MKVToolNix | convert to MKV, inspect tracks | `mkvmerge.exe` |
+| ImageMagick | convert format, convert to grey, inspect | `magick.exe` |
 
-### Decisões que a integração forçou
+### Decisions the integration forced
 
-- **Uma ferramenta pode ter mais de um executável.** Poppler e MKVToolNix dividem o
-  trabalho entre binários diferentes, então surgiu `operation_executable`, que resolve o
-  executável por operação e cai no representativo da ferramenta quando não há exceção.
-- **Xpdf não é Poppler.** O `pdftotext.exe` que aparece no PATH via Git for Windows é o
-  Xpdf 4.06, outro projeto. A detecção do Poppler passa por `pdftoppm.exe`, que o Xpdf
-  não distribui — senão o app reportaria Poppler instalado sem estar. Há teste para isso.
-- **Nunca chamar `convert.exe`.** O `convert` do PATH no Windows é o conversor de sistema
-  de arquivos da Microsoft, não o ImageMagick. O adaptador usa apenas `magick.exe`, e um
-  teste trava essa escolha.
-- **ExifTool edita em uma cópia.** Todas as operações de escrita usam `-o`, nunca
-  `-overwrite_original`, para manter a regra de não alterar o original.
-- **`pdftoppm --singlefile` acrescenta a extensão sozinho**, então recebe o destino sem
-  ela; `rasterize_prefix` cuida disso.
-- **A validação de opções virou função pura.** `validate_options` saiu de dentro de
-  `validate_request` porque os testes de faixa (DPI, nível do oxipng, título vazio)
-  estavam passando pelo motivo errado — a checagem de arquivo inexistente disparava antes.
+- **A tool can have more than one executable.** Poppler and MKVToolNix split their work
+  across different binaries, so `operation_executable` appeared: it resolves the executable
+  per operation and falls back to the tool's representative one.
+- **Xpdf is not Poppler.** The `pdftotext.exe` that appears on PATH via Git for Windows is
+  Xpdf 4.06, a different project. Poppler detection goes through `pdftoppm.exe`, which Xpdf
+  does not ship — otherwise the app would report Poppler as installed when it is not. There
+  is a test for it.
+- **Never call `convert.exe`.** The `convert` on Windows PATH is Microsoft's filesystem
+  converter, not ImageMagick. The adapter uses only `magick.exe`, and a test locks that in.
+- **ExifTool edits into a copy.** Every write operation uses `-o`, never
+  `-overwrite_original`, to keep the rule of never touching the original.
+- **`pdftoppm --singlefile` appends the extension itself**, so it receives the destination
+  without one; `rasterize_prefix` handles that.
+- **Option validation became a pure function.** `validate_options` moved out of
+  `validate_request` because the range tests (DPI, oxipng level, empty title) were passing
+  for the wrong reason — the missing-file check fired first.
 
-### O teste de contrato passou a ser honesto sobre o que não verificou
+### The contract test became honest about what it did not verify
 
-O sweep contra binários reais deixou de ser tudo-ou-nada: ele verifica cada ferramenta
-instalada e **nomeia as que não conseguiu verificar**, em vez de passar em silêncio.
+The sweep against real binaries stopped being all-or-nothing: it verifies each installed
+tool and **names the ones it could not verify** rather than passing quietly.
 
-Com Oxipng, Poppler e MKVToolNix instalados via winget, o sweep passou a cobrir as 17
-ferramentas e imprimiu “Every catalog operation passed against a real binary”.
+With Oxipng, Poppler and MKVToolNix installed through winget, the sweep covered all 17
+tools and printed "Every catalog operation passed against a real binary".
 
-Instalá-las revelou dois problemas de resolução que só aparecem no Windows real:
+Installing them exposed two resolution problems that only appear on real Windows:
 
-- **O instalador do MKVToolNix não mexe no PATH.** `%ProgramFiles%\MKVToolNix` virou
-  diretório conhecido do host.
-- **Com o Poppler instalado, o `pdftotext.exe` do Git (Xpdf) continua vindo antes no
-  PATH.** A sonda por `pdftoppm.exe` evitava reportar Poppler ausente como presente, mas
-  não impedia chamar o binário errado. Agora todos os comandos do Poppler são resolvidos
-  no diretório da instalação identificada pela sonda — o que também é a regra de longo
-  prazo do `ARCHITECTURE.md`: resolver pelo diretório da instalação, nunca por PATH.
+- **The MKVToolNix installer does not touch PATH.** `%ProgramFiles%\MKVToolNix` became a
+  directory the host knows.
+- **With Poppler installed, Git's `pdftotext.exe` (Xpdf) still comes first on PATH.**
+  Probing through `pdftoppm.exe` avoided reporting an absent Poppler as present, but did
+  not stop the wrong binary from being called. Every Poppler command now resolves inside
+  the directory of the installation the probe identified — which is also the long-standing
+  rule in `ARCHITECTURE.md`: resolve from the installation directory, never from PATH.
 
-### Evidência
+### Evidence
 
-- 22 testes de domínio, 46 de UI e 15 Rust aprovados; o sweep real cobriu as 17
-  ferramentas, sem nenhuma pulada.
-- Manifesto com 17 ferramentas validado; auditoria agora cobre 37 capacidades.
-- TypeScript estrito, build Vite e `npm run tauri:build` aprovados.
+- 22 domain tests, 46 interface tests and 15 host tests passing; the real sweep covered all
+  17 tools with none skipped.
+- Manifest with 17 tools validated; the audit now covers 37 capabilities.
+- Strict TypeScript, the Vite build and `npm run tauri:build` passing.
 
-## Incremento — rolagem das faixas e novos candidatos validados
+## Increment — rail scrolling and newly validated candidates
 
-Status: concluído em 2026-09-07.
+Status: finished on 2026-09-07.
 
-### A animação lateral das faixas
+### The sideways rail animation
 
-- **Causa raiz do travamento:** a medição de “dá para rolar para os lados?” rodava a cada
-  quadro da animação e a cada movimento do ponteiro, criando um objeto novo de estado e
-  re-renderizando a faixa inteira — com todos os cards — 60 vezes por segundo. Agora a
-  medição só publica quando o valor realmente muda.
-- O snap nativo (`scroll-snap-type`) disputava com a mola que nós mesmos dirigimos, o que
-  produzia um solavanco no fim do movimento. Ele é suspenso enquanto a faixa está sob
-  arrasto ou animação e volta depois.
-- A posição interna da mola não era limitada, mas o scroller limita: as duas divergiam e a
-  animação dava um salto ao assentar. Agora a mola é limitada junto e zera a velocidade
-  na borda.
-- Os cards passando sob o cursor disparavam a transição de hover, um a um, durante a
-  rolagem. Hover e transição ficam desligados enquanto a faixa se move.
+- **Root cause of the stutter:** the "can this scroll sideways?" measurement ran on every
+  animation frame and every pointer move, creating a new state object and re-rendering the
+  whole rail — every card in it — sixty times a second. It now publishes only when the
+  value actually changes.
+- Native snapping (`scroll-snap-type`) fought the spring we drive ourselves, producing a
+  jolt at the end of the movement. It is suspended while the rail is under drag or
+  animation, and restored afterwards.
+- The spring's internal position was not clamped, but the scroller clamps: the two diverged
+  and the animation jumped when it settled. The spring is now clamped alongside it and
+  zeroes its velocity at the edge.
+- Cards passing under the cursor fired their hover transition, one by one, during the
+  scroll. Hover and transitions are disabled while the rail moves.
 
-### Ferramentas pesquisadas e validadas
+### Tools researched and validated
 
-- Cinco candidatas entraram em `tooling/tools.json` como `planned`, com licença, origem e
-  build Windows conferidos na fonte upstream: ExifTool, Poppler, Oxipng, MKVToolNix e
-  ImageMagick. Entrada no manifesto é identidade validada, não integração: nenhuma tem
-  card, adaptador ou operação, porque isso exige contrato e fixture.
-- Três foram reprovadas com motivo registrado: Ghostscript (AGPL-3.0 com enforcement
-  ativo da Artifex, incompatível com um app MIT que instala o componente), Tesseract
-  (motor LSTM, contra a regra de não usar IA) e pngquant (GPL-3.0 com licença comercial
-  explícita para uso não-GPL — ambiguidade que `LICENSING.md` manda evitar).
-- Detalhes, ressalvas e fontes em `docs/TOOL-MATRIX.md`.
+- Five candidates entered `tooling/tools.json` as `planned`, with licence, origin and
+  Windows build checked at the upstream source: ExifTool, Poppler, Oxipng, MKVToolNix and
+  ImageMagick. A manifest entry is validated identity, not integration: none had a card, an
+  adapter or an operation, because those require a contract and a fixture.
+- Three were rejected with the reason recorded: Ghostscript (AGPL-3.0 with active
+  enforcement by Artifex, incompatible with an MIT app that installs the component),
+  Tesseract (LSTM engine, against the no-AI rule) and pngquant (GPL-3.0 with an explicit
+  commercial licence for non-GPL use — the ambiguity `LICENSING.md` says to avoid).
+- Detail, caveats and sources in `docs/TOOL-MATRIX.md`.
 
-### Evidência
+### Evidence
 
-- 22 testes de domínio, 38 de UI e 11 Rust aprovados.
-- Manifesto validado com 17 ferramentas; auditoria de 27 capacidades aprovada.
-- TypeScript estrito e build Vite aprovados.
+- 22 domain tests, 38 interface tests and 11 host tests passing.
+- Manifest validated with 17 tools; capability audit of 27 passing.
+- Strict TypeScript and the Vite build passing.
 
-## Incremento — ToolHaven: identidade, arte dos cards e progresso real
+## Increment — ToolHaven: identity, card artwork and real progress
 
-Status: concluído em 2026-09-06.
+Status: finished on 2026-09-06.
 
-### Nome e marca
+### Name and brand
 
-- O produto passou a se chamar **ToolHaven**, alinhado ao repositório
-  `github.com/diegormirhan/toolhaven-desktop`. O nome anterior (Workbench) e o slug
-  `unified-toolkit-desktop` saíram de todo o código, dos instaladores, do pacote npm,
-  do crate Rust e dos documentos. O identificador Tauri virou `com.toolhaven.desktop`
-  e o executável, `toolhaven.exe`.
-- Ícone novo: monograma geométrico — um arco em azul de ação sobre uma base âmbar,
-  no grafite da paleta. Lê como abrigo sobre bancada, sem letra. A fonte é
-  `apps/desktop/src-tauri/icons/toolhaven.svg`; os rasters saem de `npx tauri icon`.
-  A marca da barra lateral repete a mesma geometria, então barra de tarefas e app
-  concordam. Cores de marca são tokens fixos e não seguem o tema.
-- O diretório local continua `unified-toolkit-desktop`; só o clone novo nasce com o
-  nome do repositório.
+- The product became **ToolHaven**, aligned with the repository
+  `github.com/diegormirhan/toolhaven-desktop`. The previous name (Workbench) and the slug
+  `unified-toolkit-desktop` left the code, the installers, the npm package, the Rust crate
+  and the documentation. The Tauri identifier became `com.toolhaven.desktop` and the
+  executable `toolhaven.exe`.
+- A new icon: a geometric monogram — an arch in action blue over an amber base, on the
+  palette's graphite. It reads as shelter over a bench, with no letterform. The source is
+  `apps/desktop/src-tauri/icons/toolhaven.svg`; the rasters come from `npx tauri icon`. The
+  sidebar mark repeats the same geometry, so the taskbar and the app agree. Brand colours
+  are fixed tokens and do not follow the theme.
+- The local directory is still `unified-toolkit-desktop`; only a fresh clone is born with
+  the repository's name.
 
-### Arte dos cards
+### Card artwork
 
-- Cada integração ganhou um desenho próprio numa grade 200 × 100 compartilhada, com os
-  mesmos pesos de traço e o acento do card como `currentColor`, sobre um campo pontilhado
-  tingido por esse acento. São diagramas do que a ferramenta produz — páginas empilhadas,
-  moldura de recorte, filme virando forma de onda — no lugar de um ícone genérico dentro
-  de uma caixa vazia.
-- O código truncado de três letras (`YT-`, `FFM`, `FFP`), que parecia defeito, virou o
-  nome completo da integração.
-- O selo de disponibilidade saiu da linha de metadados e virou um badge sobre a arte,
-  eliminando a repetição do nome da ferramenta dentro do card.
-- Os acentos deixaram de se chamar `orange`/`blue`/`stone`: os nomes agora descrevem o
-  papel (`action`, `cool`, `amber`, `neutral`), porque `orange` já renderizava azul.
+- Every integration got its own drawing on a shared 200 × 100 grid, with the same stroke
+  weights and the card's accent as `currentColor`, over a dotted field tinted by that
+  accent. They are diagrams of what the tool produces — stacked pages, a crop frame, a
+  filmstrip becoming a waveform — instead of a generic icon in an empty box.
+- The truncated three-letter code (`YT-`, `FFM`, `FFP`), which looked like a defect, became
+  the integration's full name.
+- The availability badge left the metadata row and moved onto the artwork, removing the
+  repetition of the tool's name inside the card.
+- The accents stopped being called `orange`/`blue`/`stone`: the names now describe the role
+  (`action`, `cool`, `amber`, `neutral`), because `orange` already rendered blue.
 
-### Progresso de segundo plano que realmente funciona
+### Background progress that actually works
 
-- **Causa raiz:** o host lia o *stderr* do yt-dlp procurando progresso, mas o yt-dlp
-  escreve `[download] … %` no *stdout*. Nenhum evento de progresso chegava; a fila
-  ficava parada em 0%. Agora o stdout é lido linha a linha e o stderr é drenado numa
-  thread — invertido em relação ao que estava, e sem risco de encher o pipe.
-- Downloads de vídeo deixaram de usar `--recode-video mp4`, que reencodava o arquivo
-  inteiro mesmo quando desnecessário e fazia a tarefa parecer travada. Agora a seleção
-  de formato prefere trilhas compatíveis e usa `--merge-output-format mp4`: junta sem
-  reencodar no caminho comum.
-- Mensagens novas para as fases pós-download: `[Merger]` e `[VideoRemuxer]` viram
-  "Juntando vídeo e áudio…" e "Ajustando o contêiner…".
-- Uma tarefa começa com progresso `null`, não `0`. Enquanto a ferramenta não reporta
-  percentual, a barra é indeterminada e o rótulo é só "Executando" — o produto não
-  inventa número.
-- A linha da fila passou a mostrar a mensagem viva do host, não só ao terminar.
+- **Root cause:** the host read yt-dlp's *stderr* looking for progress, but yt-dlp writes
+  `[download] … %` to *stdout*. No progress event ever arrived and the queue sat at 0%. The
+  stdout is now read line by line and the stderr is drained on a thread — the inverse of
+  what it was, and with no risk of filling the pipe.
+- Video downloads stopped using `--recode-video mp4`, which re-encoded the whole file even
+  when unnecessary and made the job look stuck. Format selection now prefers compatible
+  tracks and uses `--merge-output-format mp4`: it merges without re-encoding on the common
+  path.
+- New messages for the post-download phases: `[Merger]` and `[VideoRemuxer]` became
+  "Merging video and audio…" and "Adjusting the container…".
+- A job starts with progress `null`, not `0`. Until the tool reports a percentage the bar
+  is indeterminate and the label just says "Running" — the product does not invent a number.
+- The queue row started showing the host's live message, not only the final one.
 
-### Posição do card e física da faixa
+### Card position and rail physics
 
-- **Causa raiz da queixa "o card está colado no canto":** `scroll-snap-align: start`
-  alinha o card à borda do scrollport, ignorando a calha de 32 px. A faixa com overflow
-  nascia com `scrollLeft = 32` e o card ficava deslocado do cabeçalho. Resolvido com
-  `scroll-padding-inline` na faixa; agora cabeçalho e card compartilham a mesma margem
-  em qualquer posição de rolagem.
-- O momentum passou a escolher a borda de card mais próxima do ponto projetado, em vez
-  de parar onde a inércia acabar. Um arremesso nunca mais estaciona um card pela metade.
-- Rubber-band nas duas pontas, projeção de desaceleração da Apple e entrega da
-  velocidade de soltura para uma mola criticamente amortecida.
-- Setas somem quando a faixa não transborda e desabilitam em cada extremidade.
-- Se a janela estiver com os quadros de animação suspensos, a rolagem salta para o
-  destino em vez de deixar o controle morto.
+- **Root cause of "the card is stuck to the corner":** `scroll-snap-align: start` aligns the
+  card to the scrollport edge, ignoring the 32 px gutter. An overflowing rail was born with
+  `scrollLeft = 32` and the card sat offset from its heading. Fixed with
+  `scroll-padding-inline` on the rail; heading and card now share the same margin at any
+  scroll position.
+- Momentum now picks the card edge nearest the projected point instead of stopping wherever
+  inertia runs out. A flick never parks a card half off the window again.
+- Rubber-banding at both ends, Apple's deceleration projection, and the release velocity
+  handed to a critically damped spring.
+- Arrows disappear when the rail does not overflow, and disable at each end.
+- If the window has its animation frames suspended, the scroll jumps to the destination
+  instead of leaving the control dead.
 
-### Apple Design aplicado
+### Apple Design applied
 
-- Molas criticamente amortecidas (response 0,3–0,4 s) no lugar de durações fixas;
-  bounce só depois de gesto com momentum.
-- O painel sai pelo mesmo caminho por onde entrou, materializando e dissolvendo com
-  desfoque e escala em vez de um fade plano.
-- Borda de rolagem: a barra superior só ganha um limite quando há conteúdo por baixo.
-- Um diálogo modal escurece o fundo; o painel paralelo apenas se separa dele. Nenhuma
-  superfície translúcida clara empilhada sobre outra — o que estava acontecendo no tema
-  claro e destruía a legibilidade do plano de instalação.
-- Tracking específico por tamanho e hierarquia por peso, tamanho e entrelinha juntos.
-- A troca de tema suspende as transições por um quadro, porque superfícies com tempos
-  diferentes rasgavam a imagem no meio da troca.
+- Critically damped springs (response 0.3–0.4 s) instead of fixed durations; bounce only
+  after a gesture that carried momentum.
+- The panel leaves along the path it arrived on, materialising and dissolving with blur and
+  scale rather than a flat fade.
+- Scroll edge: the top bar only gains a boundary when there is content under it.
+- A modal dims the background; the parallel panel only separates from it. No light
+  translucent surface stacked on another — which was happening in the light theme and
+  destroyed the legibility of the install plan.
+- Size-specific tracking, and hierarchy from weight, size and leading together.
+- Switching theme suspends transitions for one frame, because surfaces with different
+  timings tore the image mid-swap.
 
-### Evidência
+### Evidence
 
-- 22 testes de domínio, 38 de UI e 11 Rust aprovados.
-- TypeScript estrito, build Vite, manifesto e auditoria de 27 capacidades aprovados.
-- `npm run tauri:build` gerou `toolhaven.exe`, MSI e NSIS.
-- Alinhamento verificado no preview: cabeçalho e card em 244 px nas três faixas, e a
-  seta "próximos" para em 612 px — exatamente uma borda de card.
-- Ícone conferido em 256, 96, 64, 48, 32 e 16 px, claro e escuro.
+- 22 domain tests, 38 interface tests and 11 host tests passing.
+- Strict TypeScript, the Vite build, the manifest and the capability audit of 27 passing.
+- `npm run tauri:build` produced `toolhaven.exe`, the MSI and the NSIS bundle.
+- Alignment verified in the preview: heading and card at 244 px across all three rails, and
+  the "next" arrow stopping at 612 px — exactly one card edge.
+- Icon checked at 256, 96, 64, 48, 32 and 16 px, light and dark.
 
-## Incremento — fila de segundo plano, tema e correções de UI
+## Increment — background queue, theme and UI fixes
 
-Status: concluído em 2026-09-06.
+Status: finished on 2026-09-06.
 
-### Fila e progresso deixaram de morrer com o painel
+### The queue and its progress stopped dying with the panel
 
-- A execução saiu do `ToolPanel` e passou para um runner de aplicação
-  (`apps/desktop/src/hooks/useOperationRunner.ts`) sobre a fila de sessão
+- Execution left `ToolPanel` for an application-level runner
+  (`apps/desktop/src/hooks/useOperationRunner.ts`) over the session queue
   (`apps/desktop/src/domain/job-queue.ts`).
-- O host recebe um `jobId` por operação e o devolve em cada evento `operation-progress`.
-  Assim o progresso é endereçado a uma entrada específica da fila, não a `toolId + operationId`.
-- O listener de progresso vive no nível do app. Fechar a ferramenta não cancela, não
-  esconde e não perde a tarefa: ela continua na Fila com o progresso real.
-- A Fila lista as operações em execução; o Histórico lista concluídas **e** com falha,
-  com a mensagem devolvida pelo host e o caminho de saída produzido.
-- O item “Fila” da navegação mostra a contagem de operações em andamento.
-- O painel virou espelho da fila: ele não guarda mais estado de execução próprio e
-  reexibe o progresso da tarefa que iniciou.
+- The host receives a `jobId` per operation and returns it on every `operation-progress`
+  event, so progress addresses one queue entry rather than a `toolId + operationId` pair.
+- The progress listener lives at the app level. Closing the tool does not cancel, hide or
+  lose the job: it stays in the Queue with its real progress.
+- The Queue lists running operations; the History lists finished **and** failed ones, with
+  the message the host returned and the output path produced.
+- The "Queue" navigation item shows how many operations are running.
+- The panel became a mirror of the queue: it holds no execution state of its own and
+  re-displays the progress of the job it started.
 
-Limite honesto: cancelamento continua não implementado, e a fila ainda é de sessão —
-reiniciar o app perde a lista.
+Honest limit: cancellation is still not implemented, and the queue is per session — a
+restart loses the list.
 
-### Tema claro e alternância
+### Light theme and the switch
 
-- Tokens de cor completos para claro e escuro em `apps/desktop/src/styles/app.css`.
-  Nenhuma regra abaixo dos blocos de token usa cor literal.
-- Preferência `sistema | claro | escuro`, persistida em `localStorage` e aplicada como
-  `data-theme` + `color-scheme` no elemento raiz.
-- `@media (prefers-color-scheme: light)` cobre o intervalo antes de o React montar,
-  evitando piscar escuro em um Windows configurado como claro.
-- O controle aparece na barra superior e, com rótulos, em Ajustes.
+- Complete colour tokens for light and dark in `apps/desktop/src/styles/app.css`. No rule
+  below the token blocks uses a literal colour.
+- A `system | light | dark` preference, persisted in `localStorage` and applied as
+  `data-theme` plus `color-scheme` on the root element.
+- `@media (prefers-color-scheme: light)` covers the gap before React mounts, so a Windows
+  set to light never flashes dark.
+- The control appears in the top bar and, with labels, in Settings.
 
-### Correções de UI/UX
+### UI/UX fixes
 
-- Ajustes deixou de ser um placeholder: traz o controle de tema e a lista explícita do
-  que ainda não existe, em vez de uma frase genérica.
-- No host nativo, a escolha de arquivos usa um botão que abre o diálogo do Windows. O
-  `input type="file"` só é usado na prévia web, porque no WebView ele devolve apenas o
-  nome do arquivo, nunca um caminho utilizável.
-- Barras de progresso passaram a declarar `aria-valuemin`/`aria-valuemax`; o painel e as
-  linhas da fila expõem `role="progressbar"` com rótulo.
-- O painel lateral ganhou um scrim clicável, com o mesmo efeito de `Escape`.
-- `.placeholder-view__line` era um `span` inline dentro de um cabeçalho em bloco e
-  colapsava para altura zero; agora é declarado como bloco.
-- Os textos duplicados no cabeçalho e no estado vazio da Fila/Histórico foram separados.
-- O bloco de sobrescritas acumuladas no fim do CSS foi dissolvido nas regras reais.
-- Resultado com arquivo gerado mostra o caminho e permite copiá-lo.
-- Arrastar e soltar passou a funcionar de verdade. A área tracejada da tela inicial
-  prometia isso desde o começo e só abria um seletor; agora o app escuta o evento de
-  drag-drop do WebView, destaca o alvo enquanto o arquivo está sobre a janela e entrega
-  o caminho real. Com uma ferramenta aberta, o arquivo solto vai direto para ela.
+- Settings stopped being a placeholder: it carries the theme control and an explicit list
+  of what does not exist yet, instead of a generic sentence.
+- On the native host, choosing files uses a button that opens the Windows dialog. The
+  `input type="file"` is used only in the web preview, because in the WebView it returns
+  the file name alone, never a usable path.
+- Progress bars now declare `aria-valuemin`/`aria-valuemax`; the panel and the queue rows
+  expose `role="progressbar"` with a label.
+- The side panel gained a clickable scrim, with the same effect as `Escape`.
+- `.placeholder-view__line` was an inline `span` inside a block header and collapsed to
+  zero height; it is now declared as a block.
+- The duplicated text between the header and the empty state of the Queue and History was
+  separated.
+- The block of overrides accumulated at the end of the CSS was dissolved into the real rules.
+- A result with a produced file shows the path and lets you copy it.
+- Drag and drop started working for real. The dashed area on the home screen had promised
+  it from the start and only opened a picker; the app now listens to the WebView's
+  drag-drop event, highlights the target while a file is over the window, and delivers the
+  real path. With a tool open, the dropped file goes straight into it.
 
-### Evidência
+### Evidence
 
-- 22 testes de domínio (Node), 36 testes de UI (Vitest) e 10 testes Rust aprovados.
-- `cargo test -- --include-ignored`: as 28 operações do catálogo executaram contra as
-  ferramentas reais instaladas no Windows.
-- TypeScript estrito sem erros; build Vite aprovado.
-- `npm run validate:tools` e `npm run audit:capabilities` (27 capacidades) aprovados.
-- `npm run tauri:build` gerou executável, MSI e NSIS para Windows x64.
-- Aceitação visual dos dois temas em 1440 × 900 e 375 × 812.
+- 22 domain tests (Node), 36 interface tests (Vitest) and 10 host tests passing.
+- `cargo test -- --include-ignored`: all 28 catalog operations ran against the real tools
+  installed on Windows.
+- Strict TypeScript with no errors; the Vite build passing.
+- `npm run validate:tools` and `npm run audit:capabilities` (27 capabilities) passing.
+- `npm run tauri:build` produced the executable, the MSI and the NSIS bundle for Windows x64.
+- Visual acceptance of both themes at 1440 × 900 and 375 × 812.
 
-## Incremento — primeiro ícone e ajustes de execução
+## Increment — first icon and execution fixes
 
-Status: concluído em 2026-09-06.
+Status: finished on 2026-09-06.
 
-- Downloads do yt-dlp passaram a usar o cliente `web_embedded`, evitando o HTTP 403 que
-  o cliente padrão retornava.
-- O upscale do libvips usa Lanczos3 e rejeita fatores menores ou iguais a 1×.
-- O ícone do aplicativo foi refeito em grafite, azul-claro e âmbar, e a mesma marca é
-  usada na barra lateral.
+- yt-dlp downloads started using the `web_embedded` client, avoiding the HTTP 403 the
+  default client returned.
+- libvips upscaling uses Lanczos3 and rejects factors at or below 1×.
+- The application icon was redone in graphite, pale blue and amber, and the same mark is
+  used in the sidebar.
 
-## Incremento — execução nativa real
+## Increment — real native execution
 
-Status: concluído em 2026-09-05.
+Status: finished on 2026-09-05.
 
-- O host Tauri expõe somente `execute_operation` e `detect_available_tools`; não há shell arbitrário vindo da UI.
-- Adaptadores Rust executam FFmpeg/ffprobe, yt-dlp/Deno, qpdf, libvips, jq, yq, ripgrep, fd, 7-Zip e Pandoc por arrays de argumentos.
-- O painel usa os diálogos nativos do Windows para selecionar entradas e destinos e mostra stdout, erros e saída gerada.
-- A disponibilidade dos cards é detectada no host; a fila registra concluída apenas depois do processo real retornar sucesso.
-- O preview web não executa operações e informa para abrir o aplicativo Windows.
-- Componentes ausentes não são simulados: o diálogo exibe o plano de dependências até os artefatos versionados e hashes serem publicados.
+- The Tauri host exposes only `execute_operation` and `detect_available_tools`; no
+  arbitrary shell comes from the interface.
+- Rust adapters run FFmpeg/ffprobe, yt-dlp/Deno, qpdf, libvips, jq, yq, ripgrep, fd, 7-Zip
+  and Pandoc through argument arrays.
+- The panel uses the native Windows dialogs to select inputs and destinations, and shows
+  stdout, errors and the produced output.
+- Card availability is detected on the host; the queue records a completion only after the
+  real process returns success.
+- The web preview runs no operation and says to open the Windows application.
+- Missing components are not simulated: the dialog shows the dependency plan until
+  versioned artifacts and hashes are published.
 
-Evidência daquele checkpoint: 22 testes de domínio, 14 testes de UI, 3 testes Rust,
-TypeScript estrito, manifesto e auditoria de 27 capacidades aprovados; build Tauri
-Windows x64 gerado.
+Evidence at that checkpoint: 22 domain tests, 14 interface tests, 3 host tests, strict
+TypeScript, the manifest and the capability audit of 27 passing; a Tauri Windows x64 build
+produced.
 
-## Bootstrap Windows x64 — Tauri nativo
+## Windows x64 bootstrap — native Tauri
 
-Status: concluído em 2026-09-05.
+Status: finished on 2026-09-05.
 
-- Rust/MSVC instalado com toolchain `stable-x86_64-pc-windows-msvc` (`rustc 1.98.1`).
-- Visual Studio Build Tools 2022 e Windows SDK 10.0.26100.0 disponíveis.
-- Host Tauri 2 gerado em `apps/desktop/src-tauri` com identificador próprio e licença MIT.
-- `cargo check` aprovado para o host nativo.
-- `npm run tauri:build` aprovado para o alvo Windows x64.
-- Instaladores gerados: MSI e NSIS, além do executável release.
-- Auditoria de catálogo cobre 27 capacidades, incluindo o conjunto inicial de dev tools.
+- Rust/MSVC installed with the `stable-x86_64-pc-windows-msvc` toolchain (`rustc 1.98.1`).
+- Visual Studio Build Tools 2022 and Windows SDK 10.0.26100.0 available.
+- A Tauri 2 host generated in `apps/desktop/src-tauri` with its own identifier and the MIT
+  licence.
+- `cargo check` passing for the native host.
+- `npm run tauri:build` passing for the Windows x64 target.
+- Installers produced: MSI and NSIS, plus the release executable.
+- The catalog audit covers 27 capabilities, including the initial dev tools.
 
-A distribuição pública continua condicionada a artefatos versionados e hashes fixados.
+Public distribution remained conditional on versioned artifacts and pinned hashes.
 
-## Incremento — fila e planos de execução
+## Increment — queue and execution plans
 
-Status: concluído em 2026-09-05.
+Status: finished on 2026-09-05.
 
-- A fila de operações possuía estados `queued`, `running` e `succeeded`; o progresso era demonstrativo naquele checkpoint.
-- O Histórico passou a listar operações concluídas durante a sessão.
-- O resolvedor `scripts/execution/resolve-operation-plan.mjs` traduz FFmpeg, ffprobe e qpdf
-  para planos de execução com `executable + args`, sem shell arbitrário.
-- Casos de conversão, extração de áudio, compressão, corte, inspeção e operações PDF têm contrato inicial.
-- O painel expõe opções contextuais: CRF, início/fim, páginas, rotação e senha de PDF.
+- The operation queue had the states `queued`, `running` and `succeeded`; progress was
+  illustrative at that checkpoint.
+- History started listing operations finished during the session.
+- The resolver `scripts/execution/resolve-operation-plan.mjs` translates FFmpeg, ffprobe
+  and qpdf into execution plans of `executable + args`, with no arbitrary shell.
+- Conversion, audio extraction, compression, trimming, inspection and the PDF operations
+  got an initial contract.
+- The panel exposes contextual options: CRF, start and end, pages, rotation and PDF
+  password.
 
-Evidência: 21 testes de domínio + 16 testes de UI passando; TypeScript e build Vite aprovados.
+Evidence: 21 domain tests + 16 interface tests passing; TypeScript and the Vite build
+passing.
 
-**Superado:** os estados da fila descritos acima foram substituídos por
-`running | succeeded | failed` no incremento de 2026-09-06.
+**Superseded:** the queue states described above were replaced by
+`running | succeeded | failed` in the 2026-09-06 increment.
 
-## Incremento — operações e paleta
+## Increment — operations and palette
 
-Status: concluído em 2026-09-05.
+Status: finished on 2026-09-05.
 
-- Cards passaram a expor operações concretas por ferramenta (PDF, imagem, mídia e inspeção).
-- O painel permite escolher a operação e, no yt-dlp, informar uma URL de mídia.
-- Naquele checkpoint, a execução ainda era demonstrativa, com estado de tarefa explícito e sem chamar binários reais.
-- A paleta abandonou o verde.
+- Cards started exposing concrete operations per tool (PDF, image, media and inspection).
+- The panel lets you choose the operation and, for yt-dlp, provide a media URL.
+- At that checkpoint execution was still illustrative, with an explicit job state and no
+  real binaries called.
+- The palette dropped green.
 
-**Superado:** a paleta descrita neste checkpoint (azul mineral `#7f9bb7` com laranja
-para ação) não vale mais. A fonte de verdade é `DESIGN.md`: ação em azul `#88afff`,
-estado positivo em azul-claro `#a8bfff`, âmbar para atenção e argila para erro, com
-equivalentes de contraste próprio no tema claro.
+**Superseded:** the palette described at this checkpoint (mineral blue `#7f9bb7` with
+orange for actions) no longer holds. The source of truth is `DESIGN.md`: action in blue
+`#88afff`, positive state in pale blue `#a8bfff`, amber for attention and clay for errors,
+with contrast-matched equivalents in the light theme.
 
-Evidência: 18 testes de domínio + 15 testes de UI passando; TypeScript, build Vite e manifesto validados.
+Evidence: 18 domain tests + 15 interface tests passing; TypeScript, the Vite build and the
+manifest validated.
 
-## Partes 4 e 5 — sistema visual e catálogo executável
+## Parts 4 and 5 — visual system and a runnable catalog
 
-Status: concluídas em 2026-09-05.
+Status: finished on 2026-09-05.
 
-### Parte 4: sistema visual e shell
+### Part 4: visual system and shell
 
-- Direção “bancada modular de pós-produção” registrada em `DESIGN.md`.
-- Shell responsivo com navegação para ferramentas, fila, histórico e ajustes.
-- Busca global por nome, ação, capacidade e extensão.
-- Área de entrada por arquivo e estados vazios úteis, sem dados inventados.
-- Vocabulário visual nativo do Windows com feedback imediato e reduced motion.
+- The "modular post-production bench" direction recorded in `DESIGN.md`.
+- A responsive shell with navigation for tools, queue, history and settings.
+- Global search by name, action, capability and extension.
+- A file entry area and useful empty states, with no invented data.
+- A visual vocabulary native to Windows, with immediate feedback and reduced motion.
 
-### Parte 5: catálogo e fluxo de ferramenta
+### Part 5: catalog and tool flow
 
-- Cards variáveis organizados em faixas determinísticas, com arquivos/imagens/documentos agrupados para preservar densidade.
-- Estado incluído, disponível, baixando e pronto refletido no próprio card.
-- Plano de dependências real do domínio antes da integração do instalador.
-- Contrato de cancelamento e transição para o estado pronto, mantido no domínio.
-- Painel lateral para abrir uma ferramenta sem trocar de contexto.
-- Layout alterna de faixas horizontais para grade vertical em janela estreita.
+- Variable cards organised into deterministic rails, with files, images and documents
+  grouped to preserve density.
+- Included, available, downloading and ready states reflected in the card itself.
+- A real dependency plan from the domain, ahead of the installer integration.
+- The cancellation contract and the transition to the ready state, kept in the domain.
+- A side panel to open a tool without switching context.
+- The layout swaps horizontal rails for a vertical grid in a narrow window.
 
-### Evidência
+### Evidence
 
-- 18 testes de domínio e 8 testes de interface aprovados.
-- TypeScript em modo estrito sem erros.
-- Build de produção Vite aprovado.
-- Manifesto de ferramentas aprovado.
-- Aceitação visual executada em 1440 × 900 e 390 × 844.
-- Fluxo yt-dlp validado no navegador com Deno, FFmpeg, ffprobe e yt-dlp.
-- Naquele checkpoint, nenhum download real, execução de binário ou escrita externa havia sido ativado.
+- 18 domain tests and 8 interface tests passing.
+- TypeScript in strict mode with no errors.
+- The Vite production build passing.
+- The tool manifest passing.
+- Visual acceptance at 1440 × 900 and 390 × 844.
+- The yt-dlp flow validated in the browser with Deno, FFmpeg, ffprobe and yt-dlp.
+- At that checkpoint no real download, binary execution or external write had been enabled.
 
-## Partes 2 e 3 — instalação sob demanda
+## Parts 2 and 3 — on-demand installation
 
-Status: concluídas em 2026-09-05.
+Status: finished on 2026-09-05.
 
-### Parte 2: resolvedor de instalação
+### Part 2: the installation resolver
 
-- Resolve dependências transitivas antes da ferramenta solicitada.
-- Remove duplicatas quando ferramentas compartilham dependências.
-- Ignora componentes embutidos e versões já instaladas.
-- Detecta ciclos mostrando o caminho completo.
-- Rejeita ferramentas pedidas fora do catálogo.
-- Plano real validado para yt-dlp: Deno, FFmpeg, ffprobe e yt-dlp.
+- Resolves transitive dependencies ahead of the requested tool.
+- Removes duplicates when tools share dependencies.
+- Ignores embedded components and versions already installed.
+- Detects cycles and shows the full path.
+- Rejects tools requested outside the catalog.
+- A real plan validated for yt-dlp: Deno, FFmpeg, ffprobe and yt-dlp.
 
-### Parte 3: estados, cancelamento e rollback
+### Part 3: states, cancellation and rollback
 
-- Estado imutável separado entre disponibilidade e operação transitória.
-- Fluxo coberto: resolver, baixar, verificar, instalar e ativar.
-- Cancelamento preserva a versão ativa.
-- Falha de atualização faz rollback lógico para a versão anterior.
-- Falha na primeira instalação retorna ao estado disponível com erro diagnosticável.
-- Transições inválidas e progresso fora de `0..1` são rejeitados.
+- Immutable state, with availability separated from the transient operation.
+- The covered flow: resolve, download, verify, install and activate.
+- Cancelling preserves the active version.
+- A failed update rolls back logically to the previous version.
+- A failed first installation returns to the available state with a diagnosable error.
+- Invalid transitions and progress outside `0..1` are rejected.
 
-### Evidência
+### Evidence
 
-- 18 testes passando.
-- Cobertura total: 83,17% de linhas; novos módulos acima de 90%.
-- Manifesto real validado depois das mudanças.
-- Nenhum download, instalação global ou filesystem real foi implementado.
+- 18 tests passing.
+- Total coverage: 83.17% of lines; the new modules above 90%.
+- The real manifest validated after the changes.
+- No download, global installation or real filesystem work was implemented.
 
-Os módulos Node são contratos executáveis temporários. O runtime final será Rust após
-autorização explícita para instalar o toolchain.
+The Node modules were temporary executable contracts. The final runtime became Rust once
+the toolchain was explicitly authorised.
 
-## Parte 1 — contrato do catálogo de ferramentas
+## Part 1 — the tool catalog contract
 
-Status: concluída em 2026-09-05.
+Status: finished on 2026-09-05.
 
-### Entregue
+### Delivered
 
-- Manifesto real `tooling/tools.json` para Windows x64.
-- Entradas planejadas para FFmpeg, ffprobe, yt-dlp, Deno, qpdf e libvips.
-- JSON Schema versionado para suporte de editor e documentação do formato.
-- Validador puro sem dependências externas.
-- CLI para validar o manifesto usado pelo build.
-- Regras para impedir IDs duplicados, downloads sem HTTPS, hashes inválidos,
-  destinos inseguros e ferramentas marcadas como empacotadas sem artefatos fixados.
-- Estratégia `embedded` ou `on-demand` obrigatória por ferramenta.
-- Dependências transitivas validadas contra o catálogo.
-- Contrato do catálogo visual em `CARD-CATALOG.md` e ADR-0004.
+- A real manifest, `tooling/tools.json`, for Windows x64.
+- Planned entries for FFmpeg, ffprobe, yt-dlp, Deno, qpdf and libvips.
+- A versioned JSON Schema for editor support and format documentation.
+- A pure validator with no external dependencies.
+- A CLI to validate the manifest the build uses.
+- Rules preventing duplicate ids, non-HTTPS downloads, invalid hashes, unsafe destinations
+  and tools marked as bundled without pinned artifacts.
+- A mandatory `embedded` or `on-demand` strategy per tool.
+- Transitive dependencies validated against the catalog.
+- The visual catalog contract in `CARD-CATALOG.md` and ADR-0004.
 
-### Evidência
+### Evidence
 
-- Na conclusão da Parte 1, 8 testes do contrato do catálogo foram aprovados.
-- `npm run validate:tools`: manifesto aprovado.
-- `node --check`: scripts aprovados.
-- JSON Schema lido com sucesso.
+- At the close of Part 1, 8 catalog contract tests passing.
+- `npm run validate:tools`: manifest passing.
+- `node --check`: scripts passing.
+- The JSON Schema read successfully.
 
-## Próximo passo proposto
+## Proposed next step
 
-Portar os contratos Node de instalação para Rust e implementar o download real de
-componentes, com retomada, verificação de hash, health check e ativação atômica. Isso
-depende de artefatos versionados e hashes publicados no manifesto. Antes ou em paralelo,
-cancelamento de operação em andamento é o buraco mais visível da fila.
+Cancelling a running operation is the most visible hole left in the queue, and it needs
+Windows Job Objects plus a per-operation cleanup rule. After that: persisting the queue and
+the history across restarts, and signing the installer so SmartScreen stops warning.
+
+The four tools without a pinned artifact — 7-Zip, MKVToolNix, ImageMagick, ExifTool — need
+either `.7z` and NSIS support in the component installer, or a repackaging channel of our
+own.

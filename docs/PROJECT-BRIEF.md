@@ -1,62 +1,62 @@
 # Project brief
 
-## Problema
+## The problem
 
-No Windows, tarefas simples como extrair áudio, reduzir uma imagem, juntar PDFs,
-inspecionar metadados ou converter um arquivo frequentemente exigem descobrir uma
-ferramenta, instalar dependências, lidar com PATH e aprender flags diferentes.
+On Windows, simple tasks — extracting audio, shrinking an image, merging PDFs,
+inspecting metadata, converting a file — usually mean discovering a tool, installing
+dependencies, dealing with PATH, and learning a different set of flags for each one.
 
-## Proposta
+## The proposal
 
-Um aplicativo local que organiza essas capacidades por intenção do usuário. O núcleo
-traz ferramentas leves e oferece instalação interna para componentes maiores. Tudo
-mantém uma linguagem comum para entrada, saída, presets, progresso, cancelamento,
-erros e histórico.
+A local application that organises those capabilities by what the user is trying to
+achieve. The core carries the light tools and installs the larger ones itself. Everything
+shares one language for input, output, presets, progress, cancellation, errors and
+history.
 
-## Não é
+## What it is not
 
-- Um editor profissional completo de vídeo, imagem ou PDF.
-- Um terminal disfarçado.
-- Uma plataforma de plugins arbitrários na primeira versão.
-- Uma promessa de converter qualquer formato com fidelidade perfeita.
-- Um produto de IA.
+- A complete professional video, image or PDF editor.
+- A terminal in disguise.
+- A platform for arbitrary plugins, in the first version.
+- A promise to convert any format with perfect fidelity.
+- An AI product.
 
-## Hipótese de MVP recomendada
+## The MVP hypothesis
 
-Um primeiro lançamento deve provar quatro fluxos verticais:
+A first release should prove four vertical flows:
 
-1. **Mídia:** converter vídeo/áudio, extrair áudio e comprimir vídeo.
-2. **Imagem:** resize, crop, compressão e conversão em lote.
-3. **PDF:** juntar, separar, rotacionar, comprimir e proteger/desproteger quando
-   permitido pelo arquivo.
-4. **Download:** baixar mídia pública com escolha de formato e progresso.
+1. **Media:** convert video and audio, extract audio, compress video.
+2. **Images:** resize, crop, compress, convert in batch.
+3. **PDF:** merge, split, rotate, compress, and protect or unprotect where the file
+   allows it.
+4. **Download:** fetch public media with a format choice and visible progress.
 
-Arquivos compactados, OCR, documentos Office, automações e “dev tools” entram
-depois que o núcleo de jobs e empacotamento estiver comprovado.
+Archives, OCR, Office documents, automation and the developer tools come after the job
+engine and the packaging are proven.
 
-## Níveis de suporte
+## Support levels
 
-- **Garantido:** combinação coberta por fixtures, teste e mensagem de erro própria.
-- **Experimental:** ferramenta aceita, mas há variação conhecida de fidelidade.
-- **Não suportado:** formato reconhecido; o app explica a limitação sem tentar uma
-  conversão destrutiva.
+- **Guaranteed:** a combination covered by fixtures, a test and its own error message.
+- **Experimental:** the tool accepts it, but fidelity is known to vary.
+- **Unsupported:** the format is recognised, and the app explains the limitation instead
+  of attempting a destructive conversion.
 
-## Critérios de sucesso do MVP
+## MVP success criteria
 
-- Instalação limpa em uma VM Windows sem dependências de desenvolvimento.
-- Uma ferramenta pesada pode ser descoberta, baixada, verificada, instalada e aberta
-  sem sair do aplicativo.
-- Quatro fluxos verticais concluídos sem terminal.
-- Cancelamento não deixa saída parcial com nome final.
-- Erros mostram ação útil e preservam o arquivo original.
-- Cada binário distribuído aparece em “Sobre > Componentes de código aberto”.
-- Build reproduzível gera instalador, hashes, SBOM e avisos de terceiros.
+- A clean install on a Windows VM with no development dependencies.
+- A heavy tool can be discovered, downloaded, verified, installed and opened without
+  leaving the application.
+- Four vertical flows completed without a terminal.
+- Cancelling never leaves a partial output carrying the final name.
+- Errors show a useful action and preserve the original file.
+- Every distributed binary appears under "About > Open-source components".
+- A reproducible build produces the installer, hashes, an SBOM and third-party notices.
 
-## Riscos principais
+## Main risks
 
-1. Escopo infinito de formatos e ferramentas.
-2. Downloads interrompidos, armazenamento duplicado e updates de tool packs.
-3. Licenças transitivas dos builds prontos, especialmente FFmpeg e yt-dlp.
-4. Antivírus/SmartScreen em binários pouco reputados ou não assinados.
-5. Mudanças frequentes em sites suportados pelo yt-dlp.
-6. Fidelidade limitada em formatos proprietários de documentos.
+1. The infinite scope of formats and tools.
+2. Interrupted downloads, duplicated storage, and updating tool packs.
+3. Transitive licences in prebuilt binaries, FFmpeg and yt-dlp above all.
+4. Antivirus and SmartScreen against binaries with little reputation or no signature.
+5. Frequent changes in the sites yt-dlp supports.
+6. Limited fidelity for proprietary document formats.

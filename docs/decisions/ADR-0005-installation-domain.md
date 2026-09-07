@@ -5,20 +5,21 @@
 
 ## Context
 
-Uma ferramenta pode continuar pronta para uso enquanto uma atualização é baixada ou
-falha. Um único enum como `installing | ready | failed` perderia essa informação e
-forçaria o card a esconder uma versão ainda saudável.
+A tool can stay usable while an update for it is downloading, or failing. A single enum
+like `installing | ready | failed` loses that, and forces the card to hide a version
+that is still perfectly healthy.
 
 ## Decision
 
-Modelar disponibilidade estável e fase transitória separadamente. Resolver o plano por
-grafo acíclico, ordenar dependências antes do pedido e excluir itens embutidos ou já
-instalados. Ativação só ocorre depois da verificação e instalação completas.
+Model stable availability and the transient phase separately. Resolve the plan as an
+acyclic graph, order dependencies ahead of the requested tool, and drop anything already
+bundled or already installed. Activation happens only after verification and
+installation are complete.
 
 ## Consequences
 
-- Falha de update preserva a versão ativa.
-- Cards conseguem mostrar progresso sem bloquear “Abrir” quando isso for seguro.
-- Ciclos e dependências ausentes falham antes de qualquer download.
-- Os contratos Node atuais serão portados para Rust e usados como casos de aceitação.
-
+- A failed update leaves the active version untouched.
+- A card can show progress without disabling "Open" when that is safe.
+- Cycles and missing dependencies fail before a single byte is downloaded.
+- The Node contracts were the executable specification; `components.rs` implements the
+  same shape in Rust, and the contracts remain as cross-language acceptance cases.
