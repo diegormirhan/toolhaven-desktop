@@ -9,6 +9,15 @@ apps/desktop/src-tauri/gen/
 # Local release artifacts staged for GitHub Releases
 /release-*/
 
+# Internal project documentation: kept on disk and in local git history,
+# but no longer tracked going forward, so it stops publishing to the
+# public remote. README.md and the per-folder technical READMEs stay.
+/AGENTS.md
+/PRODUCT.md
+/DESIGN.md
+/docs/*.md
+/docs/decisions/*.md
+
 # Generated third-party binaries and build staging
 vendor/*
 !vendor/README.md
