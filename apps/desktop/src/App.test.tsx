@@ -6,18 +6,29 @@ import { ToolPanel } from "./components/ToolPanel";
 import { createCatalogRows } from "./catalog/catalog";
 
 describe("desktop catalog", () => {
-  it("explains when a planned tool is not available on the host", async () => {
+  it("offers to install a pinned component without leaving the app", async () => {
     render(<App />);
     const user = userEvent.setup();
 
     await user.click(screen.getByRole("button", { name: /ver disponibilidade de qpdf/i }));
 
     const dialog = screen.getByRole("dialog", { name: /instalar qpdf/i });
-    expect(within(dialog).getByText(/não foi detectado/i)).toBeVisible();
-    expect(within(dialog).getByRole("button", { name: "Fechar plano" })).toBeVisible();
+    expect(within(dialog).getByText(/não precisa sair do aplicativo/i)).toBeVisible();
+    expect(within(dialog).getByRole("button", { name: "Baixar e instalar" })).toBeEnabled();
   });
 
-  it("shows the complete dependency plan without faking an install", async () => {
+  it("does not offer to install a tool whose artifact is not pinned yet", async () => {
+    render(<App />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: /ver disponibilidade de 7-zip/i }));
+
+    const dialog = screen.getByRole("dialog", { name: /instalar 7-zip/i });
+    expect(within(dialog).getByText(/ainda não tem artefato versionado/i)).toBeVisible();
+    expect(within(dialog).queryByRole("button", { name: "Baixar e instalar" })).not.toBeInTheDocument();
+  });
+
+  it("shows the complete dependency plan before installing", async () => {
     render(<App />);
     const user = userEvent.setup();
 
@@ -27,8 +38,8 @@ describe("desktop catalog", () => {
     expect(within(panel).getByText("Deno")).toBeVisible();
     expect(within(panel).getByText("FFmpeg")).toBeVisible();
     expect(within(panel).getByText("ffprobe")).toBeVisible();
-    expect(within(panel).getByText(/artefato versionado e hash publicado/i)).toBeVisible();
-    expect(within(panel).queryByRole("button", { name: /iniciar download/i })).not.toBeInTheDocument();
+    expect(within(panel).getByText(/SHA-256 conferido antes de ativar/i)).toBeVisible();
+    expect(within(panel).getByRole("button", { name: "Baixar e instalar" })).toBeEnabled();
   });
 
   it("filters the catalog from the global search", async () => {
@@ -85,15 +96,39 @@ describe("desktop catalog", () => {
     expect(execute).toBeEnabled();
   });
 
-  it("does not claim a browser operation succeeded", async () => {
+  it("keeps the theme choice on the document root", async () => {
+    window.localStorage.clear();
     render(<App />);
     const user = userEvent.setup();
-    const tool = createCatalogRows().flatMap((row) => row.tools).find((item) => item.id === "qpdf");
-    if (!tool) throw new Error("qpdf catalog entry missing");
-    render(<ToolPanel tool={tool} onClose={vi.fn()} />);
-    const panel = screen.getByRole("dialog", { name: "Organizar PDFs" });
-    await user.upload(within(panel).getByLabelText("Escolher arquivos"), new File(["pdf"], "contrato.pdf", { type: "application/pdf" }));
-    await user.click(within(panel).getByRole("button", { name: "Executar" }));
-    expect(within(panel).getByRole("alert")).toHaveTextContent(/abra o app workbench/i);
+    const themes = screen.getByRole("radiogroup", { name: "Tema da interface" });
+
+    await user.click(within(themes).getByRole("radio", { name: "Tema escuro" }));
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(within(themes).getByRole("radio", { name: "Tema escuro" })).toHaveAttribute("aria-checked", "true");
+
+    await user.click(within(themes).getByRole("radio", { name: "Tema claro" }));
+    expect(document.documentElement.dataset.theme).toBe("light");
+    expect(window.localStorage.getItem("toolhaven.theme-preference")).toBe("light");
   });
+
+  it("offers the same theme control in the settings view", async () => {
+    render(<App />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Ajustes" }));
+
+    expect(screen.getByRole("heading", { name: "Tema" })).toBeVisible();
+    expect(screen.getAllByRole("radiogroup", { name: "Tema da interface" })).toHaveLength(2);
+    expect(screen.getByText(/cancelamento de operações em andamento/i)).toBeVisible();
+  });
+
+  it("explains that the queue survives closing a tool panel", async () => {
+    render(<App />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Fila" }));
+
+    expect(screen.getByText(/continuam aqui mesmo depois de você fechar o painel/i)).toBeVisible();
+  });
+
 });

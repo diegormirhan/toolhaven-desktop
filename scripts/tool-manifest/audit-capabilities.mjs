@@ -10,6 +10,12 @@ const requiredCapabilities = [
   "download.inspect", "download.media", "download.javascript_runtime",
   "dev.json.format", "dev.json.query", "dev.yaml.format", "dev.yaml.query", "dev.search", "dev.files.find",
   "archive.compress", "archive.extract", "documents.convert",
+  "metadata.read", "metadata.write",
+  "pdf.extract_text", "pdf.rasterize",
+  "image.optimize_png", "image.convert_extended", "image.grayscale", "image.inspect",
+  "media.remux", "media.inspect_matroska",
+  "dev.tabular.convert", "dev.tabular.summary", "dev.bytes.preview",
+  "dev.code.count", "dev.diff.structural", "dev.disk.usage",
 ];
 
 const declaredCapabilities = new Set(manifest.tools.flatMap((tool) => tool.capabilities));

@@ -15,3 +15,13 @@ Object.defineProperty(window, "matchMedia", {
     dispatchEvent: () => false,
   }),
 });
+
+// jsdom ships no layout engine and therefore no ResizeObserver; the rails only use it
+// to decide whether their arrows are enabled.
+class TestResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+Object.defineProperty(window, "ResizeObserver", { writable: true, value: TestResizeObserver });
+globalThis.ResizeObserver = TestResizeObserver as unknown as typeof ResizeObserver;

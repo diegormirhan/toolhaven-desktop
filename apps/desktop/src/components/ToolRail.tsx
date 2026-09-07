@@ -12,7 +12,8 @@ type ToolRailProps = {
 };
 
 export function ToolRail({ row, installations, onOpen, onInstall }: ToolRailProps) {
-  const dragRail = useDragRail();
+  const rail = useDragRail();
+  const hasOverflow = rail.scrollable.start || rail.scrollable.end;
 
   return (
     <section className="catalog-row" aria-labelledby={`${row.id}-heading`}>
@@ -21,34 +22,45 @@ export function ToolRail({ row, installations, onOpen, onInstall }: ToolRailProp
           <h2 id={`${row.id}-heading`}>{row.title}</h2>
           <p>{row.description}</p>
         </div>
-        {row.tools.length > 1 && (
-          <div className="rail-controls" aria-label={`Navegar por ${row.title}`}>
-            <button type="button" onClick={() => dragRail.scrollByPage(-1)} aria-label="Cards anteriores">
-              <ChevronLeft size={18} />
-            </button>
-            <button type="button" onClick={() => dragRail.scrollByPage(1)} aria-label="Próximos cards">
-              <ChevronRight size={18} />
-            </button>
-          </div>
-        )}
+        <div className="rail-controls" aria-label={`Navegar por ${row.title}`} hidden={!hasOverflow}>
+          <button
+            type="button"
+            onClick={() => rail.scrollByPage(-1)}
+            disabled={!rail.scrollable.start}
+            aria-label="Cards anteriores"
+          >
+            <ChevronLeft size={18} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={() => rail.scrollByPage(1)}
+            disabled={!rail.scrollable.end}
+            aria-label="Próximos cards"
+          >
+            <ChevronRight size={18} aria-hidden="true" />
+          </button>
+        </div>
       </div>
       <div
         className="tool-rail"
-        ref={dragRail.railRef}
-        onPointerDown={dragRail.onPointerDown}
-        onPointerMove={dragRail.onPointerMove}
-        onPointerUp={dragRail.onPointerUp}
-        onPointerCancel={dragRail.onPointerUp}
+        ref={rail.railRef}
+        onScroll={rail.onScroll}
+        onPointerDown={rail.onPointerDown}
+        onPointerMove={rail.onPointerMove}
+        onPointerUp={rail.onPointerUp}
+        onPointerCancel={rail.onPointerUp}
       >
-        {row.tools.map((tool) => (
-          <ToolCard
-            key={tool.id}
-            tool={tool}
-            installation={installations[tool.id]!}
-            onOpen={onOpen}
-            onInstall={onInstall}
-          />
-        ))}
+        <div className="tool-rail__track" ref={rail.trackRef}>
+          {row.tools.map((tool) => (
+            <ToolCard
+              key={tool.id}
+              tool={tool}
+              installation={installations[tool.id]!}
+              onOpen={onOpen}
+              onInstall={onInstall}
+            />
+          ))}
+        </div>
       </div>
     </section>
   );

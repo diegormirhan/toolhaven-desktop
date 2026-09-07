@@ -22,18 +22,18 @@ export function ToolCard({ tool, installation, onOpen, onInstall }: ToolCardProp
   const isBusy = installation.phase !== "idle";
   const isReady = installation.availability === "ready";
   const progress = Math.round((installation.progress ?? 0) * 100);
+  const readyLabel =
+    installation.activeVersion === "system" ? "Disponível" : tool.delivery === "embedded" ? "Incluída" : "Pronta";
 
   return (
     <article className={`tool-card tool-card--${tool.size} tool-card--${tool.accent}`}>
-      <ToolArtwork toolId={tool.id} />
+      <ToolArtwork toolId={tool.id} label={tool.integrationName} />
+      <span className={`availability availability--${isReady ? "ready" : "available"}`}>
+        {isReady ? <Check size={12} aria-hidden="true" /> : <Download size={12} aria-hidden="true" />}
+        {isReady ? readyLabel : (tool.downloadLabel ?? "Indisponível")}
+      </span>
+
       <div className="tool-card__content">
-        <div className="tool-card__meta">
-          <span>{tool.integrationName}</span>
-          <span className={`availability availability--${isReady ? "ready" : "available"}`}>
-            {isReady ? <Check size={12} /> : <Download size={12} />}
-            {isReady ? (installation.activeVersion === "system" ? "Disponível" : tool.delivery === "embedded" ? "Incluída" : "Pronta") : tool.downloadLabel ?? "Indisponível"}
-          </span>
-        </div>
         <div className="tool-card__copy">
           <h3>{tool.title}</h3>
           <p>{tool.description}</p>
@@ -56,6 +56,8 @@ export function ToolCard({ tool, installation, onOpen, onInstall }: ToolCardProp
               className={`progress-track ${installation.progress === null ? "progress-track--indeterminate" : ""}`}
               role="progressbar"
               aria-label={`Progresso de ${tool.integrationName}`}
+              aria-valuemin={0}
+              aria-valuemax={100}
               aria-valuenow={installation.progress === null ? undefined : progress}
             >
               <span style={{ inlineSize: installation.progress === null ? undefined : `${progress}%` }} />
@@ -72,7 +74,7 @@ export function ToolCard({ tool, installation, onOpen, onInstall }: ToolCardProp
             aria-label={`${isReady ? "Abrir" : "Ver disponibilidade de"} ${tool.integrationName}`}
           >
             {isReady ? "Abrir" : "Ver disponibilidade"}
-            <ArrowUpRight size={16} />
+            <ArrowUpRight size={16} aria-hidden="true" />
           </button>
         )}
       </div>

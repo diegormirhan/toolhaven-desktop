@@ -1,12 +1,22 @@
-# Workbench
+# ToolHaven
 
 > Aplicativo Windows x64 em desenvolvimento. Código próprio sob MIT.
 
 Aplicativo desktop para Windows que reúne ferramentas abertas de mídia, imagens,
 PDFs, downloads, arquivos e utilidades de desenvolvimento em uma interface única.
-A distribuição planejada leva o núcleo e as ferramentas leves, com as maiores sob
-demanda. **Na versão atual, as ferramentas são detectadas na instalação local do
-Windows; o download integrado de componentes ainda não foi implementado.**
+O instalador leva o núcleo e nove ferramentas leves; as maiores serão baixadas pelo
+próprio app. **O usuário nunca instala nada por fora.**
+
+Estado atual da entrega:
+
+- **Incluídas no instalador (9):** jq, yq, ripgrep, fd, Miller, tokei, hexyl, Dust e
+  Oxipng. Versão e SHA-256 fixados, baixados e verificados durante o build.
+- **Instaladas pelo próprio app (9):** FFmpeg, ffprobe, yt-dlp, Deno, qpdf, libvips,
+  Poppler, Pandoc e Difftastic. O card abre um plano, mostra o progresso do download,
+  confere o SHA-256 e ativa o componente. Sem navegador, sem winget, sem administrador.
+- **Ainda sem artefato fixado (4):** 7-Zip, MKVToolNix, ImageMagick e ExifTool. A
+  distribuição Windows delas não é um `.zip` versionado; o motivo de cada uma está em
+  `docs/TOOL-MATRIX.md`. Só funcionam se já estiverem na máquina, e o app diz isso.
 
 ## Estado atual
 
@@ -15,13 +25,20 @@ incluindo busca, cards, painel de ferramenta, histórico da sessão e execução
 adaptadores tipados. O host detecta os componentes instalados no Windows e não finge
 instalações ausentes.
 
-A fila persistente, cancelamento e ajustes ainda estão pendentes. A prévia no
-navegador não executa ferramentas: use `workbench.exe` ou `npm run tauri:dev`.
+Operações rodam em segundo plano: fechar o painel de uma ferramenta não interrompe
+nem esconde a tarefa, que continua na Fila com progresso real e termina no Histórico.
+A interface tem tema claro e escuro, com opção “sistema” como padrão, aceita arquivos
+arrastados para a janela e mostra o progresso real relatado pela ferramenta — sem
+inventar percentual quando ela não informa um.
 
-Teste de contrato real (requer as 12 ferramentas instaladas):
+Fila persistente entre reinícios e cancelamento de operação ainda estão pendentes. A
+prévia no navegador não executa ferramentas: use `toolhaven.exe` ou `npm run tauri:dev`.
+
+Teste de contrato real contra os binários instalados. Ele verifica cada ferramenta
+presente e nomeia as que não conseguiu verificar, em vez de passar em silêncio:
 `cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml -- --include-ignored --nocapture`.
-Os testes geram arquivos próprios em uma pasta temporária `workbench-smoke-*` e
-validam as 28 operações do catálogo, inclusive downloads em servidor HTTP local.
+Os testes geram arquivos próprios em uma pasta temporária `toolhaven-smoke-*` e
+validam as operações do catálogo, inclusive downloads em servidor HTTP local.
 
 ```powershell
 npm install
@@ -42,7 +59,7 @@ Use `npm run tauri:build` para gerar o executável Windows x64 e os instaladores
 5. `docs/QUESTIONS.md` — decisões de release ainda abertas.
 6. `docs/ROADMAP.md` — caminho incremental até uma versão publicável.
 7. `docs/CARD-CATALOG.md` — catálogo dinâmico e estados de instalação.
-7. `docs/PROGRESS.md` — partes concluídas, evidências e próximo passo proposto.
+8. `docs/PROGRESS.md` — partes concluídas, evidências e próximo passo proposto.
 
 ## Stack recomendada
 

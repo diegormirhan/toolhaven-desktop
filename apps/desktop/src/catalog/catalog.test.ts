@@ -34,6 +34,8 @@ describe("tool catalog", () => {
 
   it("includes the essential developer tools in a dedicated rail", () => {
     const row = createCatalogRows().find((candidate) => candidate.id === "developer");
-    expect(row?.tools.map((tool) => tool.id)).toEqual(["jq", "yq", "ripgrep", "fd", "7zip", "pandoc", "deno"]);
+    expect(row?.tools.map((tool) => tool.id)).toEqual([
+      "jq", "yq", "miller", "difftastic", "ripgrep", "fd", "tokei", "hexyl", "dust", "7zip", "pandoc", "deno",
+    ]);
   });
 });

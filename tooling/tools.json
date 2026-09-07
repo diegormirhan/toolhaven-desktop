@@ -1,12 +1,12 @@
 {
   "$schema": "./schemas/tool-manifest.schema.json",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "target": "x86_64-pc-windows-msvc",
   "tools": [
     {
       "id": "ffmpeg",
       "displayName": "FFmpeg",
-      "status": "planned",
+      "status": "downloadable",
       "delivery": "on-demand",
       "sourceRepository": "https://github.com/FFmpeg/FFmpeg",
       "licenseExpression": "LGPL-2.1-or-later OR GPL-2.0-or-later",
@@ -15,41 +15,82 @@
         "media.extract_audio",
         "media.compress",
         "media.trim"
+      ],
+      "version": "9.0.1",
+      "artifacts": [
+        {
+          "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-06-13-06/ffmpeg-n9.0.1-26-g5c8e7e2433-win64-lgpl-9.0.zip",
+          "sha256": "4700c0bcb523466fdf5e36e22ad4ff3fadf33f203e2dbfdc78f5b4cd068b8818",
+          "binaryDirectory": "ffmpeg-n9.0.1-26-g5c8e7e2433-win64-lgpl-9.0/bin"
+        }
       ]
     },
     {
       "id": "ffprobe",
       "displayName": "ffprobe",
-      "status": "planned",
+      "status": "downloadable",
       "delivery": "on-demand",
       "sourceRepository": "https://github.com/FFmpeg/FFmpeg",
       "licenseExpression": "LGPL-2.1-or-later OR GPL-2.0-or-later",
-      "capabilities": ["media.inspect"]
+      "capabilities": [
+        "media.inspect"
+      ],
+      "version": "9.0.1",
+      "artifacts": [
+        {
+          "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-06-13-06/ffmpeg-n9.0.1-26-g5c8e7e2433-win64-lgpl-9.0.zip",
+          "sha256": "4700c0bcb523466fdf5e36e22ad4ff3fadf33f203e2dbfdc78f5b4cd068b8818",
+          "binaryDirectory": "ffmpeg-n9.0.1-26-g5c8e7e2433-win64-lgpl-9.0/bin"
+        }
+      ]
     },
     {
       "id": "yt-dlp",
       "displayName": "yt-dlp",
-      "status": "planned",
+      "status": "downloadable",
       "delivery": "on-demand",
-      "dependencies": ["deno", "ffmpeg", "ffprobe"],
+      "dependencies": [
+        "deno",
+        "ffmpeg",
+        "ffprobe"
+      ],
       "sourceRepository": "https://github.com/yt-dlp/yt-dlp",
       "licenseExpression": "Unlicense AND LicenseRef-Upstream-Third-Party-Notices",
-      "capabilities": ["download.inspect", "download.media"]
+      "capabilities": [
+        "download.inspect",
+        "download.media"
+      ],
+      "version": "2026.08.19",
+      "artifacts": [
+        {
+          "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp.exe",
+          "sha256": "66674953fe251b89f4d08c5f0e35e0728679bd67ab3d7d05c0562af101dd3e7a"
+        }
+      ]
     },
     {
       "id": "deno",
       "displayName": "Deno",
-      "status": "planned",
+      "status": "downloadable",
       "delivery": "on-demand",
       "sourceRepository": "https://github.com/denoland/deno",
       "licenseExpression": "MIT",
-      "capabilities": ["download.javascript_runtime"]
+      "capabilities": [
+        "download.javascript_runtime"
+      ],
+      "version": "2.9.6",
+      "artifacts": [
+        {
+          "url": "https://github.com/denoland/deno/releases/download/v2.9.6/deno-x86_64-pc-windows-msvc.zip",
+          "sha256": "15e5300b0ba3c3695a7621d90160a746ec9e710228cee639afa9d580f6e3cd11"
+        }
+      ]
     },
     {
       "id": "qpdf",
       "displayName": "qpdf",
-      "status": "planned",
-      "delivery": "embedded",
+      "status": "downloadable",
+      "delivery": "on-demand",
       "sourceRepository": "https://github.com/qpdf/qpdf",
       "licenseExpression": "Apache-2.0",
       "capabilities": [
@@ -58,12 +99,20 @@
         "pdf.rotate",
         "pdf.linearize",
         "pdf.encrypt"
+      ],
+      "version": "12.4.1",
+      "artifacts": [
+        {
+          "url": "https://github.com/qpdf/qpdf/releases/download/v12.4.1/qpdf-12.4.1-msvc64.zip",
+          "sha256": "3cd016cd433ef7232e42f4c13348a49cc14907a3c7278ef4f99120593126f7a6",
+          "binaryDirectory": "qpdf-12.4.1-msvc64/bin"
+        }
       ]
     },
     {
       "id": "libvips",
       "displayName": "libvips",
-      "status": "planned",
+      "status": "downloadable",
       "delivery": "on-demand",
       "sourceRepository": "https://github.com/libvips/libvips",
       "licenseExpression": "LGPL-2.1-or-later",
@@ -73,61 +122,295 @@
         "image.convert",
         "image.compress",
         "image.upscale_lanczos"
+      ],
+      "version": "8.18.6",
+      "artifacts": [
+        {
+          "url": "https://github.com/libvips/build-win64-mxe/releases/download/v8.18.6/vips-dev-x64-all-8.18.6.zip",
+          "sha256": "e36b34f9c955e66fa47ec7c02b756026fad5560c5db6ff7884123be04792f89c",
+          "binaryDirectory": "vips-dev-8.18/bin"
+        }
       ]
     },
     {
       "id": "jq",
       "displayName": "jq",
-      "status": "planned",
+      "status": "bundled",
       "delivery": "embedded",
       "sourceRepository": "https://github.com/jqlang/jq",
       "licenseExpression": "MIT",
-      "capabilities": ["dev.json.format", "dev.json.query"]
+      "capabilities": [
+        "dev.json.format",
+        "dev.json.query"
+      ],
+      "version": "1.8.2",
+      "artifacts": [
+        {
+          "url": "https://github.com/jqlang/jq/releases/download/jq-1.8.2/jq-windows-amd64.exe",
+          "sha256": "a6fc67fedaf9128a3309a1e2ebb8b986aeccf70122ee46d2cb4849e423f0c627",
+          "bundlePath": "tools/jq.exe"
+        }
+      ]
     },
     {
       "id": "yq",
       "displayName": "yq",
-      "status": "planned",
+      "status": "bundled",
       "delivery": "embedded",
       "sourceRepository": "https://github.com/mikefarah/yq",
       "licenseExpression": "MIT",
-      "capabilities": ["dev.yaml.format", "dev.yaml.query"]
+      "capabilities": [
+        "dev.yaml.format",
+        "dev.yaml.query"
+      ],
+      "version": "4.53.6",
+      "artifacts": [
+        {
+          "url": "https://github.com/mikefarah/yq/releases/download/v4.53.6/yq_windows_amd64.zip",
+          "sha256": "44806582e2f8c1c586d092fcdb9e78ed48c05e28edaee7371bd3140bafff5989",
+          "bundlePath": "tools/yq.exe"
+        }
+      ]
     },
     {
       "id": "ripgrep",
       "displayName": "ripgrep",
-      "status": "planned",
+      "status": "bundled",
       "delivery": "embedded",
       "sourceRepository": "https://github.com/BurntSushi/ripgrep",
       "licenseExpression": "MIT OR Unlicense",
-      "capabilities": ["dev.search"]
+      "capabilities": [
+        "dev.search"
+      ],
+      "version": "15.2.0",
+      "artifacts": [
+        {
+          "url": "https://github.com/BurntSushi/ripgrep/releases/download/15.2.0/ripgrep-15.2.0-x86_64-pc-windows-msvc.zip",
+          "sha256": "71b2fef860abe467217a538ff31de02f5258807c0129f771846f87bd029aafc5",
+          "bundlePath": "tools/rg.exe"
+        }
+      ]
     },
     {
       "id": "fd",
       "displayName": "fd",
-      "status": "planned",
+      "status": "bundled",
       "delivery": "embedded",
       "sourceRepository": "https://github.com/sharkdp/fd",
       "licenseExpression": "MIT OR Apache-2.0",
-      "capabilities": ["dev.files.find"]
+      "capabilities": [
+        "dev.files.find"
+      ],
+      "version": "10.5.0",
+      "artifacts": [
+        {
+          "url": "https://github.com/sharkdp/fd/releases/download/v10.5.0/fd-v10.5.0-x86_64-pc-windows-msvc.zip",
+          "sha256": "a227701b8551c35a9931d9f6da75503cf86d88e182d71fb849a70864c5d57cd7",
+          "bundlePath": "tools/fd.exe"
+        }
+      ]
     },
     {
       "id": "7zip",
       "displayName": "7-Zip",
       "status": "planned",
-      "delivery": "embedded",
+      "delivery": "on-demand",
       "sourceRepository": "https://github.com/ip7z/7zip",
       "licenseExpression": "LGPL-2.1-or-later",
-      "capabilities": ["archive.compress", "archive.extract"]
+      "capabilities": [
+        "archive.compress",
+        "archive.extract"
+      ]
     },
     {
       "id": "pandoc",
       "displayName": "Pandoc",
-      "status": "planned",
+      "status": "downloadable",
       "delivery": "on-demand",
       "sourceRepository": "https://github.com/jgm/pandoc",
       "licenseExpression": "GPL-2.0-or-later",
-      "capabilities": ["documents.convert"]
+      "capabilities": [
+        "documents.convert"
+      ],
+      "version": "3.11",
+      "artifacts": [
+        {
+          "url": "https://github.com/jgm/pandoc/releases/download/3.11/pandoc-3.11-windows-x86_64.zip",
+          "sha256": "2ab72baf2399450e148ddf7a2a8689806c42e1bba71862b57e220fd9b8456d3d",
+          "binaryDirectory": "pandoc-3.11"
+        }
+      ]
+    },
+    {
+      "id": "exiftool",
+      "displayName": "ExifTool",
+      "status": "planned",
+      "delivery": "on-demand",
+      "sourceRepository": "https://github.com/exiftool/exiftool",
+      "licenseExpression": "Artistic-1.0-Perl OR GPL-1.0-or-later",
+      "capabilities": [
+        "metadata.read",
+        "metadata.write"
+      ]
+    },
+    {
+      "id": "poppler",
+      "displayName": "Poppler utils",
+      "status": "downloadable",
+      "delivery": "on-demand",
+      "sourceRepository": "https://gitlab.freedesktop.org/poppler/poppler",
+      "licenseExpression": "GPL-2.0-only OR GPL-3.0-only",
+      "capabilities": [
+        "pdf.extract_text",
+        "pdf.rasterize"
+      ],
+      "version": "26.07.0",
+      "artifacts": [
+        {
+          "url": "https://github.com/oschwartz10612/poppler-windows/releases/download/v26.07.0-0/Release-26.07.0-0.zip",
+          "sha256": "a711b0563b06edc488583d28198b6734c5a494afbbd1b9d87d3d2866062fb7e2",
+          "binaryDirectory": "poppler-26.07.0/Library/bin"
+        }
+      ]
+    },
+    {
+      "id": "oxipng",
+      "displayName": "Oxipng",
+      "status": "bundled",
+      "delivery": "embedded",
+      "sourceRepository": "https://github.com/oxipng/oxipng",
+      "licenseExpression": "MIT",
+      "capabilities": [
+        "image.optimize_png"
+      ],
+      "version": "10.2.1",
+      "artifacts": [
+        {
+          "url": "https://github.com/oxipng/oxipng/releases/download/v10.2.1/oxipng-10.2.1-x86_64-pc-windows-msvc.zip",
+          "sha256": "7e940f83ee46874b73f53031f96a15834cb70b220af27391fb06fe7b4dd798e1",
+          "bundlePath": "tools/oxipng.exe"
+        }
+      ]
+    },
+    {
+      "id": "mkvtoolnix",
+      "displayName": "MKVToolNix",
+      "status": "planned",
+      "delivery": "on-demand",
+      "sourceRepository": "https://gitlab.com/mbunkus/mkvtoolnix",
+      "licenseExpression": "GPL-2.0-or-later",
+      "capabilities": [
+        "media.remux",
+        "media.inspect_matroska"
+      ]
+    },
+    {
+      "id": "imagemagick",
+      "displayName": "ImageMagick",
+      "status": "planned",
+      "delivery": "on-demand",
+      "sourceRepository": "https://github.com/ImageMagick/ImageMagick",
+      "licenseExpression": "ImageMagick",
+      "capabilities": [
+        "image.convert_extended",
+        "image.grayscale",
+        "image.inspect"
+      ]
+    },
+    {
+      "id": "miller",
+      "displayName": "Miller",
+      "status": "bundled",
+      "delivery": "embedded",
+      "sourceRepository": "https://github.com/johnkerl/miller",
+      "licenseExpression": "BSD-2-Clause",
+      "capabilities": [
+        "dev.tabular.convert",
+        "dev.tabular.summary"
+      ],
+      "version": "6.21.0",
+      "artifacts": [
+        {
+          "url": "https://github.com/johnkerl/miller/releases/download/v6.21.0/miller-6.21.0-windows-amd64.zip",
+          "sha256": "e4730fafce659db22c619c0fde51eba050edc584a0804fd2c8b2883c8f8d8250",
+          "bundlePath": "tools/mlr.exe"
+        }
+      ]
+    },
+    {
+      "id": "hexyl",
+      "displayName": "hexyl",
+      "status": "bundled",
+      "delivery": "embedded",
+      "sourceRepository": "https://github.com/sharkdp/hexyl",
+      "licenseExpression": "MIT OR Apache-2.0",
+      "capabilities": [
+        "dev.bytes.preview"
+      ],
+      "version": "0.17.0",
+      "artifacts": [
+        {
+          "url": "https://github.com/sharkdp/hexyl/releases/download/v0.17.0/hexyl-v0.17.0-x86_64-pc-windows-msvc.zip",
+          "sha256": "ab5c3442cff63f585553d4fce330eaa1ef1bd2584643f1a0e29ab7c13fc9566d",
+          "bundlePath": "tools/hexyl.exe"
+        }
+      ]
+    },
+    {
+      "id": "tokei",
+      "displayName": "tokei",
+      "status": "bundled",
+      "delivery": "embedded",
+      "sourceRepository": "https://github.com/XAMPPRocky/tokei",
+      "licenseExpression": "MIT OR Apache-2.0",
+      "capabilities": [
+        "dev.code.count"
+      ],
+      "version": "12.1.2",
+      "artifacts": [
+        {
+          "url": "https://github.com/XAMPPRocky/tokei/releases/download/v12.1.2/tokei-x86_64-pc-windows-msvc.exe",
+          "sha256": "b1d6c4b18f5fa238bd2c6e47caa65a7a3e4a1bd0de6df0b7c19c8083c941f57b",
+          "bundlePath": "tools/tokei.exe"
+        }
+      ]
+    },
+    {
+      "id": "difftastic",
+      "displayName": "Difftastic",
+      "status": "downloadable",
+      "delivery": "on-demand",
+      "sourceRepository": "https://github.com/Wilfred/difftastic",
+      "licenseExpression": "MIT",
+      "capabilities": [
+        "dev.diff.structural"
+      ],
+      "version": "0.70.0",
+      "artifacts": [
+        {
+          "url": "https://github.com/Wilfred/difftastic/releases/download/0.70.0/difft-x86_64-pc-windows-msvc.zip",
+          "sha256": "b563ae76e22ce28c7080a8b628cfabf6fa86f9ee114a0f5697bc2ca26f9ce1d7"
+        }
+      ]
+    },
+    {
+      "id": "dust",
+      "displayName": "Dust",
+      "status": "bundled",
+      "delivery": "embedded",
+      "sourceRepository": "https://github.com/bootandy/dust",
+      "licenseExpression": "Apache-2.0",
+      "capabilities": [
+        "dev.disk.usage"
+      ],
+      "version": "1.2.5",
+      "artifacts": [
+        {
+          "url": "https://github.com/bootandy/dust/releases/download/v1.2.5/dust-v1.2.5-x86_64-pc-windows-msvc.zip",
+          "sha256": "b2731d92066d5787a106c0c835b96c6a4ba186d81abc0ead0a906f75d5f09aee",
+          "bundlePath": "tools/dust.exe"
+        }
+      ]
     }
   ]
 }

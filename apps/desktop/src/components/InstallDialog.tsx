@@ -1,45 +1,120 @@
 import { Download, HardDrive, ShieldCheck, X } from "lucide-react";
 import type { InstallationPlanStep } from "../../../../scripts/component-installation/resolve-installation-plan.mjs";
+import type { InstallationState } from "../../../../scripts/component-installation/installation-state.mjs";
 import type { CatalogTool } from "../catalog/catalog";
 
 type InstallDialogProps = {
   tool: CatalogTool;
   plan: InstallationPlanStep[];
   labelsById: Record<string, string>;
+  states: Record<string, InstallationState>;
+  canInstall: boolean;
+  onInstall: () => void;
   onClose: () => void;
 };
 
-export function InstallDialog({ tool, plan, labelsById, onClose }: InstallDialogProps) {
+const phaseLabels: Record<InstallationState["phase"], string> = {
+  idle: "Na fila",
+  resolving: "Preparando",
+  downloading: "Baixando",
+  verifying: "Verificando",
+  installing: "Instalando",
+};
+
+export function InstallDialog({
+  tool,
+  plan,
+  labelsById,
+  states,
+  canInstall,
+  onInstall,
+  onClose,
+}: InstallDialogProps) {
+  const steps = plan.length > 0 ? plan : [{ toolId: tool.id, reason: "requested" as const }];
+  const busy = steps.some((step) => states[step.toolId]?.phase !== "idle");
+  const failure = steps.map((step) => states[step.toolId]?.lastError).find(Boolean);
+  const done = steps.every((step) => states[step.toolId]?.availability === "ready");
+
   return (
-    <div className="dialog-layer" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <div
+      className="dialog-layer"
+      role="presentation"
+      onMouseDown={(event) => event.target === event.currentTarget && !busy && onClose()}
+    >
       <section className="install-dialog" role="dialog" aria-modal="true" aria-labelledby="install-title">
         <button className="icon-button install-dialog__close" type="button" onClick={onClose} aria-label="Fechar">
           <X size={18} />
         </button>
-        <div className="dialog-icon"><Download size={24} /></div>
+        <div className="dialog-icon">
+          <Download size={24} aria-hidden="true" />
+        </div>
         <h2 id="install-title">Instalar {tool.integrationName}</h2>
         <p className="install-dialog__lead">
-          Este componente não foi detectado no host Windows. O plano abaixo mostra as dependências necessárias; o pacote só será instalado quando houver artefato versionado e hash publicado.
+          {canInstall
+            ? "O ToolHaven baixa e instala tudo abaixo sozinho. Você não precisa sair do aplicativo nem instalar nada por fora."
+            : "Este componente ainda não tem artefato versionado e hash publicados, então o app não pode instalá-lo. Ele só funciona se já estiver neste Windows."}
         </p>
 
         <div className="plan-list" aria-label="Plano de instalação">
-          {plan.map((step, index) => (
-            <div className="plan-step" key={step.toolId}>
-              <span className="plan-step__index">{String(index + 1).padStart(2, "0")}</span>
-              <span>
-                <strong>{labelsById[step.toolId]}</strong>
-                <small>{step.reason === "dependency" ? "Dependência" : "Ferramenta solicitada"}</small>
-              </span>
-            </div>
-          ))}
+          {steps.map((step, index) => {
+            const state = states[step.toolId];
+            const progress = state?.progress == null ? null : Math.round(state.progress * 100);
+            const ready = state?.availability === "ready";
+            return (
+              <div className="plan-step" key={step.toolId}>
+                <span className="plan-step__index">{String(index + 1).padStart(2, "0")}</span>
+                <span>
+                  <strong>{labelsById[step.toolId] ?? step.toolId}</strong>
+                  <small>
+                    {ready
+                      ? "Pronta"
+                      : state && state.phase !== "idle"
+                        ? `${phaseLabels[state.phase]}${progress == null ? "…" : ` ${progress}%`}`
+                        : step.reason === "dependency"
+                          ? "Dependência"
+                          : "Ferramenta solicitada"}
+                  </small>
+                </span>
+                {state && state.phase !== "idle" && !ready && (
+                  <div
+                    className={`progress-track${state.progress == null ? " progress-track--indeterminate" : ""}`}
+                    role="progressbar"
+                    aria-label={`Progresso de ${labelsById[step.toolId] ?? step.toolId}`}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={progress ?? undefined}
+                  >
+                    <span style={{ inlineSize: progress == null ? undefined : `${progress}%` }} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
+        {failure && (
+          <p className="install-dialog__error" role="alert">
+            {failure}
+          </p>
+        )}
+
         <div className="dialog-assurances">
-          <span><ShieldCheck size={16} /> Hash verificado antes de ativar</span>
-          <span><HardDrive size={16} /> Instalação isolada por versão</span>
+          <span>
+            <ShieldCheck size={16} aria-hidden="true" /> SHA-256 conferido antes de ativar
+          </span>
+          <span>
+            <HardDrive size={16} aria-hidden="true" /> Instalação isolada por versão, sem privilégio de administrador
+          </span>
         </div>
         <div className="dialog-actions">
-          <button className="button button--primary" type="button" onClick={onClose}>Fechar plano</button>
+          <button className="button button--quiet" type="button" onClick={onClose} disabled={busy}>
+            Fechar
+          </button>
+          {canInstall && !done && (
+            <button className="button button--primary" type="button" onClick={onInstall} disabled={busy}>
+              {busy ? "Instalando…" : failure ? "Tentar novamente" : "Baixar e instalar"}
+            </button>
+          )}
         </div>
       </section>
     </div>

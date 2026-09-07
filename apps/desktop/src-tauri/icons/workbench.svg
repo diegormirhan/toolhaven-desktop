@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <title>Workbench</title>
-  <rect width="1024" height="1024" rx="224" fill="#15171c"/>
-  <rect x="42" y="42" width="940" height="940" rx="190" fill="none" stroke="#303643" stroke-width="12"/>
-  <path d="M190 244 320 776 512 452 704 776 834 244" fill="none" stroke="#a8c4ff" stroke-linecap="round" stroke-linejoin="round" stroke-width="82"/>
-  <path d="M414 522h196" fill="none" stroke="#d8a64f" stroke-linecap="round" stroke-width="38"/>
-  <circle cx="512" cy="522" r="34" fill="#d8a64f"/>
-</svg>

@@ -106,6 +106,13 @@ Executáveis simples embutidos podem entrar como `externalBin`. Distribuições 
 dados ou fontes auxiliares usam recursos versionados. Componentes sob demanda nunca
 dependem do PATH: o backend resolve a versão ativa no component store.
 
+**Implementado:** `scripts/tools/stage-embedded-tools.mjs` baixa cada artefato marcado
+como `bundled`, confere o SHA-256 fixado — divergência aborta o build — e o coloca em
+`resources/tools/`, que o bundler do Tauri leva para junto do executável. Em tempo de
+execução, `resolve_executable` procura primeiro nesse diretório: a versão que foi fixada,
+verificada e testada ganha de qualquer coisa que exista no PATH da máquina. O script
+também gera `THIRD-PARTY-NOTICES.txt` e `tool-inventory.json`.
+
 ### Instalação sob demanda
 
 1. Resolver a ferramenta e suas dependências no catálogo assinado.
@@ -119,6 +126,15 @@ dependem do PATH: o backend resolve a versão ativa no component store.
 O domínio separa disponibilidade estável (`available` ou `ready`) da fase transitória
 (`idle`, `resolving`, `downloading`, `verifying`, `installing`). Assim uma atualização
 falha sem apagar a versão ativa. Cancelamento nunca deixa versão parcialmente ativa.
+
+**Implementado** em `apps/desktop/src-tauri/src/components.rs`. O host compila o próprio
+`tooling/tools.json` com `include_str!`, então build, catálogo e runtime leem a mesma
+fonte. Cada artefato é instalado em um diretório nomeado pelo seu SHA-256, o que torna a
+reinstalação idempotente e faz ferramentas que compartilham um pacote — ffmpeg e ffprobe
+vêm do mesmo build — ocuparem uma cópia só. A extração acontece em um diretório
+`.staging` ao lado do destino final, no mesmo volume, e a ativação é um `rename`: uma
+falha nunca deixa componente meio instalado ativo. A resolução de executáveis consulta,
+nessa ordem, o que veio no instalador, o component store e só então o PATH.
 
 Enquanto Rust não estiver autorizado no ambiente, os módulos Node em
 `scripts/component-installation/` funcionam como especificação executável. Eles não
@@ -154,7 +170,7 @@ banco em texto puro.
 ## Estrutura do repositório
 
 ```text
-unified-toolkit-desktop/
+toolhaven-desktop/
 ├─ .agents/skills/
 ├─ apps/desktop/
 │  ├─ src/                 # React UI

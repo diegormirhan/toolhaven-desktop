@@ -27,6 +27,7 @@ fn request(
             .map(|(key, value)| (key.to_string(), value.to_string()))
             .collect(),
         source_url: None,
+        job_id: None,
     }
 }
 
@@ -60,6 +61,14 @@ fn cli(executable: &str, args: &[&str]) -> String {
     String::from_utf8_lossy(&output.stdout).into_owned()
 }
 
+/// The suites added later are not on every machine yet. Instead of failing the whole
+/// sweep, the test verifies what is installed and names what it could not check.
+fn tool_available(tool_id: &str) -> bool {
+    executable_name(tool_id)
+        .and_then(|name| resolve_executable(&name))
+        .is_ok()
+}
+
 fn create_pdf(path: &Path) {
     let objects = [
         "<< /Type /Catalog /Pages 2 0 R >>",
@@ -85,10 +94,10 @@ fn create_pdf(path: &Path) {
 }
 
 #[test]
-#[ignore = "Requires the 12 Windows CLI integrations to be installed"]
+#[ignore = "Runs the catalog against the real Windows CLIs; skips tools that are not installed"]
 fn every_catalog_operation_executes_on_generated_fixtures() {
     let root = std::env::temp_dir().join(format!(
-        "workbench-smoke-{}",
+        "toolhaven-smoke-{}",
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -97,13 +106,13 @@ fn every_catalog_operation_executes_on_generated_fixtures() {
     std::fs::create_dir(&root).unwrap();
     println!("Fixtures: {}", root.display());
     let json = root.join("sample.json");
-    std::fs::write(&json, r#"{"name":"Workbench","count":2}"#).unwrap();
+    std::fs::write(&json, r#"{"name":"ToolHaven","count":2}"#).unwrap();
     let yaml = root.join("sample.yaml");
-    std::fs::write(&yaml, "name: Workbench\ncount: 2\n").unwrap();
+    std::fs::write(&yaml, "name: ToolHaven\ncount: 2\n").unwrap();
     for (tool, input) in [("jq", json.clone()), ("yq", yaml)] {
         assert!(run(request(tool, "format", &[input.clone()], None, &[]))
             .stdout
-            .contains("Workbench"));
+            .contains("ToolHaven"));
         assert!(
             run(request(
                 tool,
@@ -122,7 +131,7 @@ fn every_catalog_operation_executes_on_generated_fixtures() {
         "search",
         &[root.clone()],
         None,
-        &[("query", "Workbench")]
+        &[("query", "ToolHaven")]
     ))
     .stdout
     .contains("sample.json"));
@@ -177,7 +186,7 @@ fn every_catalog_operation_executes_on_generated_fixtures() {
     ));
     assert!(overwrite.unwrap_err().contains("já existe"));
     let markdown = root.join("sample.md");
-    std::fs::write(&markdown, "# Workbench\n\nFixture document.\n").unwrap();
+    std::fs::write(&markdown, "# ToolHaven\n\nFixture document.\n").unwrap();
     let html = root.join("sample.html");
     run(request(
         "pandoc",
@@ -294,7 +303,7 @@ fn every_catalog_operation_executes_on_generated_fixtures() {
         }
     }
 
-    let server = FixtureServer::start(std::fs::read(video).unwrap());
+    let server = FixtureServer::start(std::fs::read(&video).unwrap());
     for operation in ["inspect-url", "download-video", "download-audio"] {
         let output = match operation {
             "download-video" => Some(root.join("download.mp4")),
@@ -308,10 +317,224 @@ fn every_catalog_operation_executes_on_generated_fixtures() {
             assert!(serde_json::from_str::<serde_json::Value>(&result.stdout).is_ok());
         }
     }
-    println!(
-        "All 28 catalog operations passed. Generated fixtures retained at {}",
-        root.display()
-    );
+    let mut skipped: Vec<&str> = Vec::new();
+
+    if tool_available("exiftool") {
+        let photo = root.join("compress.jpg");
+        assert!(run(request("exiftool", "inspect", &[photo.clone()], None, &[]))
+            .stdout
+            .contains("JPEG"));
+        run(request(
+            "exiftool",
+            "strip",
+            &[photo.clone()],
+            Some(root.join("stripped.jpg")),
+            &[],
+        ));
+        let titled = root.join("titled.jpg");
+        run(request(
+            "exiftool",
+            "set-title",
+            &[photo],
+            Some(titled.clone()),
+            &[("title", "Fixture ToolHaven")],
+        ));
+        assert!(
+            cli("exiftool.exe", &["-s3", "-Title", titled.to_str().unwrap()])
+                .contains("Fixture ToolHaven")
+        );
+        println!("PASS exiftool/inspect + strip + set-title");
+    } else {
+        skipped.push("exiftool");
+    }
+
+    if tool_available("imagemagick") {
+        let converted = root.join("magick-convert.png");
+        run(request(
+            "imagemagick",
+            "convert",
+            &[ppm.clone()],
+            Some(converted.clone()),
+            &[],
+        ));
+        assert_eq!(
+            cli("magick.exe", &["identify", "-format", "%m", converted.to_str().unwrap()]).trim(),
+            "PNG"
+        );
+        let gray = root.join("magick-gray.png");
+        run(request(
+            "imagemagick",
+            "grayscale",
+            &[ppm.clone()],
+            Some(gray.clone()),
+            &[],
+        ));
+        assert_eq!(
+            cli("magick.exe", &["identify", "-format", "%[colorspace]", gray.to_str().unwrap()])
+                .trim(),
+            "Gray"
+        );
+        assert!(
+            run(request("imagemagick", "inspect", &[ppm.clone()], None, &[]))
+                .stdout
+                .contains("Geometry")
+        );
+        println!("PASS imagemagick/convert + grayscale + inspect");
+    } else {
+        skipped.push("imagemagick");
+    }
+
+    if tool_available("oxipng") {
+        let source = root.join("convert.png");
+        let optimised = root.join("optimised.png");
+        run(request(
+            "oxipng",
+            "optimize",
+            &[source.clone()],
+            Some(optimised.clone()),
+            &[("level", "2")],
+        ));
+        assert!(
+            std::fs::metadata(&optimised).unwrap().len()
+                <= std::fs::metadata(&source).unwrap().len()
+        );
+        println!("PASS oxipng/optimize");
+    } else {
+        skipped.push("oxipng");
+    }
+
+    if tool_available("poppler") {
+        let text = root.join("sample.txt");
+        run(request(
+            "poppler",
+            "extract-text",
+            &[pdf.clone()],
+            Some(text),
+            &[],
+        ));
+        run(request(
+            "poppler",
+            "rasterize",
+            &[pdf.clone()],
+            Some(root.join("page.png")),
+            &[("page", "1"), ("dpi", "72")],
+        ));
+        println!("PASS poppler/extract-text + rasterize");
+    } else {
+        skipped.push("poppler");
+    }
+
+    if tool_available("mkvtoolnix") {
+        let mkv = root.join("remuxed.mkv");
+        run(request(
+            "mkvtoolnix",
+            "remux",
+            &[video.clone()],
+            Some(mkv.clone()),
+            &[],
+        ));
+        assert!(
+            run(request("mkvtoolnix", "inspect", &[mkv], None, &[]))
+                .stdout
+                .contains("tracks")
+        );
+        println!("PASS mkvtoolnix/remux + inspect");
+    } else {
+        skipped.push("mkvtoolnix");
+    }
+
+    if tool_available("miller") {
+        let csv = root.join("table.csv");
+        std::fs::write(&csv, "name,count
+ToolHaven,2
+Fixture,5
+").unwrap();
+        let as_json = run(request("miller", "to-json", &[csv.clone()], None, &[])).stdout;
+        assert!(as_json.contains("\"name\": \"ToolHaven\""), "{as_json}");
+        let json = root.join("table.json");
+        std::fs::write(&json, &as_json).unwrap();
+        assert!(run(request("miller", "to-csv", &[json], None, &[]))
+            .stdout
+            .contains("name,count"));
+        assert!(run(request("miller", "summary", &[csv], None, &[]))
+            .stdout
+            .contains("field_name"));
+        println!("PASS miller/to-json + to-csv + summary");
+    } else {
+        skipped.push("miller");
+    }
+
+    if tool_available("hexyl") {
+        let stdout = run(request(
+            "hexyl",
+            "preview",
+            &[root.join("sample.json")],
+            None,
+            &[("length", "16")],
+        ))
+        .stdout;
+        assert!(stdout.contains("7b"), "{stdout}");
+        println!("PASS hexyl/preview");
+    } else {
+        skipped.push("hexyl");
+    }
+
+    if tool_available("tokei") {
+        assert!(run(request("tokei", "count", &[root.clone()], None, &[]))
+            .stdout
+            .contains("Language"));
+        println!("PASS tokei/count");
+    } else {
+        skipped.push("tokei");
+    }
+
+    if tool_available("difftastic") {
+        let left = root.join("left.json");
+        let right = root.join("right.json");
+        std::fs::write(&left, "{\"a\": 1}
+").unwrap();
+        std::fs::write(&right, "{\"a\": 2}
+").unwrap();
+        assert!(!run(request("difftastic", "compare", &[left, right], None, &[]))
+            .stdout
+            .is_empty());
+        let single = execute_operation_inner(request(
+            "difftastic",
+            "compare",
+            &[root.join("left.json")],
+            None,
+            &[],
+        ));
+        assert!(single.unwrap_err().contains("dois arquivos"));
+        println!("PASS difftastic/compare");
+    } else {
+        skipped.push("difftastic");
+    }
+
+    if tool_available("dust") {
+        assert!(!run(request(
+            "dust",
+            "usage",
+            &[root.clone()],
+            None,
+            &[("depth", "1"), ("lines", "5")]
+        ))
+        .stdout
+        .is_empty());
+        println!("PASS dust/usage");
+    } else {
+        skipped.push("dust");
+    }
+
+    if skipped.is_empty() {
+        println!("Every catalog operation passed against a real binary.");
+    } else {
+        println!(
+            "Catalog operations passed for every installed tool. NOT VERIFIED (not installed): {}",
+            skipped.join(", ")
+        );
+    }
+    println!("Generated fixtures retained at {}", root.display());
 }
 
 struct FixtureServer {

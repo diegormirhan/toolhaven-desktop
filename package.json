@@ -1,5 +1,5 @@
 {
-  "name": "unified-toolkit-desktop",
+  "name": "toolhaven-desktop",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite --config apps/desktop/vite.config.ts",
-    "build": "vite build --config apps/desktop/vite.config.ts",
+    "build": "npm run tools:stage && vite build --config apps/desktop/vite.config.ts",
     "preview": "vite preview --config apps/desktop/vite.config.ts",
     "test": "npm run test:domain && npm run test:ui",
     "test:domain": "node --test \"tests/**/*.test.mjs\"",
@@ -17,7 +17,8 @@
     "validate:tools": "node scripts/tool-manifest/validate-file.mjs tooling/tools.json",
     "audit:capabilities": "node scripts/tool-manifest/audit-capabilities.mjs",
     "tauri:dev": "tauri dev --config apps/desktop/src-tauri/tauri.conf.json",
-    "tauri:build": "tauri build --config apps/desktop/src-tauri/tauri.conf.json"
+    "tauri:build": "tauri build --config apps/desktop/src-tauri/tauri.conf.json",
+    "tools:stage": "node scripts/tools/stage-embedded-tools.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",

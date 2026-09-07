@@ -12,7 +12,7 @@ const tool: CatalogTool = {
   availability: "available",
   delivery: "on-demand",
   status: "planned",
-  accent: "blue",
+  accent: "cool",
   size: "standard",
   keywords: [],
   capabilities: [],

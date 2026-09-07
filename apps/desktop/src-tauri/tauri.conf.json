@@ -1,8 +1,8 @@
 {
   "$schema": "../../../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Workbench",
+  "productName": "ToolHaven",
   "version": "0.1.0",
-  "identifier": "com.unifiedtoolkit.workbench",
+  "identifier": "com.toolhaven.desktop",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://127.0.0.1:5173",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Workbench",
+        "title": "ToolHaven",
         "width": 1200,
         "height": 820,
         "minWidth": 800,
@@ -37,6 +37,9 @@
     ],
     "android": {
       "debugApplicationIdSuffix": ".debug"
+    },
+    "resources": {
+      "resources/tools/*": "tools/"
     }
   }
 }

@@ -28,7 +28,7 @@ const bundledTool = {
 
 function manifestWith(...tools) {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     target: "x86_64-pc-windows-msvc",
     tools
   };
@@ -50,7 +50,7 @@ test("requires pinned artifacts before a tool can be bundled", () => {
   assert.deepEqual(issues, [
     {
       path: "tools[0].artifacts",
-      message: "bundled tools require at least one artifact"
+      message: "a pinned tool requires at least one artifact"
     }
   ]);
 });
@@ -100,13 +100,13 @@ test("rejects insecure downloads and unsafe bundle paths", () => {
 
 test("reports unsupported schema versions and targets", () => {
   const issues = validateToolManifest({
-    schemaVersion: 2,
+    schemaVersion: 1,
     target: "aarch64-pc-windows-msvc",
     tools: []
   });
 
   assert.deepEqual(issues, [
-    { path: "schemaVersion", message: "supported value is 1" },
+    { path: "schemaVersion", message: "supported value is 2" },
     {
       path: "target",
       message: 'supported value is "x86_64-pc-windows-msvc"'

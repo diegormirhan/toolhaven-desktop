@@ -1,4 +1,4 @@
-const SUPPORTED_SCHEMA_VERSION = 1;
+const SUPPORTED_SCHEMA_VERSION = 2;
 const SUPPORTED_TARGET = "x86_64-pc-windows-msvc";
 const TOOL_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const CAPABILITY_PATTERN = /^[a-z][a-z0-9]*(?:\.[a-z][a-z0-9_]*)+$/;
@@ -33,7 +33,7 @@ export function validateToolManifest(manifest) {
 
 function validateManifestHeader(manifest, issues) {
   if (manifest.schemaVersion !== SUPPORTED_SCHEMA_VERSION) {
-    issues.push({ path: "schemaVersion", message: "supported value is 1" });
+    issues.push({ path: "schemaVersion", message: `supported value is ${SUPPORTED_SCHEMA_VERSION}` });
   }
 
   if (manifest.target !== SUPPORTED_TARGET) {
@@ -69,16 +69,16 @@ function validateTool(tool, toolIndex, registeredToolIds, registeredBundlePaths,
     return;
   }
 
-  if (tool.status !== "bundled") {
+  if (tool.status !== "bundled" && tool.status !== "downloadable") {
     issues.push({
       path: `${toolPath}.status`,
-      message: 'status must be "planned" or "bundled"'
+      message: 'status must be "planned", "bundled" or "downloadable"'
     });
     return;
   }
 
   validateNonEmptyString(tool.version, `${toolPath}.version`, issues);
-  validateArtifacts(tool.artifacts, toolPath, registeredBundlePaths, issues);
+  validateArtifacts(tool.artifacts, toolPath, tool.status, registeredBundlePaths, issues);
 }
 
 function validateDelivery(delivery, path, issues) {
@@ -170,11 +170,11 @@ function validateCapabilities(capabilities, path, issues) {
   });
 }
 
-function validateArtifacts(artifacts, toolPath, registeredBundlePaths, issues) {
+function validateArtifacts(artifacts, toolPath, status, registeredBundlePaths, issues) {
   if (!Array.isArray(artifacts) || artifacts.length === 0) {
     issues.push({
       path: `${toolPath}.artifacts`,
-      message: "bundled tools require at least one artifact"
+      message: "a pinned tool requires at least one artifact"
     });
     return;
   }
@@ -187,11 +187,11 @@ function validateArtifacts(artifacts, toolPath, registeredBundlePaths, issues) {
       return;
     }
 
-    validateArtifact(artifact, artifactPath, registeredBundlePaths, issues);
+    validateArtifact(artifact, artifactPath, status, registeredBundlePaths, issues);
   });
 }
 
-function validateArtifact(artifact, artifactPath, registeredBundlePaths, issues) {
+function validateArtifact(artifact, artifactPath, status, registeredBundlePaths, issues) {
   validateHttpsUrl(artifact.url, `${artifactPath}.url`, issues, "artifact URL must use HTTPS");
 
   if (typeof artifact.sha256 !== "string" || !SHA256_PATTERN.test(artifact.sha256)) {
@@ -199,6 +199,25 @@ function validateArtifact(artifact, artifactPath, registeredBundlePaths, issues)
       path: `${artifactPath}.sha256`,
       message: "SHA-256 must contain exactly 64 hexadecimal characters"
     });
+  }
+
+  if (artifact.binaryDirectory !== undefined && !isSafeBinaryDirectory(artifact.binaryDirectory)) {
+    issues.push({
+      path: `${artifactPath}.binaryDirectory`,
+      message: "binary directory must be a safe relative path inside the archive"
+    });
+  }
+
+  // Only a tool that ships inside the installer needs a destination in the bundle; a
+  // downloadable one is extracted into the component store at runtime.
+  if (status !== "bundled") {
+    if (artifact.bundlePath !== undefined) {
+      issues.push({
+        path: `${artifactPath}.bundlePath`,
+        message: "only bundled tools declare a bundle path"
+      });
+    }
+    return;
   }
 
   if (!isSafeRelativePath(artifact.bundlePath)) {
@@ -220,6 +239,15 @@ function validateArtifact(artifact, artifactPath, registeredBundlePaths, issues)
   }
 
   registeredBundlePaths.add(normalizedBundlePath);
+}
+
+function isSafeBinaryDirectory(candidate) {
+  if (typeof candidate !== "string") return false;
+  if (candidate === "") return true;
+  if (candidate.includes(":") || candidate.startsWith("/") || candidate.startsWith("\\")) return false;
+  return !candidate
+    .split(/[\/]/)
+    .some((segment) => segment === ".." || segment === ".");
 }
 
 function validateNonEmptyString(candidate, path, issues) {

@@ -18,7 +18,7 @@ function tool(id, { delivery = "on-demand", dependencies = [] } = {}) {
 
 function manifestWith(...tools) {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     target: "x86_64-pc-windows-msvc",
     tools
   };
