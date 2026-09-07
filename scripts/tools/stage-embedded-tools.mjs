@@ -46,7 +46,8 @@ async function fetchArtifact(artifact) {
     await rm(cached);
   }
 
-  process.stdout.write(`  baixando ${fileName}\n`);
+  process.stdout.write(`  downloading ${fileName}
+`);
   const response = await fetch(artifact.url, { redirect: "follow" });
   if (!response.ok) throw new Error(`${artifact.url} respondeu ${response.status}`);
   await writeFile(cached, Buffer.from(await response.arrayBuffer()));
@@ -55,7 +56,9 @@ async function fetchArtifact(artifact) {
   if (digest !== artifact.sha256) {
     await rm(cached);
     throw new Error(
-      `Hash divergente para ${fileName}.\n  esperado ${artifact.sha256}\n  obtido   ${digest}`,
+      `Digest mismatch for ${fileName}.
+  expected ${artifact.sha256}
+  got      ${digest}`,
     );
   }
   return cached;
@@ -108,7 +111,7 @@ async function extractExecutable(archive, executableName, destination) {
   const chosen = named.length === 1 ? named : executables;
   if (chosen.length !== 1) {
     throw new Error(
-      `Esperava um único executável para ${executableName} em ${path.basename(archive)}, achei ${chosen.length}: ` +
+      `Expected exactly one executable for ${executableName} in ${path.basename(archive)}, found ${chosen.length}: ` +
         `${chosen.map((candidate) => path.basename(candidate)).join(", ")}`,
     );
   }
@@ -154,27 +157,32 @@ async function main() {
   await writeFile(
     noticesPath,
     [
-      "ToolHaven — componentes de terceiros incluídos no instalador",
+      "ToolHaven - third-party components shipped inside the installer",
       "",
-      "Cada programa abaixo é distribuído como executável independente, invocado pelo",
-      "ToolHaven como um processo separado. Nenhum deles é ligado ao código do ToolHaven.",
-      "Os termos de cada projeto continuam valendo para o respectivo executável.",
+      "Each program below is distributed as a standalone executable and invoked by",
+      "ToolHaven as a separate process. None of them is linked into ToolHaven's code.",
+      "Every project's own terms keep applying to its executable.",
       "",
       ...inventory.flatMap((entry) => [
         `${entry.name} ${entry.version}`,
-        `  Licença: ${entry.license}`,
-        `  Projeto: ${entry.source}`,
-        `  Artefato: ${entry.artifact}`,
+        `  License: ${entry.license}`,
+        `  Project: ${entry.source}`,
+        `  Artifact: ${entry.artifact}`,
         `  SHA-256: ${entry.sha256}`,
         "",
       ]),
     ].join("\n"),
   );
 
-  process.stdout.write(`\n${inventory.length} executáveis prontos em resources/tools.\n`);
+  process.stdout.write(`
+${inventory.length} executables staged in resources/tools.
+`);
 }
 
 main().catch((error) => {
-  process.stderr.write(`\nFalha ao preparar as ferramentas embutidas:\n${error.message}\n`);
+  process.stderr.write(`
+Could not stage the bundled tools:
+${error.message}
+`);
   process.exitCode = 1;
 });

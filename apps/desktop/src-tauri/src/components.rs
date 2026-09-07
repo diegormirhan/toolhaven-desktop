@@ -157,7 +157,7 @@ pub fn install(
         tool_id: tool_id.into(),
         phase: "downloading".into(),
         progress: Some(0.0),
-        message: format!("Downloading {}…", entry.display_name),
+        message: format!("Downloading {} {}…", entry.display_name, entry.version.as_deref().unwrap_or("")),
     });
     let bytes = download(&artifact.url, tool_id, report)?;
 
@@ -179,7 +179,7 @@ pub fn install(
         tool_id: tool_id.into(),
         phase: "installing".into(),
         progress: None,
-        message: format!("Installing {}…", entry.display_name),
+        message: format!("Installing {} {}…", entry.display_name, entry.version.as_deref().unwrap_or("")),
     });
     // Staging beside the final directory keeps activation on the same volume, so the
     // rename is atomic and a failure never leaves a half-installed component active.

@@ -16,6 +16,7 @@ delivered so you never install a single one of them by hand.**
 [![No cloud](https://img.shields.io/badge/cloud-none-555)](#what-it-refuses-to-do)
 [![No shell](https://img.shields.io/badge/arbitrary%20shell-never-555)](#the-boundary-that-shapes-everything)
 [![Installer](https://img.shields.io/badge/installer-15.6%20MB-88afff)](#how-the-tools-get-there)
+[![Setup](https://img.shields.io/badge/setup-one%20command-88afff)](#running-it)
 
 [The problem](#the-problem-it-takes-seriously) ·
 [Delivery](#how-the-tools-get-there) ·
@@ -236,22 +237,53 @@ indeterminate and the label just says `Running`. The app does not invent a numbe
 
 ## Running it
 
-Needs Windows x64. Building needs Node 24+, the Rust MSVC toolchain and the VS Build Tools.
+Needs Windows x64. One command does everything — checks the toolchain, installs the dependencies,
+downloads and verifies the nine pinned tools, runs every check, and builds the installer:
+
+```powershell
+.\setup.ps1
+```
+
+Every step checks whether its work is already done, so re-running it is safe and takes about a
+minute and a half. It finishes by printing where the installer landed.
+
+```
+  3  Downloading and verifying the tools that ship in the installer
+     9 executables staged, 47.5 MB
+  4  Running the checks
+     Everything green
+  5  Building the Windows installer
+
+  Done
+     ToolHaven_0.1.0_x64-setup.exe  15.6 MB
+     took 01:44
+```
+
+**Nothing is installed on your machine unless you ask.** Missing prerequisites are reported with the
+exact command that fixes them; `-InstallPrerequisites` lets the script run those itself. Installing
+a compiler toolchain is the machine owner's decision, not a build script's.
+
+| Flag | Effect |
+|---|---|
+| `-InstallPrerequisites` | Install Node, Rust and the VS C++ build tools with winget if they are missing |
+| `-Start` | Open the app when the build finishes |
+| `-Dev` | Skip the release build and open the development window |
+| `-SkipTests` | Skip the domain, interface and host suites |
+| `-SkipBuild` | Set everything up without producing an installer |
+
+Or drive the same steps by hand:
 
 ```powershell
 npm install
-npm run tauri:build
+npm run tools:stage  # download and verify the bundled artifacts
+npm run tauri:build  # stages them again, then builds
+npm run dev          # interface only, in a browser
+npm run tauri:dev    # the real Windows app
+npm run screenshots  # regenerate the images in this README
 ```
 
 The build stages the bundled tools first, so the installer never leaves without them. The output is
 in `apps/desktop/src-tauri/target/release/bundle/` — `.msi` and `.exe`.
-
-```powershell
-npm run dev          # interface only, in a browser
-npm run tauri:dev    # the real Windows app
-npm run tools:stage  # download and verify the bundled artifacts
-npm run screenshots  # regenerate the images in this README
-```
 
 The browser preview renders the whole interface but **refuses to execute anything** and says so — it
 has no native bridge, and pretending otherwise would be the dishonesty this project keeps arguing
