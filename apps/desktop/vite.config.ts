@@ -12,6 +12,12 @@ export default defineConfig({
   },
   server: {
     fs: { allow: [searchForWorkspaceRoot(process.cwd())] },
+    watch: {
+      // src-tauri/target churns on every Rust rebuild, and Windows locks the
+      // .dll while it is being written. Watching it wastes work at best and
+      // kills the dev server with EBUSY at worst.
+      ignored: ["**/src-tauri/**"],
+    },
   },
   build: {
     outDir: "dist",

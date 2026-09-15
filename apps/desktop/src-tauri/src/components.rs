@@ -60,8 +60,8 @@ pub fn tool(tool_id: &str) -> Option<&'static ManifestTool> {
 /// Where installed components live. Under the user's local app data, never in Program
 /// Files, so installing a component never needs elevation.
 fn store_root() -> Result<PathBuf, String> {
-    let base = std::env::var_os("LOCALAPPDATA")
-        .ok_or("Could not locate the application data folder.")?;
+    let base =
+        std::env::var_os("LOCALAPPDATA").ok_or("Could not locate the application data folder.")?;
     Ok(PathBuf::from(base).join("ToolHaven").join("components"))
 }
 
@@ -157,7 +157,11 @@ pub fn install(
         tool_id: tool_id.into(),
         phase: "downloading".into(),
         progress: Some(0.0),
-        message: format!("Downloading {} {}…", entry.display_name, entry.version.as_deref().unwrap_or("")),
+        message: format!(
+            "Downloading {} {}…",
+            entry.display_name,
+            entry.version.as_deref().unwrap_or("")
+        ),
     });
     let bytes = download(&artifact.url, tool_id, report)?;
 
@@ -179,13 +183,18 @@ pub fn install(
         tool_id: tool_id.into(),
         phase: "installing".into(),
         progress: None,
-        message: format!("Installing {} {}…", entry.display_name, entry.version.as_deref().unwrap_or("")),
+        message: format!(
+            "Installing {} {}…",
+            entry.display_name,
+            entry.version.as_deref().unwrap_or("")
+        ),
     });
     // Staging beside the final directory keeps activation on the same volume, so the
     // rename is atomic and a failure never leaves a half-installed component active.
     let staging = target.with_extension("staging");
     let _ = std::fs::remove_dir_all(&staging);
-    std::fs::create_dir_all(&staging).map_err(|error| format!("Could not prepare the installation: {error}"))?;
+    std::fs::create_dir_all(&staging)
+        .map_err(|error| format!("Could not prepare the installation: {error}"))?;
 
     let result = if artifact.url.to_ascii_lowercase().ends_with(".exe") {
         write_single_executable(&artifact.url, &bytes, &staging)
@@ -291,7 +300,10 @@ fn extract_zip(bytes: &[u8], destination: &Path) -> Result<(), String> {
         // `enclosed_name` rejects absolute paths and `..`, so a malicious archive cannot
         // write outside the store.
         let Some(relative) = entry.enclosed_name() else {
-            return Err(format!("The package contains an unsafe path: {}", entry.name()));
+            return Err(format!(
+                "The package contains an unsafe path: {}",
+                entry.name()
+            ));
         };
         let path = destination.join(relative);
 
@@ -324,7 +336,11 @@ mod tests {
                     assert!(entry.version.is_some(), "{} has no version", entry.id);
                     assert!(!entry.artifacts.is_empty(), "{} has no artifact", entry.id);
                 }
-                "planned" => assert!(entry.artifacts.is_empty(), "{} should declare no artifact", entry.id),
+                "planned" => assert!(
+                    entry.artifacts.is_empty(),
+                    "{} should declare no artifact",
+                    entry.id
+                ),
                 other => panic!("unknown status on {}: {other}", entry.id),
             }
         }

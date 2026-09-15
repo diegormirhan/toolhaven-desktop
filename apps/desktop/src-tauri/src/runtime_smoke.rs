@@ -321,9 +321,11 @@ fn every_catalog_operation_executes_on_generated_fixtures() {
 
     if tool_available("exiftool") {
         let photo = root.join("compress.jpg");
-        assert!(run(request("exiftool", "inspect", &[photo.clone()], None, &[]))
-            .stdout
-            .contains("JPEG"));
+        assert!(
+            run(request("exiftool", "inspect", &[photo.clone()], None, &[]))
+                .stdout
+                .contains("JPEG")
+        );
         run(request(
             "exiftool",
             "strip",
@@ -358,7 +360,11 @@ fn every_catalog_operation_executes_on_generated_fixtures() {
             &[],
         ));
         assert_eq!(
-            cli("magick.exe", &["identify", "-format", "%m", converted.to_str().unwrap()]).trim(),
+            cli(
+                "magick.exe",
+                &["identify", "-format", "%m", converted.to_str().unwrap()]
+            )
+            .trim(),
             "PNG"
         );
         let gray = root.join("magick-gray.png");
@@ -370,8 +376,16 @@ fn every_catalog_operation_executes_on_generated_fixtures() {
             &[],
         ));
         assert_eq!(
-            cli("magick.exe", &["identify", "-format", "%[colorspace]", gray.to_str().unwrap()])
-                .trim(),
+            cli(
+                "magick.exe",
+                &[
+                    "identify",
+                    "-format",
+                    "%[colorspace]",
+                    gray.to_str().unwrap()
+                ]
+            )
+            .trim(),
             "Gray"
         );
         assert!(
@@ -433,11 +447,9 @@ fn every_catalog_operation_executes_on_generated_fixtures() {
             Some(mkv.clone()),
             &[],
         ));
-        assert!(
-            run(request("mkvtoolnix", "inspect", &[mkv], None, &[]))
-                .stdout
-                .contains("tracks")
-        );
+        assert!(run(request("mkvtoolnix", "inspect", &[mkv], None, &[]))
+            .stdout
+            .contains("tracks"));
         println!("PASS mkvtoolnix/remux + inspect");
     } else {
         skipped.push("mkvtoolnix");
@@ -445,10 +457,14 @@ fn every_catalog_operation_executes_on_generated_fixtures() {
 
     if tool_available("miller") {
         let csv = root.join("table.csv");
-        std::fs::write(&csv, "name,count
+        std::fs::write(
+            &csv,
+            "name,count
 ToolHaven,2
 Fixture,5
-").unwrap();
+",
+        )
+        .unwrap();
         let as_json = run(request("miller", "to-json", &[csv.clone()], None, &[])).stdout;
         assert!(as_json.contains("\"name\": \"ToolHaven\""), "{as_json}");
         let json = root.join("table.json");
@@ -491,13 +507,23 @@ Fixture,5
     if tool_available("difftastic") {
         let left = root.join("left.json");
         let right = root.join("right.json");
-        std::fs::write(&left, "{\"a\": 1}
-").unwrap();
-        std::fs::write(&right, "{\"a\": 2}
-").unwrap();
-        assert!(!run(request("difftastic", "compare", &[left, right], None, &[]))
-            .stdout
-            .is_empty());
+        std::fs::write(
+            &left,
+            "{\"a\": 1}
+",
+        )
+        .unwrap();
+        std::fs::write(
+            &right,
+            "{\"a\": 2}
+",
+        )
+        .unwrap();
+        assert!(
+            !run(request("difftastic", "compare", &[left, right], None, &[]))
+                .stdout
+                .is_empty()
+        );
         let single = execute_operation_inner(request(
             "difftastic",
             "compare",

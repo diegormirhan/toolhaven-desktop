@@ -227,10 +227,12 @@ fn execute_operation_with_progress(
             progress: None,
             message: compact_error(if stderr.is_empty() { &stdout } else { &stderr }),
         });
+        let detail = compact_error(if stderr.is_empty() { &stdout } else { &stderr });
         return Err(format!(
-            "{executable} falhou ({}): {}",
+            "{executable} failed ({}): {}{}",
             output.status,
-            compact_error(if stderr.is_empty() { &stdout } else { &stderr })
+            detail,
+            explain_known_failure(&detail)
         ));
     }
 
@@ -671,6 +673,25 @@ fn search_winget_packages(executable: &str) -> Option<std::path::PathBuf> {
 const COOKIE_BROWSERS: [&str; 7] = [
     "firefox", "chrome", "chromium", "edge", "brave", "opera", "vivaldi",
 ];
+
+/// Turns an upstream error that people cannot act on into one they can.
+///
+/// Chromium bound its cookie key to the browser process in Chrome 127, so
+/// `--cookies-from-browser` fails for Chrome, Edge and their relatives on
+/// Windows no matter the permissions. The message yt-dlp prints names DPAPI
+/// and a bug number, neither of which tells anyone what to do instead.
+fn explain_known_failure(detail: &str) -> String {
+    let lowered = detail.to_ascii_lowercase();
+    if lowered.contains("failed to decrypt with dpapi")
+        || lowered.contains("could not copy chrome cookie database")
+    {
+        return "
+
+Chrome, Edge and other Chromium browsers encrypt their cookies with a key tied to the browser process, so no other program can read them on Windows. Two ways round it: pick Firefox, which does not do this, or export a cookie file from the browser you are signed in to and choose \"Cookie file\" instead. Export it from a private window and close that window straight away, because YouTube rotates the cookies of any tab left open."
+            .to_string();
+    }
+    String::new()
+}
 
 /// Tools driven by a URL instead of input files.
 const URL_TOOLS: [&str; 2] = ["yt-dlp", "gallery-dl"];

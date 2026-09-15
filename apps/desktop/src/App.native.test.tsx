@@ -123,7 +123,7 @@ it('moves a finished background operation to the history with its output path', 
 it('records a failed background operation instead of dropping it', async () => {
   vi.mocked(invoke).mockImplementation((command: string) => {
     if (command === 'detect_available_tools') return Promise.resolve(['yt-dlp', 'deno']);
-    return Promise.reject('yt-dlp.exe falhou (exit code: 1)');
+    return Promise.reject('yt-dlp.exe failed (exit code: 1)');
   });
   const user = userEvent.setup();
   render(<App />);
@@ -138,7 +138,7 @@ it('records a failed background operation instead of dropping it', async () => {
 
   const row = await screen.findByRole('article', { name: /download video/i });
   expect(within(row).getByText('Failed')).toBeVisible();
-  expect(within(row).getByText(/yt-dlp.exe falhou/)).toBeVisible();
+  expect(within(row).getByText(/yt-dlp.exe failed/)).toBeVisible();
 });
 
 it('sends a job id so the host can address progress to one queue entry', async () => {
