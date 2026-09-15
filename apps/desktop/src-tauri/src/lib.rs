@@ -713,6 +713,14 @@ Chrome, Edge and other Chromium browsers encrypt their cookies with a key tied t
     String::new()
 }
 
+/// The destination's extension, lowercased, with no dot.
+fn container_of(output: &str) -> String {
+    std::path::Path::new(output)
+        .extension()
+        .map(|ext| ext.to_string_lossy().to_ascii_lowercase())
+        .unwrap_or_default()
+}
+
 /// Never overwrite, never wait on stdin, then the input.
 fn ffmpeg_base(input: &str) -> Vec<String> {
     vec![
@@ -732,6 +740,36 @@ fn ffmpeg_base(input: &str) -> Vec<String> {
 /// does take CRF, and compresses far better at the cost of encoding time and
 /// of players old enough not to know it.
 fn ffmpeg_video_encoder(codec: &str, quality: &str) -> Vec<String> {
+    ffmpeg_video_encoder_for(codec, quality, "")
+}
+
+/// Same, but honouring what the destination container can actually hold.
+///
+/// WebM takes VP9 or AV1 with Opus and nothing else, so asking it for H.264
+/// fails outright — which is what happened as soon as the format became a
+/// choice rather than always mp4.
+fn ffmpeg_video_encoder_for(codec: &str, quality: &str, container: &str) -> Vec<String> {
+    if container == "webm" && codec != "copy" {
+        let crf = match quality {
+            "high" => "28",
+            "small" => "45",
+            _ => "35",
+        };
+        return vec![
+            "-c:v".into(),
+            "libvpx-vp9".into(),
+            "-crf".into(),
+            crf.into(),
+            "-b:v".into(),
+            "0".into(),
+            "-c:a".into(),
+            "libopus".into(),
+        ];
+    }
+    ffmpeg_video_encoder_inner(codec, quality)
+}
+
+fn ffmpeg_video_encoder_inner(codec: &str, quality: &str) -> Vec<String> {
     match codec {
         // Remux: keep the streams, change only the container.
         "copy" => vec!["-c".into(), "copy".into()],
@@ -870,10 +908,12 @@ fn resolve_args(request: &OperationRequest) -> Result<Vec<String>, String> {
 
     match (request.tool_id.as_str(), request.operation_id.as_str()) {
         ("ffmpeg", "convert") => {
+            let container = container_of(&output);
             let mut args = ffmpeg_base(&input);
-            args.extend(ffmpeg_video_encoder(
+            args.extend(ffmpeg_video_encoder_for(
                 &option("codec", "h264"),
                 &option("quality", "balanced"),
+                &container,
             ));
             args.push(output);
             Ok(args)
@@ -1681,6 +1721,31 @@ mod tests {
         assert!(
             validate_options(&download_request("download-video", &[("quality", "ultra")])).is_err()
         );
+    }
+
+    #[test]
+    fn the_container_decides_the_codec_not_the_preference() {
+        // WebM takes VP9 or AV1 with Opus and refuses everything else, so
+        // asking it for H.264 does not produce a worse file — it produces no
+        // file: "Only VP8 or VP9 or AV1 video ... are supported for WebM".
+        let mut webm = request_for("ffmpeg", "convert", &[("codec", "h264")]);
+        webm.output_path = Some("clip.webm".into());
+        let args = resolve_args(&webm).unwrap();
+        assert!(args.windows(2).any(|pair| pair == ["-c:v", "libvpx-vp9"]));
+        assert!(args.windows(2).any(|pair| pair == ["-c:a", "libopus"]));
+        assert!(!args.iter().any(|arg| arg == "libopenh264"));
+
+        // Every other container keeps the choice that was made.
+        let mut mp4 = request_for("ffmpeg", "convert", &[("codec", "h264")]);
+        mp4.output_path = Some("clip.mp4".into());
+        let args = resolve_args(&mp4).unwrap();
+        assert!(args.windows(2).any(|pair| pair == ["-c:v", "libopenh264"]));
+
+        // Remuxing is not re-encoding, whatever the container.
+        let mut copied = request_for("ffmpeg", "convert", &[("codec", "copy")]);
+        copied.output_path = Some("clip.webm".into());
+        let args = resolve_args(&copied).unwrap();
+        assert!(args.windows(2).any(|pair| pair == ["-c", "copy"]));
     }
 
     #[test]

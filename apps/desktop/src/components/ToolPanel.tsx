@@ -7,6 +7,7 @@ import { isNativeHost, type OperationRequest } from "../hooks/useOperationRunner
 import { FilePreview, previewKind } from "./FilePreview";
 import { defaultCrop, type CropRect } from "./CropOverlay";
 import { Select } from "./Select";
+import { acceptsFile, operationFormats } from "../catalog/formats";
 
 export type RunOperationInput = {
   request: OperationRequest;
@@ -69,6 +70,18 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
       }
     : null;
 
+  /** Keeps files the tool cannot read out, with a reason rather than a later failure. */
+  function admitFiles(paths: string[]): SelectedFile[] {
+    const rejected: string[] = [];
+    const admitted = paths.filter((path) => {
+      const verdict = acceptsFile(tool.id, path);
+      if (!verdict.ok) rejected.push(verdict.reason);
+      return verdict.ok;
+    });
+    if (rejected.length > 0) setFormError(rejected[0]!);
+    return admitted.map((path) => ({ path, name: fileNameOnly(path) }));
+  }
+
   const applyCrop = (rect: CropRect) => {
     setOperationOptions((current) => ({
       ...current,
@@ -95,6 +108,11 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
   useEffect(() => {
     onDirtyChange?.(dirty);
   }, [dirty, onDirtyChange]);
+
+  // A conversion should say what it produces, instead of leaving it to whatever
+  // extension the user types into the save dialog.
+  const formatChoice = operationFormats[`${tool.id}/${selectedOperationId}`];
+  const targetFormat = operationOptions.format || formatChoice?.default || "";
 
   const previewable = previewKind(selectedFiles[0]?.path) !== "none";
 
@@ -123,7 +141,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
   // A file dropped on the window belongs to the tool the user already has open.
   useEffect(() => {
     if (!droppedPaths?.length || tool.id === "deno" || urlTools.includes(tool.id)) return;
-    setSelectedFiles(droppedPaths.map((path) => ({ path, name: fileNameOnly(path) })));
+    setSelectedFiles(admitFiles(droppedPaths));
     setFormError("");
     setCurrentJobId(null);
   }, [droppedPaths, tool.id]);
@@ -192,6 +210,26 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
               }}
             />
             <small>{selectedOperation?.description}</small>
+          </label>
+        )}
+
+        {formatChoice && formatChoice.formats.length > 1 && (
+          <label className="operation-select">
+            <span>{formatChoice.label}</span>
+            <Select
+              label={formatChoice.label}
+              value={targetFormat}
+              choices={formatChoice.formats.map((format) => ({
+                value: format,
+                label: format.toUpperCase(),
+              }))}
+              onChange={(next) => {
+                setOperationOptions((current) => ({ ...current, format: next }));
+                // The destination carried the old extension, so it has to go.
+                setOutputPath("");
+                resetFeedback();
+              }}
+            />
           </label>
         )}
 
@@ -355,7 +393,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
           multiple
           aria-label="Choose files"
           onChange={(event) => {
-            setSelectedFiles(Array.from(event.target.files ?? []).map((file) => ({ name: file.name, path: file.name })));
+            setSelectedFiles(admitFiles(Array.from(event.target.files ?? []).map((file) => file.name)));
             resetFeedback();
           }}
         />
@@ -379,7 +417,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
     const selected = await open({ multiple: !directory && multiple, directory });
     if (!selected) return;
     const paths = Array.isArray(selected) ? selected : [selected];
-    setSelectedFiles(paths.map((path) => ({ path, name: fileNameOnly(path) })));
+    setSelectedFiles(admitFiles(paths));
     resetFeedback();
   }
 
@@ -839,6 +877,8 @@ export function suggestedOutputName(
   toolId: string,
   options: Record<string, string> = {},
 ): string {
+  // An explicit choice outranks the per-operation default.
+  const chosen = options.format;
   if (toolId === "yt-dlp") {
     if (operationId === "download-audio") return "audio.mp3";
     return options.quality === "best" ? "video.mkv" : "video.mp4";
@@ -848,5 +888,6 @@ export function suggestedOutputName(
   const stem = filename.replace(/\.[^.]+$/, "");
   const folder = path.slice(0, path.length - filename.length);
   const originalExtension = filename.includes(".") ? filename.slice(filename.lastIndexOf(".")) : ".out";
-  return `${folder}${stem}-${operationId}${outputExtension(toolId, operationId, originalExtension)}`;
+  const extension = chosen ? `.${chosen}` : outputExtension(toolId, operationId, originalExtension);
+  return `${folder}${stem}-${operationId}${extension}`;
 }
