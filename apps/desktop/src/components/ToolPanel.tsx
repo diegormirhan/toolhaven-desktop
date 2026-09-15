@@ -4,7 +4,8 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import type { CatalogTool } from "../catalog/catalog";
 import { findJob, type ToolJob } from "../domain/job-queue";
 import { isNativeHost, type OperationRequest } from "../hooks/useOperationRunner";
-import { FilePreview } from "./FilePreview";
+import { FilePreview, previewKind } from "./FilePreview";
+import { defaultCrop, type CropRect } from "./CropOverlay";
 
 export type RunOperationInput = {
   request: OperationRequest;
@@ -40,6 +41,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
   const [outputPath, setOutputPath] = useState("");
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [formError, setFormError] = useState("");
+  const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   const selectedOperation = tool.operations.find((operation) => operation.id === selectedOperationId);
@@ -51,6 +53,40 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
     (needsTwoFiles ? selectedFiles.length >= 2 : selectedFiles.length > 0) ||
     (urlTools.includes(tool.id) && sourceUrl.trim().length > 0) ||
     (tool.id === "deno" && selectedOperationId === "runtime");
+  // The crop rectangle is not separate state: it is the same four options the
+  // fields write, read back. Two sources would drift the moment one is edited.
+  const cropsVisually =
+    selectedOperationId === "crop" && (tool.id === "libvips" || tool.id === "ffmpeg");
+  const crop: CropRect | null = cropsVisually
+    ? {
+        left: Number(operationOptions.left ?? 0),
+        top: Number(operationOptions.top ?? 0),
+        width: Number(operationOptions.width ?? 0),
+        height: Number(operationOptions.height ?? 0),
+      }
+    : null;
+
+  const applyCrop = (rect: CropRect) => {
+    setOperationOptions((current) => ({
+      ...current,
+      left: String(rect.left),
+      top: String(rect.top),
+      width: String(rect.width),
+      height: String(rect.height),
+    }));
+    resetFeedback();
+  };
+
+  const previewable = previewKind(selectedFiles[0]?.path) !== "none";
+
+  // Seeding has to react to both orders: choosing the file first, or switching
+  // to the crop operation with one already open. Waiting for the image to load
+  // only covers the first, and left the rectangle at zero for the second.
+  useEffect(() => {
+    if (!cropsVisually || naturalSize.width === 0) return;
+    if (Number(operationOptions.width) > 0) return;
+    applyCrop(defaultCrop(naturalSize));
+  }, [cropsVisually, naturalSize, operationOptions.width]);
   const resultMessage = formError || (currentJob && currentJob.status !== "running" ? jobResultText(currentJob) : "");
   const resultIsError = Boolean(formError) || currentJob?.status === "failed";
 
@@ -96,7 +132,26 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
           <X size={18} />
         </button>
       </div>
-      <div className="tool-panel__body">
+      <div className={`tool-panel__body${previewable ? " tool-panel__body--split" : ""}`}>
+        {previewable && (
+          <section className="tool-panel__workspace" aria-label="File preview">
+            <FilePreview
+              path={selectedFiles[0]?.path}
+              crop={crop}
+              onCropChange={applyCrop}
+              seekTo={
+                selectedOperationId === "thumbnail"
+                  ? Number(operationOptions.at ?? 1)
+                  : selectedOperationId === "trim"
+                    ? Number(operationOptions.start ?? 0)
+                    : undefined
+              }
+              onNatural={setNaturalSize}
+            />
+          </section>
+        )}
+
+        <section className="tool-panel__controls">
         <h2 id="tool-panel-title">{tool.title}</h2>
         <p>{tool.description}</p>
 
@@ -171,10 +226,6 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
 
         {tool.id !== "deno" && !urlTools.includes(tool.id) && <FileField />}
 
-        {/* Seeing the file removes the guesswork from options like crop and
-            trim, which otherwise act on something the user cannot check. */}
-        <FilePreview path={selectedFiles[0]?.path} />
-
         {requiresOutput(tool.id, selectedOperationId) && (
           <div className="tool-option">
             <span>
@@ -200,6 +251,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
             {resultMessage}
           </pre>
         )}
+        </section>
       </div>
       <div className="tool-panel__footer">
         <div className="tool-panel__status" aria-live="polite">
@@ -234,7 +286,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
                   <AlertTriangle size={14} aria-hidden="true" /> The job failed. Your original file was left untouched.
                 </>
               ) : (
-                idleHint(tool.id)
+                canRun ? readyHint(tool.id, selectedOperationId) : idleHint(tool.id)
               )}
             </p>
           )}
@@ -406,6 +458,14 @@ function idleHint(toolId: string): string {
   if (toolId === "difftastic") return "Choose two files to compare.";
   if (folderTools.includes(toolId)) return "Choose a folder to enable the run.";
   return "Add files to enable the run.";
+}
+
+/** Shown once the run is possible, so the footer stops asking for what is done. */
+function readyHint(toolId: string, operationId: string): string {
+  if (operationId === "crop") return "Drag the rectangle to choose what survives.";
+  if (operationId === "trim") return "Set the start and end, then run.";
+  if (urlTools.includes(toolId)) return "Ready. The download runs in the background.";
+  return "Ready to run.";
 }
 
 function OperationOptions({

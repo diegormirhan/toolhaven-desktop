@@ -410,19 +410,128 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .dialog-assurances svg { color: var(--cool); }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
-.panel-scrim { position: fixed; z-index: 70; inset: 0; background: color-mix(in srgb, var(--scrim) 62%, transparent); animation: fade-in 200ms ease-out; }
-@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-.tool-panel {
-  position: fixed; z-index: 80; inset: 12px 12px 12px auto; display: grid; grid-template-rows: auto 1fr auto;
-  width: min(430px, calc(100vw - 24px)); min-height: 0; overflow: hidden;
-  background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-surface);
-  box-shadow: var(--shadow-overlay); animation: panel-enter 320ms cubic-bezier(.2,.8,.2,1);
+.panel-scrim {
+  position: fixed; z-index: 70; inset: 0;
+  background: color-mix(in srgb, var(--scrim) 78%, transparent);
+  backdrop-filter: blur(10px) saturate(115%);
+  -webkit-backdrop-filter: blur(10px) saturate(115%);
+  animation: fade-in 220ms var(--ease-out);
 }
-@keyframes panel-enter { from { opacity: 0; transform: translateX(32px) scale(.982); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
-@keyframes panel-exit { from { opacity: 1; transform: none; filter: none; } to { opacity: 0; transform: translateX(32px) scale(.982); filter: blur(6px); } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+/* A side sheet gave the preview a column barely wider than a phone. As a
+   centred modal the picture gets room, which is what makes dragging a crop
+   rectangle a reasonable thing to ask of it. */
+.tool-panel {
+  position: fixed; z-index: 80; inset: 50% auto auto 50%;
+  display: grid; grid-template-rows: auto 1fr auto;
+  width: min(1180px, 88vw); height: min(840px, 86vh);
+  min-height: 0; overflow: hidden;
+  background: var(--surface-raised); border: 1px solid var(--line);
+  border-radius: var(--radius-surface); box-shadow: var(--shadow-overlay);
+  animation: panel-enter 340ms var(--ease-out);
+}
+/* The translate lives in the keyframes as well, so the animation does not
+   drop the centring on its first frame. */
+@keyframes panel-enter {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(.965); filter: blur(7px); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: none; }
+}
+@keyframes panel-exit {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: none; }
+  to { opacity: 0; transform: translate(-50%, -50%) scale(.965); filter: blur(7px); }
+}
+.tool-panel { transform: translate(-50%, -50%); }
 .tool-panel[data-leaving="true"] { animation: panel-exit 220ms cubic-bezier(.4,0,.9,.35) forwards; pointer-events: none; }
 .panel-scrim[data-leaving="true"] { animation: fade-out 220ms ease-in forwards; }
 @keyframes fade-out { to { opacity: 0; } }
+
+/* ── Panel body ───────────────────────────────────────────────
+   Preview on the left, controls on the right. Without a preview the
+   controls take the whole width rather than leaving a hole. */
+.tool-panel__body--split {
+  display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(340px, 0.65fr);
+  gap: 0; padding: 0;
+}
+.tool-panel__workspace {
+  display: grid; align-content: center; min-width: 0; min-height: 0;
+  padding: 24px; background: var(--ground); border-right: 1px solid var(--line);
+}
+.tool-panel__controls { min-width: 0; min-height: 0; overflow: auto; padding: 30px 26px; }
+.tool-panel__body:not(.tool-panel__body--split) .tool-panel__controls { padding: 30px 24px; }
+
+/* ── Preview, in a workspace rather than a strip ─────────────── */
+.tool-panel__workspace .file-preview { margin: 0; gap: 10px; min-height: 0; }
+.tool-panel__workspace .file-preview__stage {
+  max-height: none; min-height: 0; height: 100%;
+  background: transparent; border: 0;
+}
+.tool-panel__workspace .file-preview__stage img,
+.tool-panel__workspace .file-preview__stage video { max-height: 62vh; }
+.file-preview figcaption { display: flex; justify-content: space-between; gap: 12px; }
+.file-preview__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-preview__meta { flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+
+/* ── Crop overlay ─────────────────────────────────────────────
+   The rectangle sits exactly on the media box, which is measured rather
+   than assumed: object-fit letterboxes it inside the stage. */
+.crop-overlay { position: absolute; touch-action: none; }
+.crop-overlay__shade {
+  position: absolute; pointer-events: none;
+  outline: 9999px solid color-mix(in srgb, var(--scrim) 74%, transparent);
+}
+.crop-overlay__rect {
+  position: absolute; cursor: move;
+  border: 1px solid var(--action);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ground) 60%, transparent);
+}
+/* Thirds, the guide every photo editor draws, and the reason the rectangle
+   reads as a frame rather than a selection box. */
+.crop-overlay__rect::before, .crop-overlay__rect::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-repeat: no-repeat;
+}
+.crop-overlay__rect::before {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--action) 45%, transparent) 1px, transparent 1px),
+    linear-gradient(to right, color-mix(in srgb, var(--action) 45%, transparent) 1px, transparent 1px);
+  background-position: 33.33% 0, 66.66% 0;
+  background-size: 1px 100%, 1px 100%;
+}
+.crop-overlay__rect::after {
+  background-image:
+    linear-gradient(to bottom, color-mix(in srgb, var(--action) 45%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--action) 45%, transparent) 1px, transparent 1px);
+  background-position: 0 33.33%, 0 66.66%;
+  background-size: 100% 1px, 100% 1px;
+}
+.crop-overlay__size {
+  position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
+  padding: 3px 8px; border-radius: 980px;
+  color: var(--on-action); background: var(--action);
+  font-size: 0.64rem; font-variant-numeric: tabular-nums; white-space: nowrap;
+  pointer-events: none;
+}
+.crop-handle {
+  position: absolute; width: 14px; height: 14px;
+  background: var(--action); border: 2px solid var(--ground); border-radius: 50%;
+}
+.crop-handle--nw { top: -7px; left: -7px; cursor: nwse-resize; }
+.crop-handle--n  { top: -7px; left: 50%; margin-left: -7px; cursor: ns-resize; }
+.crop-handle--ne { top: -7px; right: -7px; cursor: nesw-resize; }
+.crop-handle--e  { top: 50%; right: -7px; margin-top: -7px; cursor: ew-resize; }
+.crop-handle--se { bottom: -7px; right: -7px; cursor: nwse-resize; }
+.crop-handle--s  { bottom: -7px; left: 50%; margin-left: -7px; cursor: ns-resize; }
+.crop-handle--sw { bottom: -7px; left: -7px; cursor: nesw-resize; }
+.crop-handle--w  { top: 50%; left: -7px; margin-top: -7px; cursor: ew-resize; }
+
+@media (max-width: 1040px) {
+  .tool-panel { width: 94vw; height: 92vh; }
+  .tool-panel__body--split { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; }
+  .tool-panel__workspace { border-right: 0; border-bottom: 1px solid var(--line); padding: 16px; }
+  .tool-panel__workspace .file-preview__stage img,
+  .tool-panel__workspace .file-preview__stage video { max-height: 34vh; }
+}
+
 .tool-panel__topbar { display: flex; align-items: center; justify-content: space-between; min-height: 58px; padding: 0 16px 0 22px; color: var(--text-quiet); font-size: 0.72rem; border-bottom: 1px solid var(--line); }
 .tool-panel__body { min-width: 0; min-height: 0; overflow: auto; padding: 30px 24px; overflow-wrap: anywhere; }
 .tool-panel__body h2 { margin: 0; font-size: 1.85rem; letter-spacing: -0.028em; }
