@@ -28,9 +28,10 @@ export function ToolSection({ row, installations, onOpen, onInstall }: ToolSecti
         </span>
       </header>
       <div className="tool-section__grid">
-        {row.tools.map((tool) => (
+        {row.tools.map((tool, index) => (
           <ToolCard
             key={tool.id}
+            index={index}
             tool={tool}
             installation={installations[tool.id]!}
             onOpen={onOpen}

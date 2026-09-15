@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { ArrowUpRight, Check, Download } from "lucide-react";
 import type { InstallationState } from "../../../../scripts/component-installation/installation-state.mjs";
 import type { CatalogTool } from "../catalog/catalog";
@@ -8,6 +9,8 @@ type ToolCardProps = {
   installation: InstallationState;
   onOpen: (tool: CatalogTool, trigger: HTMLButtonElement) => void;
   onInstall: (tool: CatalogTool) => void;
+  /** Position in its category, used to stagger the entry animation. */
+  index?: number;
 };
 
 const phaseLabels: Record<InstallationState["phase"], string> = {
@@ -18,7 +21,7 @@ const phaseLabels: Record<InstallationState["phase"], string> = {
   installing: "Installing",
 };
 
-export function ToolCard({ tool, installation, onOpen, onInstall }: ToolCardProps) {
+export function ToolCard({ tool, installation, onOpen, onInstall, index = 0 }: ToolCardProps) {
   const isBusy = installation.phase !== "idle";
   const isReady = installation.availability === "ready";
   const progress = Math.round((installation.progress ?? 0) * 100);
@@ -26,7 +29,11 @@ export function ToolCard({ tool, installation, onOpen, onInstall }: ToolCardProp
     installation.activeVersion === "bundled" ? "Included" : "Ready";
 
   return (
-    <article className={`tool-card tool-card--${tool.size} tool-card--${tool.accent}`}>
+    <article
+      className={`tool-card tool-card--${tool.accent}`}
+      // Capped so a six-card category never feels like it is loading.
+      style={{ "--card-delay": `${Math.min(index, 5) * 45}ms` } as CSSProperties}
+    >
       <ToolArtwork toolId={tool.id} label={tool.integrationName} />
       <span className={`availability availability--${isReady ? "ready" : "available"}`}>
         {isReady ? <Check size={12} aria-hidden="true" /> : <Download size={12} aria-hidden="true" />}

@@ -26,8 +26,8 @@ const shots = [
   {
     file: "bundled-tools.png",
     theme: "dark",
-    // The dev tools rail is where the tools that ship inside the installer live.
-    prepare: `document.querySelectorAll(".catalog-row")[2].scrollIntoView({ block: "center" })`,
+    // Text and data is the category the installer-bundled tools live in.
+    prepare: `document.querySelector("#section-data").scrollIntoView({ block: "center" })`,
   },
   {
     file: "install-dialog.png",

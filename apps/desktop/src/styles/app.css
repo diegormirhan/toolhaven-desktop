@@ -7,33 +7,33 @@
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 
-  --ground: #15171c;
-  --surface: #1d2027;
-  --surface-veil: rgba(24, 29, 38, 0.92);
-  --surface-raised: #252933;
-  --surface-sunken: #181d26;
-  --surface-hover: #303643;
-  --surface-active: #283952;
-  --control: #2b3340;
-  --control-hover: #424d60;
-  --line: #3d4554;
+  --ground: #101219;
+  --surface: #1a1e27;
+  --surface-veil: rgba(26, 30, 39, 0.92);
+  --surface-raised: #2a313e;
+  --surface-sunken: #161a23;
+  --surface-hover: #343d4c;
+  --surface-active: #1d3f4d;
+  --control: #2f3846;
+  --control-hover: #47576b;
+  --line: #414b5c;
   --line-strong: #5f6b80;
   --text: #f3f5fa;
   --text-secondary: #b8c1d0;
   --text-quiet: #a3aec0;
-  --action: #88afff;
-  --action-hover: #a8c4ff;
-  --action-soft: #283952;
-  --on-action: #10141c;
-  --cool: #a8bfff;
-  --warning: #d8a64f;
-  --error: #dd6b64;
-  --focus: #b6cfff;
+  --action: #5cc8e8;
+  --action-hover: #7ad7ec;
+  --action-soft: #17363f;
+  --on-action: #06222b;
+  --cool: #9fd8ff;
+  --warning: #e0ab4d;
+  --error: #f08d84;
+  --focus: #8fdcf0;
   --inverse-surface: #f3f5fa;
   --on-inverse: #1b2029;
   --scrim: rgba(8, 11, 17, 0.58);
-  --shadow-card: 0 10px 28px rgba(0, 0, 0, 0.16);
-  --shadow-lifted: 0 18px 40px rgba(0, 0, 0, 0.28);
+  --shadow-card: 0 2px 4px rgba(0, 0, 0, 0.22), 0 12px 30px rgba(0, 0, 0, 0.34);
+  --shadow-lifted: 0 4px 10px rgba(0, 0, 0, 0.26), 0 24px 52px rgba(0, 0, 0, 0.46);
   --shadow-overlay: 0 30px 80px rgba(0, 0, 0, 0.48);
   --shadow-surface: 0 18px 50px rgba(0, 0, 0, 0.22);
 
@@ -43,9 +43,10 @@
   --brand-arch: #88afff;
   --brand-base: #d8a64f;
 
-  --radius-control: 8px;
-  --radius-card: 14px;
-  --radius-surface: 18px;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --radius-control: 10px;
+  --radius-card: 20px;
+  --radius-surface: 24px;
 
   color: var(--text);
   background: var(--ground);
@@ -55,13 +56,13 @@
 /* Applies before the theme hook stamps data-theme, so a light Windows never flashes dark. */
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
-    --ground: #eef1f6;
+    --ground: #e8ebf2;
     --surface: #ffffff;
     --surface-veil: rgba(255, 255, 255, 0.9);
     --surface-raised: #ffffff;
     --surface-sunken: #f2f5fa;
-    --surface-hover: #e9eef7;
-    --surface-active: #dde7fb;
+    --surface-hover: #f3f7fb;
+    --surface-active: #d7eef6;
     --control: #e7ebf3;
     --control-hover: #d5dded;
     --line: #d5dbe6;
@@ -69,19 +70,19 @@
     --text: #141821;
     --text-secondary: #465063;
     --text-quiet: #5b6577;
-    --action: #2a55c4;
-    --action-hover: #1f45a8;
-    --action-soft: #dde7fb;
+    --action: #0e6b84;
+    --action-hover: #0a556a;
+    --action-soft: #d7eef6;
     --on-action: #ffffff;
-    --cool: #2f5fbf;
+    --cool: #17607a;
     --warning: #8a5a08;
     --error: #b4372f;
-    --focus: #2a55c4;
+    --focus: #0e6b84;
     --inverse-surface: #1b2029;
     --on-inverse: #f3f5fa;
     --scrim: rgba(20, 26, 38, 0.46);
-    --shadow-card: 0 8px 20px rgba(28, 40, 66, 0.08);
-    --shadow-lifted: 0 16px 34px rgba(28, 40, 66, 0.14);
+    --shadow-card: 0 1px 2px rgba(23, 35, 58, 0.06), 0 10px 24px rgba(23, 35, 58, 0.10);
+    --shadow-lifted: 0 2px 6px rgba(23, 35, 58, 0.08), 0 20px 40px rgba(23, 35, 58, 0.18);
     --shadow-overlay: 0 28px 70px rgba(28, 40, 66, 0.24);
     --shadow-surface: 0 14px 38px rgba(28, 40, 66, 0.08);
     color-scheme: light;
@@ -89,13 +90,13 @@
 }
 
 :root[data-theme="light"] {
-  --ground: #eef1f6;
+  --ground: #e8ebf2;
   --surface: #ffffff;
   --surface-veil: rgba(255, 255, 255, 0.9);
   --surface-raised: #ffffff;
   --surface-sunken: #f2f5fa;
-  --surface-hover: #e9eef7;
-  --surface-active: #dde7fb;
+  --surface-hover: #f3f7fb;
+  --surface-active: #d7eef6;
   --control: #e7ebf3;
   --control-hover: #d5dded;
   --line: #d5dbe6;
@@ -103,19 +104,19 @@
   --text: #141821;
   --text-secondary: #465063;
   --text-quiet: #5b6577;
-  --action: #2a55c4;
-  --action-hover: #1f45a8;
-  --action-soft: #dde7fb;
+  --action: #0e6b84;
+  --action-hover: #0a556a;
+  --action-soft: #d7eef6;
   --on-action: #ffffff;
-  --cool: #2f5fbf;
+  --cool: #17607a;
   --warning: #8a5a08;
   --error: #b4372f;
-  --focus: #2a55c4;
+  --focus: #0e6b84;
   --inverse-surface: #1b2029;
   --on-inverse: #f3f5fa;
   --scrim: rgba(20, 26, 38, 0.46);
-  --shadow-card: 0 8px 20px rgba(28, 40, 66, 0.08);
-  --shadow-lifted: 0 16px 34px rgba(28, 40, 66, 0.14);
+  --shadow-card: 0 1px 2px rgba(23, 35, 58, 0.06), 0 10px 24px rgba(23, 35, 58, 0.10);
+  --shadow-lifted: 0 2px 6px rgba(23, 35, 58, 0.08), 0 20px 40px rgba(23, 35, 58, 0.18);
   --shadow-overlay: 0 28px 70px rgba(28, 40, 66, 0.24);
   --shadow-surface: 0 14px 38px rgba(28, 40, 66, 0.08);
   color-scheme: light;
@@ -254,18 +255,53 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .catalog-rows { display: grid; gap: 52px; }
 .tool-card {
   --card-accent: var(--text-secondary);
-  position: relative; flex: 0 0 292px; display: grid; grid-template-rows: 128px 1fr; min-height: 300px;
-  overflow: hidden; background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-card); scroll-snap-align: start;
+  position: relative; display: grid; grid-template-rows: 132px 1fr; min-height: 300px;
+  overflow: hidden; background: var(--surface-raised);
+  border: 1px solid var(--line); border-radius: var(--radius-card);
   box-shadow: var(--shadow-card); transform: translateZ(0);
-  transition: transform 220ms cubic-bezier(.2,.8,.2,1), box-shadow 220ms ease-out, background 160ms ease-out;
+  /* Everything that can move settles on the same curve, so the card reads as
+     one object rather than several parts arriving separately. */
+  transition:
+    transform 420ms var(--ease-out),
+    box-shadow 420ms var(--ease-out),
+    border-color 260ms var(--ease-out),
+    background 260ms var(--ease-out);
 }
-.tool-card--wide { flex-basis: 388px; }
-.tool-card--compact { flex-basis: 244px; }
 .tool-card--action { --card-accent: var(--action); }
 .tool-card--cool { --card-accent: var(--cool); }
 .tool-card--amber { --card-accent: var(--warning); }
 .tool-card--neutral { --card-accent: var(--text-secondary); }
-.tool-card:hover, .tool-card:focus-within { z-index: 2; background: var(--surface-hover); transform: translateY(-5px) scale(1.012); box-shadow: var(--shadow-lifted); }
+
+.tool-card:hover, .tool-card:focus-within {
+  z-index: 2;
+  background: var(--surface-hover);
+  border-color: color-mix(in srgb, var(--card-accent) 45%, var(--line));
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lifted);
+}
+/* Pressing anywhere on the card answers immediately, rather than waiting for
+   the click to resolve. */
+.tool-card:active { transform: translateY(-2px) scale(0.993); transition-duration: 110ms; }
+
+/* The accent edge grows from nothing on hover: the card gains an identity
+   instead of merely lifting. */
+.tool-card::after {
+  content: ""; position: absolute; inset: auto 0 0 0; height: 2px;
+  background: var(--card-accent); transform: scaleX(0); transform-origin: left;
+  transition: transform 460ms var(--ease-out);
+}
+.tool-card:hover::after, .tool-card:focus-within::after { transform: scaleX(1); }
+
+/* Cards arrive in order rather than all at once; the delay is set per card
+   from the index, and capped so a long category never feels slow. */
+@keyframes card-arrive {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+/* backwards, not both: a filled animation keeps applying its final transform
+   and outranks the hover rule in the cascade, so "both" silently cancelled the
+   lift. backwards still holds the start frame through the delay. */
+.tool-card { animation: card-arrive 520ms var(--ease-out) backwards; animation-delay: var(--card-delay, 0ms); }
 .tool-artwork {
   position: relative; display: grid; place-items: center; overflow: hidden; color: var(--card-accent);
   background:
@@ -273,7 +309,13 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
     linear-gradient(148deg, color-mix(in srgb, var(--card-accent) 13%, transparent), transparent 64%),
     var(--surface-sunken);
 }
-.tool-artwork svg { width: min(72%, 206px); height: auto; overflow: visible; }
+.tool-artwork svg {
+  width: min(72%, 206px); height: auto; overflow: visible;
+  transition: transform 520ms var(--ease-out);
+}
+.tool-card:hover .tool-artwork svg { transform: scale(1.045); }
+.artwork-rail { transition: width 300ms var(--ease-out); }
+.tool-card:hover .artwork-rail { width: 3px; }
 .aw-line { stroke: currentColor; fill: none; }
 .aw-soft { stroke: color-mix(in srgb, currentColor 40%, transparent); fill: none; }
 .aw-solid { fill: currentColor; stroke: none; }
@@ -449,7 +491,6 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
   gap: 16px;
 }
 /* Sizes existed to vary rhythm along a rail; in a grid they only make holes. */
-.tool-section__grid .tool-card { width: auto; min-width: 0; }
 
 @media (max-width: 720px) {
   .tool-section__grid { grid-template-columns: 1fr; }
@@ -502,7 +543,7 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
   .search-control kbd { display: none; }
   .drop-workspace { margin: 16px 16px 28px; padding: 26px 22px; gap: 22px; }
   .drop-workspace h1 { font-size: 2.15rem; }
-  .tool-card, .tool-card--wide, .tool-card--compact { width: 100%; min-height: 286px; }
+  .tool-card { width: 100%; min-height: 286px; }
   .dialog-actions { flex-direction: column-reverse; }
   .dialog-actions .button { width: 100%; }
   .job-view, .settings-view { padding: 40px 16px 100px; }
@@ -513,6 +554,10 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .tool-card, .tool-card:hover, .tool-card:focus-within, .tool-card:active { transform: none; }
+  .tool-card { animation: none; }
+  .tool-card::after { transition: none; }
+  .tool-card:hover .tool-artwork svg { transform: none; }
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
   .tool-card:hover, .tool-card:focus-within { transform: none; }
 }
