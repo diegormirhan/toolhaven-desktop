@@ -69,6 +69,7 @@ fn detect_available_tools() -> Vec<String> {
         "ffmpeg",
         "ffprobe",
         "yt-dlp",
+        "gallery-dl",
         "deno",
         "qpdf",
         "libvips",
@@ -357,30 +358,44 @@ fn validate_request(request: &OperationRequest) -> Result<(), String> {
             return Err("That output path is not valid.".into());
         }
         let target = std::path::Path::new(output_path);
-        let extracting = request.tool_id == "7zip" && request.operation_id == "extract";
-        if operation_writes_file(request) && target.exists() && !extracting {
+        // Some operations produce a set of files, so their destination is an
+        // existing folder rather than a name that must not be taken yet.
+        let into_directory = matches!(
+            (request.tool_id.as_str(), request.operation_id.as_str()),
+            ("7zip", "extract") | ("gallery-dl", "download-gallery")
+        );
+        if operation_writes_file(request) && target.exists() && !into_directory {
             return Err(
                 "That destination already exists. Choose another name so the original survives."
                     .into(),
             );
         }
-        if extracting
+        if into_directory && target.exists() && !target.is_dir() {
+            return Err("That destination is a file. Choose a folder instead.".into());
+        }
+        // Extracting would overwrite whatever shares a name, so it demands an
+        // empty folder. gallery-dl skips what it has already downloaded, which
+        // is the point of pointing it at the same folder twice.
+        if request.tool_id == "7zip"
+            && request.operation_id == "extract"
             && target.exists()
-            && (!target.is_dir()
-                || std::fs::read_dir(target)
-                    .map_err(|e| e.to_string())?
-                    .next()
-                    .is_some())
+            && std::fs::read_dir(target)
+                .map_err(|e| e.to_string())?
+                .next()
+                .is_some()
         {
             return Err("Choose an empty folder so extracting overwrites nothing.".into());
         }
     }
     if let Some(source_url) = &request.source_url {
         let trimmed = source_url.trim();
-        if request.tool_id != "yt-dlp"
+        if !URL_TOOLS.contains(&request.tool_id.as_str())
             || !(trimmed.starts_with("https://") || trimmed.starts_with("http://"))
         {
-            return Err("The source URL must be HTTP(S), and only yt-dlp accepts one.".into());
+            return Err(format!(
+                "The source URL must be HTTP(S), and only {} accept one.",
+                URL_TOOLS.join(" and ")
+            ));
         }
     }
     validate_options(request)?;
@@ -389,7 +404,7 @@ fn validate_request(request: &OperationRequest) -> Result<(), String> {
 
 /// Pure option checks: no filesystem, no process, so they are testable on their own.
 fn validate_options(request: &OperationRequest) -> Result<(), String> {
-    if request.tool_id == "yt-dlp" {
+    if URL_TOOLS.contains(&request.tool_id.as_str()) {
         let browser = request
             .options
             .get("cookiesFrom")
@@ -413,13 +428,16 @@ fn validate_options(request: &OperationRequest) -> Result<(), String> {
         if !file.is_empty() && !std::path::Path::new(file).is_file() {
             return Err("That cookie file does not exist.".into());
         }
-        let quality = request
-            .options
-            .get("quality")
-            .map(|value| value.trim())
-            .unwrap_or("compatible");
-        if !matches!(quality, "compatible" | "best") {
-            return Err("Quality must be either \"compatible\" or \"best\".".into());
+        // Only yt-dlp picks a format; gallery-dl takes what the site serves.
+        if request.tool_id == "yt-dlp" {
+            let quality = request
+                .options
+                .get("quality")
+                .map(|value| value.trim())
+                .unwrap_or("compatible");
+            if !matches!(quality, "compatible" | "best") {
+                return Err("Quality must be either \"compatible\" or \"best\".".into());
+            }
         }
     }
     if request.tool_id == "exiftool"
@@ -496,6 +514,7 @@ fn executable_name(tool_id: &str) -> Result<String, String> {
         "ffmpeg" => "ffmpeg.exe",
         "ffprobe" => "ffprobe.exe",
         "yt-dlp" => "yt-dlp.exe",
+        "gallery-dl" => "gallery-dl.exe",
         "deno" => "deno.exe",
         "qpdf" => "qpdf.exe",
         "libvips" => "vips.exe",
@@ -653,15 +672,12 @@ const COOKIE_BROWSERS: [&str; 7] = [
     "firefox", "chrome", "chromium", "edge", "brave", "opera", "vivaldi",
 ];
 
-/// Authentication, plus the client selection that depends on it.
-///
-/// `player_client=web_embedded` is a workaround for the 403 an anonymous
-/// request gets, and it is dropped once cookies are supplied. yt-dlp already
-/// picks cookie-aware clients on its own — `web_embedded, tv_downgraded, web`
-/// for a free account and `web_creator, tv_downgraded, web` for Premium — so
-/// forcing the embedded client would deny a Premium account the `web_creator`
-/// client its higher-quality formats come from.
-fn yt_dlp_session_args(request: &OperationRequest) -> Vec<String> {
+/// Tools driven by a URL instead of input files.
+const URL_TOOLS: [&str; 2] = ["yt-dlp", "gallery-dl"];
+
+/// Cookie flags. yt-dlp and gallery-dl spell them identically, so one builder
+/// serves both. Empty when no credentials were chosen.
+fn cookie_args(request: &OperationRequest) -> Vec<String> {
     let browser = request
         .options
         .get("cookiesFrom")
@@ -680,6 +696,22 @@ fn yt_dlp_session_args(request: &OperationRequest) -> Vec<String> {
         return vec!["--cookies".into(), file.to_string()];
     }
 
+    Vec::new()
+}
+
+/// Authentication, plus the client selection that depends on it.
+///
+/// `player_client=web_embedded` is a workaround for the 403 an anonymous
+/// request gets, and it is dropped once cookies are supplied. yt-dlp already
+/// picks cookie-aware clients on its own — `web_embedded, tv_downgraded, web`
+/// for a free account and `web_creator, tv_downgraded, web` for Premium — so
+/// forcing the embedded client would deny a Premium account the `web_creator`
+/// client its higher-quality formats come from.
+fn yt_dlp_session_args(request: &OperationRequest) -> Vec<String> {
+    let cookies = cookie_args(request);
+    if !cookies.is_empty() {
+        return cookies;
+    }
     vec![
         "--extractor-args".into(),
         "youtube:player_client=web_embedded".into(),
@@ -839,6 +871,22 @@ fn resolve_args(request: &OperationRequest) -> Result<Vec<String>, String> {
         ("yt-dlp", "inspect-url") => {
             let mut args: Vec<String> = vec!["--dump-single-json".into(), "--skip-download".into()];
             args.extend(yt_dlp_session_args(request));
+            args.push(request.source_url.clone().unwrap_or(input));
+            Ok(args)
+        }
+        ("gallery-dl", "download-gallery") => {
+            let mut args: Vec<String> = vec!["--no-mtime".into()];
+            args.extend(cookie_args(request));
+            args.extend([
+                "-D".to_string(),
+                output,
+                request.source_url.clone().unwrap_or(input),
+            ]);
+            Ok(args)
+        }
+        ("gallery-dl", "inspect-url") => {
+            let mut args: Vec<String> = vec!["--dump-json".into(), "--no-download".into()];
+            args.extend(cookie_args(request));
             args.push(request.source_url.clone().unwrap_or(input));
             Ok(args)
         }
@@ -1006,6 +1054,7 @@ fn operation_writes_file(request: &OperationRequest) -> bool {
         (request.tool_id.as_str(), request.operation_id.as_str()),
         ("ffprobe", "inspect")
             | ("yt-dlp", "inspect-url")
+            | ("gallery-dl", "inspect-url")
             | ("jq", _)
             | ("yq", _)
             | ("ripgrep", "search")
@@ -1213,6 +1262,68 @@ mod tests {
     }
 
     #[test]
+    fn a_gallery_lands_in_the_folder_the_user_chose() {
+        let mut request = download_request("download-gallery", &[]);
+        request.tool_id = "gallery-dl".into();
+        request.output_path = Some("C:/galerias".into());
+
+        let args = resolve_args(&request).unwrap();
+        // -D writes into that exact folder, instead of the site/author subtree
+        // gallery-dl builds by default under -d.
+        assert!(args.windows(2).any(|pair| pair == ["-D", "C:/galerias"]));
+        assert_eq!(args.last().unwrap(), "https://example.com/video");
+        assert_eq!(executable_name("gallery-dl").unwrap(), "gallery-dl.exe");
+    }
+
+    #[test]
+    fn gallery_dl_takes_the_same_credentials_as_yt_dlp() {
+        // Both spell the flags identically, so one builder serves both.
+        let mut request = download_request("download-gallery", &[("cookiesFrom", "firefox")]);
+        request.tool_id = "gallery-dl".into();
+        request.output_path = Some("C:/galerias".into());
+
+        let args = resolve_args(&request).unwrap();
+        assert!(args
+            .windows(2)
+            .any(|pair| pair == ["--cookies-from-browser", "firefox"]));
+        // The YouTube client workaround is yt-dlp's alone.
+        assert!(!args.iter().any(|arg| arg.contains("player_client")));
+
+        let mut bad = download_request("download-gallery", &[("cookiesFrom", "netscape")]);
+        bad.tool_id = "gallery-dl".into();
+        assert!(validate_options(&bad).is_err());
+    }
+
+    #[test]
+    fn a_gallery_may_reuse_a_folder_that_an_archive_may_not() {
+        let folder = std::env::temp_dir().join("toolhaven-gallery-target");
+        std::fs::create_dir_all(&folder).unwrap();
+        std::fs::write(folder.join("existing.jpg"), b"x").unwrap();
+        let path = folder.to_string_lossy().to_string();
+
+        let mut gallery = download_request("download-gallery", &[]);
+        gallery.tool_id = "gallery-dl".into();
+        gallery.output_path = Some(path.clone());
+        // gallery-dl skips what it already has, so a populated folder is the
+        // normal case rather than an error.
+        assert!(validate_request(&gallery).is_ok());
+
+        let extract = OperationRequest {
+            tool_id: "7zip".into(),
+            operation_id: "extract".into(),
+            input_paths: vec!["input.fixture".into()],
+            output_path: Some(path),
+            options: std::collections::HashMap::new(),
+            source_url: None,
+            job_id: None,
+        };
+        // Extracting would overwrite whatever shares a name.
+        assert!(validate_request(&extract).is_err());
+
+        std::fs::remove_dir_all(folder).ok();
+    }
+
+    #[test]
     fn signing_in_replaces_the_anonymous_client_workaround() {
         // The forced embedded client exists to dodge the 403 an anonymous
         // request gets. With cookies it would cost a Premium account the
@@ -1415,6 +1526,8 @@ mod tests {
             ("yt-dlp", "download-video"),
             ("yt-dlp", "download-audio"),
             ("yt-dlp", "inspect-url"),
+            ("gallery-dl", "download-gallery"),
+            ("gallery-dl", "inspect-url"),
             ("deno", "runtime"),
             ("jq", "format"),
             ("jq", "query"),

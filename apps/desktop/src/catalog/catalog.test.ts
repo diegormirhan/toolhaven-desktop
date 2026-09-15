@@ -39,3 +39,33 @@ describe("tool catalog", () => {
     ]);
   });
 });
+
+it('finds the right downloader by the name of the site', () => {
+  const rows = createCatalogRows();
+  const idsFor = (query: string) =>
+    filterCatalogRows(rows, query).flatMap((row) => row.tools.map((tool) => tool.id));
+
+  // Nobody is going to read a list of 1800 supported sites, so the platform
+  // names are search keywords instead.
+  expect(idsFor('pixiv')).toContain('gallery-dl');
+  expect(idsFor('deviantart')).toContain('gallery-dl');
+  expect(idsFor('twitch')).toContain('yt-dlp');
+  expect(idsFor('tiktok')).toContain('yt-dlp');
+  // A site both tools cover should offer both.
+  expect(idsFor('reddit')).toEqual(expect.arrayContaining(['yt-dlp', 'gallery-dl']));
+});
+
+it('carries gallery-dl as an on-demand download under a copyleft licence', () => {
+  const tool = createCatalogRows()
+    .flatMap((row) => row.tools)
+    .find((entry) => entry.id === 'gallery-dl');
+
+  expect(tool).toBeDefined();
+  // GPL-2.0 keeps it out of the installer; it is fetched on demand instead.
+  expect(tool?.status).toBe('downloadable');
+  expect(tool?.delivery).toBe('on-demand');
+  expect(tool?.operations.map((operation) => operation.id)).toEqual([
+    'download-gallery',
+    'inspect-url',
+  ]);
+});

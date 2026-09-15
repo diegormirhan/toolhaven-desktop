@@ -27,7 +27,7 @@ type SelectedFile = { name: string; path: string };
 
 export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving = false, onClose, onExited, onRun }: ToolPanelProps) {
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>(() =>
-    initialPath && !["deno", "yt-dlp", ...folderTools].includes(tool.id)
+    initialPath && !["deno", ...urlTools, ...folderTools].includes(tool.id)
       ? [{ path: initialPath, name: fileNameOnly(initialPath) }]
       : [],
   );
@@ -46,7 +46,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
   const needsTwoFiles = tool.id === "difftastic";
   const canRun =
     (needsTwoFiles ? selectedFiles.length >= 2 : selectedFiles.length > 0) ||
-    (tool.id === "yt-dlp" && sourceUrl.trim().length > 0) ||
+    (urlTools.includes(tool.id) && sourceUrl.trim().length > 0) ||
     (tool.id === "deno" && selectedOperationId === "runtime");
   const resultMessage = formError || (currentJob && currentJob.status !== "running" ? jobResultText(currentJob) : "");
   const resultIsError = Boolean(formError) || currentJob?.status === "failed";
@@ -64,7 +64,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
 
   // A file dropped on the window belongs to the tool the user already has open.
   useEffect(() => {
-    if (!droppedPaths?.length || tool.id === "deno" || tool.id === "yt-dlp") return;
+    if (!droppedPaths?.length || tool.id === "deno" || urlTools.includes(tool.id)) return;
     setSelectedFiles(droppedPaths.map((path) => ({ path, name: fileNameOnly(path) })));
     setFormError("");
     setCurrentJobId(null);
@@ -149,7 +149,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
           }}
         />
 
-        {tool.id === "yt-dlp" && (
+        {urlTools.includes(tool.id) && (
           <label className="source-url">
             <span>Media URL</span>
             <input
@@ -162,10 +162,11 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
                 resetFeedback();
               }}
             />
+            <small className="source-url__hint">{supportedSitesHint(tool.id)}</small>
           </label>
         )}
 
-        {tool.id !== "deno" && tool.id !== "yt-dlp" && <FileField />}
+        {tool.id !== "deno" && !urlTools.includes(tool.id) && <FileField />}
 
         {requiresOutput(tool.id, selectedOperationId) && (
           <div className="tool-option">
@@ -308,7 +309,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
 
   async function chooseNativeOutput() {
     if (!isNativeHost()) return;
-    if (tool.id === "7zip" && selectedOperationId === "extract") {
+    if (writesToDirectory(tool.id, selectedOperationId)) {
       const selected = await open({ directory: true, multiple: false });
       if (typeof selected === "string") setOutputPath(selected);
       return;
@@ -346,7 +347,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
   }
 
   async function pickOutputForOperation() {
-    if (tool.id === "7zip" && selectedOperationId === "extract") {
+    if (writesToDirectory(tool.id, selectedOperationId)) {
       const selected = await open({ directory: true, multiple: false });
       if (typeof selected !== "string") throw new Error("Choose a destination folder to continue.");
       setOutputPath(selected);
@@ -376,7 +377,7 @@ function jobResultText(job: ToolJob): string {
 }
 
 function idleHint(toolId: string): string {
-  if (toolId === "yt-dlp") return "Add a URL or a file to enable the run.";
+  if (urlTools.includes(toolId)) return "Add a URL to enable the run.";
   if (toolId === "deno") return "Reports the version installed on this Windows.";
   if (toolId === "difftastic") return "Choose two files to compare.";
   if (folderTools.includes(toolId)) return "Choose a folder to enable the run.";
@@ -480,9 +481,9 @@ const cookieBrowsers = [
 ];
 
 function operationFields(toolId: string, operationId: string): OperationField[] {
-  if (toolId === "yt-dlp") {
+  if (urlTools.includes(toolId)) {
     const fields: OperationField[] = [];
-    if (operationId === "download-video") {
+    if (toolId === "yt-dlp" && operationId === "download-video") {
       fields.push({
         key: "quality",
         label: "Quality",
@@ -577,6 +578,23 @@ const readOnlyTools = [
   "ffprobe", "deno", "jq", "yq", "ripgrep", "fd",
   "miller", "hexyl", "tokei", "difftastic", "dust",
 ];
+/** Where each downloader publishes the list of sites it handles. Naming the
+ *  page beats embedding a list of eighteen hundred entries that goes stale. */
+function supportedSitesHint(toolId: string): string {
+  return toolId === "gallery-dl"
+    ? "Hundreds of gallery and art sites. The full list is supportedsites.md in the gallery-dl repository."
+    : "Over a thousand video and audio sites. The full list is supportedsites.md in the yt-dlp repository.";
+}
+
+/** Tools driven by a URL rather than input files; mirrors URL_TOOLS in the host. */
+const urlTools = ["yt-dlp", "gallery-dl"];
+/** Operations whose destination is a folder, because they write more than one file. */
+function writesToDirectory(toolId: string, operationId: string): boolean {
+  return (
+    (toolId === "7zip" && operationId === "extract") ||
+    (toolId === "gallery-dl" && operationId === "download-gallery")
+  );
+}
 /** Tools whose input is a folder, not a file. */
 const folderTools = ["fd", "ripgrep", "tokei", "dust"];
 /** Operations that need more than one input. */

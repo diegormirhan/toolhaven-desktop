@@ -29,6 +29,18 @@ const glyphByToolId: Record<string, ReactNode> = {
       <path className="aw-line" d="M58 82h84" strokeLinecap="round" />
     </>
   ),
+  "gallery-dl": (
+    <>
+      <rect className="aw-soft" x="40" y="20" width="54" height="42" rx="5" />
+      <rect className="aw-soft" x="52" y="30" width="54" height="42" rx="5" />
+      <rect className="aw-line" x="64" y="40" width="54" height="42" rx="5" />
+      <g className="aw-soft-fill">
+        <circle cx="78" cy="53" r="5" />
+      </g>
+      <path className="aw-line" d="M64 74l16-14 12 10 9-7 17 13" strokeLinecap="round" strokeLinejoin="round" />
+      <path className="aw-line" d="M140 34v30M128 54l12 12 12-12" strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
   ffmpeg: (
     <>
       <rect className="aw-soft" x="38" y="22" width="46" height="56" rx="6" />

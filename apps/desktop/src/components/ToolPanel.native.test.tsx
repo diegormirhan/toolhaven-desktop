@@ -256,3 +256,33 @@ it.each([
 ])('suggests a container the chosen quality can actually hold (%s)', (quality, expected) => {
   expect(suggestedOutputName(undefined, 'download-video', 'yt-dlp', { quality })).toBe(expected);
 });
+
+it('drives gallery-dl from a URL and writes into a folder', async () => {
+  const onRun = vi.fn(() => jobId);
+  vi.mocked(open).mockResolvedValue('C:\galerias');
+  render(<ToolPanel tool={catalogTool('gallery-dl')} onClose={vi.fn()} onRun={onRun} />);
+
+  // A URL-driven tool offers no file picker at all.
+  expect(screen.queryByRole('button', { name: /choose file/i })).not.toBeInTheDocument();
+  await userEvent.type(screen.getByLabelText('Media URL'), 'https://example.com/user/gallery');
+  await userEvent.click(screen.getByRole('button', { name: 'Run' }));
+
+  // A gallery is a set of files, so the destination is a directory.
+  expect(open).toHaveBeenCalledWith(expect.objectContaining({ directory: true }));
+  expect(onRun).toHaveBeenCalledWith(expect.objectContaining({
+    request: expect.objectContaining({
+      toolId: 'gallery-dl',
+      operationId: 'download-gallery',
+      sourceUrl: 'https://example.com/user/gallery',
+      outputPath: 'C:\galerias',
+    }),
+  }));
+});
+
+it('offers gallery-dl the same sign-in, but no quality mode', async () => {
+  render(<ToolPanel tool={catalogTool('gallery-dl')} onClose={vi.fn()} onRun={() => jobId} />);
+
+  expect(screen.getByRole('combobox', { name: 'Sign in' })).toBeVisible();
+  // Quality is yt-dlp's: gallery-dl takes whatever the site serves.
+  expect(screen.queryByRole('combobox', { name: 'Quality' })).not.toBeInTheDocument();
+});

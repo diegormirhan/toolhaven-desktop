@@ -134,8 +134,31 @@ const presentationById: Record<
       { id: "download-audio", label: "Extract audio", description: "Keep the audio track only." },
       { id: "inspect-url", label: "Inspect URL", description: "See the formats before downloading." },
     ],
-    keywords: ["youtube", "url", "download", "video", "audio", "media"],
+    keywords: [
+      "url", "download", "video", "audio", "media",
+      "youtube", "twitch", "vimeo", "tiktok", "soundcloud", "twitter", "x",
+      "facebook", "instagram", "dailymotion", "bilibili", "reddit", "bandcamp",
+    ],
     downloadLabel: "With dependencies",
+  },
+  "gallery-dl": {
+    id: "gallery-dl",
+    title: "Download galleries",
+    description: "Save images and albums from a post, profile or gallery URL.",
+    category: "downloads",
+    accent: "amber",
+    size: "standard",
+    operations: [
+      { id: "download-gallery", label: "Download gallery", description: "Save every image the URL holds into a folder." },
+      { id: "inspect-url", label: "Inspect URL", description: "List what is there before downloading." },
+    ],
+    keywords: [
+      "gallery", "images", "album", "download", "url", "posts",
+      // Platform names so a search for the site finds the tool that handles it.
+      "instagram", "pixiv", "deviantart", "twitter", "x", "reddit", "tumblr",
+      "flickr", "artstation", "imgur", "mastodon", "bluesky", "danbooru",
+    ],
+    downloadLabel: "In-app download",
   },
   ffmpeg: {
     id: "ffmpeg",
@@ -335,7 +358,7 @@ const rowDefinitions = [
     id: "downloads",
     title: "Media and downloads",
     description: "Local conversion, and downloads installed when you need them.",
-    toolIds: ["yt-dlp", "ffmpeg", "mkvtoolnix", "ffprobe"],
+    toolIds: ["yt-dlp", "gallery-dl", "ffmpeg", "mkvtoolnix", "ffprobe"],
   },
   {
     id: "developer",

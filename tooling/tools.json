@@ -69,6 +69,25 @@
       ]
     },
     {
+      "id": "gallery-dl",
+      "displayName": "gallery-dl",
+      "status": "downloadable",
+      "delivery": "on-demand",
+      "sourceRepository": "https://codeberg.org/mikf/gallery-dl",
+      "licenseExpression": "GPL-2.0-only",
+      "capabilities": [
+        "download.gallery",
+        "download.gallery_inspect"
+      ],
+      "version": "1.32.12",
+      "artifacts": [
+        {
+          "url": "https://codeberg.org/mikf/gallery-dl/releases/download/v1.32.12/gallery-dl.exe",
+          "sha256": "0b36ae6734ed41e12be6be1b33d3165a450b3e0a811fc1b8c664c032f7f13b2c"
+        }
+      ]
+    },
+    {
       "id": "deno",
       "displayName": "Deno",
       "status": "downloadable",
