@@ -65,6 +65,11 @@ export function useJobQueue() {
     );
   }, []);
 
+  /** Drops finished entries only: a running job has nothing to clear yet. */
+  const clearHistory = useCallback(() => {
+    setJobs((current) => current.filter((job) => job.status === "running"));
+  }, []);
+
   const settleJob = useCallback((jobId: string, outcome: JobOutcome) => {
     setJobs((current) =>
       current.map((job) =>
@@ -88,7 +93,7 @@ export function useJobQueue() {
   const runningJobs = useMemo(() => jobs.filter((job) => job.status === "running"), [jobs]);
   const finishedJobs = useMemo(() => jobs.filter((job) => job.status !== "running"), [jobs]);
 
-  return { jobs, runningJobs, finishedJobs, startJob, reportProgress, settleJob, clearFinishedJobs };
+  return { jobs, runningJobs, finishedJobs, startJob, reportProgress, settleJob, clearFinishedJobs, clearHistory };
 }
 
 export function findJob(jobs: ToolJob[], jobId: string | null): ToolJob | undefined {

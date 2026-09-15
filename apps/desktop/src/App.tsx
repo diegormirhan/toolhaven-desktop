@@ -10,6 +10,8 @@ import {
   Search,
   Settings,
   Upload,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import toolManifest from "../../../tooling/tools.json";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -70,6 +72,39 @@ export function App() {
   const toolTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  // Remembered per machine: someone who works with the sidebar collapsed does
+  // not want to collapse it again every launch.
+  const [defaultFolder, setDefaultFolder] = useState(() => {
+    try {
+      return localStorage.getItem('toolhaven.destination') ?? '';
+    } catch {
+      return '';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('toolhaven.destination', defaultFolder);
+    } catch {
+      /* A blocked store is not worth failing a render over. */
+    }
+  }, [defaultFolder]);
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("toolhaven.sidebar") === "collapsed";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("toolhaven.sidebar", sidebarCollapsed ? "collapsed" : "expanded");
+    } catch {
+      /* A blocked store is not worth failing a render over. */
+    }
+  }, [sidebarCollapsed]);
   const searchedRows = useMemo(() => filterCatalogRows(catalogRows, query), [catalogRows, query]);
   // A search spans every category, so narrowing by category on top of it would
   // hide matches the user just asked for.
@@ -150,8 +185,8 @@ export function App() {
   }
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
+    <div className={`app-shell${sidebarCollapsed ? " app-shell--narrow" : ""}`}>
+      <aside className="sidebar" aria-hidden={sidebarCollapsed ? undefined : undefined}>
         <div className="app-mark">
           <span className="app-mark__symbol" aria-hidden="true">
             <ToolHavenMark />
@@ -203,6 +238,16 @@ export function App() {
         onScroll={(event) => setScrolled(event.currentTarget.scrollTop > 4)}
       >
         <header className="topbar">
+          <button
+            type="button"
+            className="icon-button sidebar-toggle"
+            onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
+            aria-pressed={sidebarCollapsed}
+            aria-label={sidebarCollapsed ? "Show the sidebar" : "Hide the sidebar"}
+            title={sidebarCollapsed ? "Show the sidebar" : "Hide the sidebar"}
+          >
+            {sidebarCollapsed ? <PanelLeftOpen size={18} aria-hidden="true" /> : <PanelLeftClose size={18} aria-hidden="true" />}
+          </button>
           <div className="search-control">
             <Search size={18} aria-hidden="true" />
             <input
@@ -304,6 +349,12 @@ export function App() {
           <SettingsView
             preference={theme.preference}
             onThemeChange={theme.setPreference}
+            sidebarCollapsed={sidebarCollapsed}
+            onSidebarChange={setSidebarCollapsed}
+            defaultFolder={defaultFolder}
+            onDefaultFolderChange={setDefaultFolder}
+            finishedCount={runner.jobs.filter((job) => job.status !== "running").length}
+            onClearHistory={runner.clearHistory}
             onReturn={() => setActiveNavigation("catalog")}
           />
         ) : (
@@ -342,6 +393,7 @@ export function App() {
             initialPath={pendingFile}
             droppedPaths={fileDrop.droppedPaths}
             jobs={runner.jobs}
+            defaultFolder={defaultFolder}
             leaving={panelLeaving}
             onClose={closeTool}
             onExited={finishClosingTool}
@@ -479,10 +531,22 @@ function JobRow({ job }: { job: ToolJob }) {
 function SettingsView({
   preference,
   onThemeChange,
+  sidebarCollapsed,
+  onSidebarChange,
+  defaultFolder,
+  onDefaultFolderChange,
+  finishedCount,
+  onClearHistory,
   onReturn,
 }: {
   preference: ThemePreference;
   onThemeChange: (preference: ThemePreference) => void;
+  sidebarCollapsed: boolean;
+  onSidebarChange: (collapsed: boolean) => void;
+  defaultFolder: string;
+  onDefaultFolderChange: (folder: string) => void;
+  finishedCount: number;
+  onClearHistory: () => void;
   onReturn: () => void;
 }) {
   return (
@@ -501,11 +565,73 @@ function SettingsView({
         <ThemeSwitch preference={preference} onChange={onThemeChange} variant="labelled" />
       </div>
 
+      <div className="settings-card">
+        <div className="settings-card__copy">
+          <h2>Sidebar</h2>
+          <p>Hide the navigation rail to give the catalog the whole window. The button in the top bar does the same.</p>
+        </div>
+        <button
+          className="button button--light"
+          type="button"
+          onClick={() => onSidebarChange(!sidebarCollapsed)}
+          aria-pressed={sidebarCollapsed}
+        >
+          {sidebarCollapsed ? "Show it" : "Hide it"}
+        </button>
+      </div>
+
+      <div className="settings-card">
+        <div className="settings-card__copy">
+          <h2>Default destination</h2>
+          <p>Where the save dialog opens. Each operation still names its own file, and nothing is written without you choosing.</p>
+        </div>
+        <div className="settings-card__control">
+          <span className="settings-card__path">{defaultFolder || "Not set"}</span>
+          <button
+            className="button button--light"
+            type="button"
+            onClick={() => {
+              void open({ directory: true, multiple: false })
+                .then((selected) => {
+                  if (typeof selected === "string") onDefaultFolderChange(selected);
+                })
+                .catch(() => undefined);
+            }}
+          >
+            Choose
+          </button>
+          {defaultFolder && (
+            <button className="button button--light" type="button" onClick={() => onDefaultFolderChange("")}>
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="settings-card">
+        <div className="settings-card__copy">
+          <h2>History</h2>
+          <p>
+            {finishedCount > 0
+              ? `${finishedCount} finished operation${finishedCount === 1 ? "" : "s"} from this session. Running ones are left alone.`
+              : "Nothing finished in this session yet. The list is kept in memory and is lost on restart either way."}
+          </p>
+        </div>
+        <button
+          className="button button--light"
+          type="button"
+          onClick={onClearHistory}
+          disabled={finishedCount === 0}
+        >
+          Clear
+        </button>
+      </div>
+
       <div className="settings-card settings-card--pending">
         <div className="settings-card__copy">
           <h2>Not available yet</h2>
           <ul>
-            <li>Default destination, conflict policy and concurrency limit.</li>
+            <li>Conflict policy and concurrency limit.</li>
             <li>Cancelling an operation that is already running.</li>
             <li>A queue and history that survive a restart.</li>
             <li>In-app download for the four tools that are still pinned by hand.</li>

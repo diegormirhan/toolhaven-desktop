@@ -431,14 +431,15 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .file-drop--compact strong { margin-top: 5px; }
 .operation-select, .source-url { display: grid; gap: 7px; margin: 0 0 16px; }
 .operation-select span, .source-url span { color: var(--text-secondary); font-size: 0.72rem; font-weight: 650; }
-.operation-select select, .source-url input { width: 100%; min-height: 40px; padding: 0 11px; color: var(--text); background: var(--surface-sunken); border: 1px solid var(--line-strong); border-radius: 8px; }
+.operation-select select, .source-url input { width: 100%; min-height: 40px; padding: 0 11px; color: var(--text); background: var(--surface-sunken); border: 1px solid var(--line-strong); border-radius: var(--radius-control); }
 .operation-select small { color: var(--text-quiet); font-size: 0.7rem; line-height: 1.4; }
 .source-url input::placeholder, .operation-options input::placeholder { color: var(--text-quiet); }
 .operation-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0 0 18px; }
 .operation-options label { display: grid; gap: 6px; }
 .operation-options label span { color: var(--text-secondary); font-size: 0.7rem; }
-.operation-options input { width: 100%; min-height: 38px; padding: 0 10px; color: var(--text); background: var(--surface-sunken); border: 1px solid var(--line-strong); border-radius: 8px; }
-.operation-options select { width: 100%; min-height: 38px; padding: 0 8px; color: var(--text); background: var(--surface-sunken); border: 1px solid var(--line-strong); border-radius: 8px; font: inherit; font-size: 0.78rem; }
+.operation-options input { width: 100%; min-height: 38px; padding: 0 10px; color: var(--text); background: var(--surface-sunken); border: 1px solid var(--line-strong); border-radius: var(--radius-control); transition: border-color 200ms var(--ease-out), background 200ms var(--ease-out); }
+.operation-options input:hover { border-color: var(--line-strong); background: var(--surface-hover); }
+.operation-select select, .operation-options select { width: 100%; min-height: 38px; padding: 0 8px; color: var(--text); background: var(--surface-sunken); border: 1px solid var(--line-strong); border-radius: var(--radius-control); font: inherit; font-size: 0.78rem; }
 /* A field that spans both columns when its guidance needs the room. */
 .operation-options label:has(.operation-options__file), .operation-options label:has(select) { grid-column: 1 / -1; }
 .operation-options__file { display: flex; gap: 8px; align-items: center; }
@@ -495,6 +496,71 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 @media (max-width: 720px) {
   .tool-section__grid { grid-template-columns: 1fr; }
   .catalog-rows { gap: 38px; }
+}
+
+
+/* ── Sidebar collapse ─────────────────────────────────────────
+   The rail keeps its width in a custom property so the grid and the
+   aside animate to the same number rather than two guesses. */
+.app-shell--narrow { grid-template-columns: 0 minmax(0, 1fr); }
+.app-shell { transition: grid-template-columns 420ms var(--ease-out); }
+.app-shell--narrow .sidebar {
+  transform: translateX(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+.sidebar { transition: transform 420ms var(--ease-out), opacity 260ms var(--ease-out); }
+.sidebar-toggle { flex: 0 0 auto; margin-right: 4px; }
+
+/* ── Select ───────────────────────────────────────────────────
+   The native control keeps its keyboard behaviour; only the shell is
+   ours. The chevron is drawn rather than an image so it follows the
+   text colour in both themes. */
+.operation-select select, .operation-options select {
+  appearance: none;
+  padding-right: 34px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 18px) calc(50% + 1px), calc(100% - 13px) calc(50% + 1px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+  transition: border-color 200ms var(--ease-out), background-color 200ms var(--ease-out);
+}
+.operation-select select:hover, .operation-options select:hover { border-color: var(--line-strong); background-color: var(--surface-hover); }
+.operation-select select:focus-visible, .operation-options select:focus-visible { border-color: var(--action); }
+.operation-select select option, .operation-options select option { background: var(--surface-raised); color: var(--text); }
+
+/* ── File preview ─────────────────────────────────────────────
+   Options like crop and trim act on something the user otherwise
+   cannot see; this is that something. */
+.file-preview { margin: 0 0 18px; display: grid; gap: 7px; }
+.file-preview__stage {
+  position: relative; display: grid; place-items: center;
+  max-height: 260px; overflow: hidden;
+  background: var(--surface-sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+.file-preview__stage img, .file-preview__stage video {
+  display: block; max-width: 100%; max-height: 258px; object-fit: contain;
+}
+.file-preview__stage audio { width: 100%; padding: 16px; }
+.file-preview__fallback {
+  display: grid; justify-items: center; gap: 8px; padding: 32px 18px;
+  color: var(--text-quiet); font-size: 0.72rem; text-align: center;
+}
+.file-preview figcaption {
+  overflow: hidden; color: var(--text-quiet); font-size: 0.68rem;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ── Settings ─────────────────────────────────────────────────── */
+.settings-card__control { display: flex; align-items: center; gap: 10px; }
+.settings-card__path {
+  max-width: 280px; overflow: hidden; color: var(--text-quiet);
+  font-size: 0.72rem; text-overflow: ellipsis; white-space: nowrap;
 }
 
 .run-message { max-height: 180px; overflow: auto; margin: 18px 0 0; padding: 12px; color: var(--text-secondary); background: var(--surface-sunken); border: 1px solid var(--line); border-radius: 8px; font: 0.68rem/1.45 ui-monospace, "Cascadia Mono", monospace; white-space: pre-wrap; }
@@ -554,6 +620,7 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .app-shell, .sidebar { transition: none; }
   .tool-card, .tool-card:hover, .tool-card:focus-within, .tool-card:active { transform: none; }
   .tool-card { animation: none; }
   .tool-card::after { transition: none; }

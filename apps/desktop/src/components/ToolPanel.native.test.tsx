@@ -286,3 +286,31 @@ it('offers gallery-dl the same sign-in, but no quality mode', async () => {
   // Quality is yt-dlp's: gallery-dl takes whatever the site serves.
   expect(screen.queryByRole('combobox', { name: 'Quality' })).not.toBeInTheDocument();
 });
+
+it('opens the save dialog in the folder chosen in settings', async () => {
+  vi.mocked(save).mockResolvedValue('D:\\saida\\foto-optimize.png');
+  render(
+    <ToolPanel
+      tool={catalogTool('oxipng')}
+      initialPath={'C:\\fotos\\foto.png'}
+      defaultFolder={'D:\\saida'}
+      onClose={vi.fn()}
+      onRun={() => jobId}
+    />,
+  );
+
+  await userEvent.click(screen.getByRole('button', { name: 'Choose destination' }));
+
+  // The folder is replaced but the suggested name survives, because its
+  // extension is what decides the output format.
+  expect(save).toHaveBeenCalledWith({ defaultPath: 'D:\\saida\\foto-optimize.png' });
+});
+
+it('falls back to the suggested path when no default folder is set', async () => {
+  vi.mocked(save).mockResolvedValue('C:\\fotos\\foto-optimize.png');
+  render(<ToolPanel tool={catalogTool('oxipng')} initialPath={'C:\\fotos\\foto.png'} onClose={vi.fn()} onRun={() => jobId} />);
+
+  await userEvent.click(screen.getByRole('button', { name: 'Choose destination' }));
+
+  expect(save).toHaveBeenCalledWith({ defaultPath: 'C:\\fotos\\foto-optimize.png' });
+});

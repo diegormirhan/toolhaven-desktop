@@ -4,6 +4,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import type { CatalogTool } from "../catalog/catalog";
 import { findJob, type ToolJob } from "../domain/job-queue";
 import { isNativeHost, type OperationRequest } from "../hooks/useOperationRunner";
+import { FilePreview } from "./FilePreview";
 
 export type RunOperationInput = {
   request: OperationRequest;
@@ -17,6 +18,8 @@ type ToolPanelProps = {
   initialPath?: string | null;
   droppedPaths?: string[];
   jobs?: ToolJob[];
+  /** Where the save dialog should open, chosen in Settings. */
+  defaultFolder?: string;
   leaving?: boolean;
   onClose: () => void;
   onExited?: () => void;
@@ -25,7 +28,7 @@ type ToolPanelProps = {
 
 type SelectedFile = { name: string; path: string };
 
-export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving = false, onClose, onExited, onRun }: ToolPanelProps) {
+export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultFolder = "", leaving = false, onClose, onExited, onRun }: ToolPanelProps) {
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>(() =>
     initialPath && !["deno", ...urlTools, ...folderTools].includes(tool.id)
       ? [{ path: initialPath, name: fileNameOnly(initialPath) }]
@@ -168,6 +171,10 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
 
         {tool.id !== "deno" && !urlTools.includes(tool.id) && <FileField />}
 
+        {/* Seeing the file removes the guesswork from options like crop and
+            trim, which otherwise act on something the user cannot check. */}
+        <FilePreview path={selectedFiles[0]?.path} />
+
         {requiresOutput(tool.id, selectedOperationId) && (
           <div className="tool-option">
             <span>
@@ -307,6 +314,23 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
     resetFeedback();
   }
 
+  /**
+   * Where the save dialog opens. The configured folder replaces the suggested
+   * file's own folder; the name each operation picked is kept, because it
+   * carries the extension that decides the format.
+   */
+  function startingPath() {
+    const suggested = suggestedOutputName(
+      selectedFiles[0]?.path,
+      selectedOperationId,
+      tool.id,
+      operationOptions,
+    );
+    if (!defaultFolder) return suggested;
+    const name = suggested.split(/[\\/]/).pop() ?? suggested;
+    return `${defaultFolder.replace(/[\\/]+$/, "")}${"\\"}${name}`;
+  }
+
   async function chooseNativeOutput() {
     if (!isNativeHost()) return;
     if (writesToDirectory(tool.id, selectedOperationId)) {
@@ -315,7 +339,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
       return;
     }
     const selected = await save({
-      defaultPath: suggestedOutputName(selectedFiles[0]?.path, selectedOperationId, tool.id, operationOptions),
+      defaultPath: startingPath(),
     });
     if (selected) setOutputPath(selected);
   }
@@ -354,7 +378,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
       return selected;
     }
     const selected = await save({
-      defaultPath: suggestedOutputName(selectedFiles[0]?.path, selectedOperationId, tool.id, operationOptions),
+      defaultPath: startingPath(),
     });
     if (!selected) throw new Error("Choose an output file to continue.");
     setOutputPath(selected);

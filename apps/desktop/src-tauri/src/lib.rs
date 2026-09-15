@@ -1,7 +1,7 @@
 mod components;
 
 use std::io::{BufRead, BufReader, Read};
-use tauri::Emitter;
+use tauri::{Emitter, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -10,7 +10,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             execute_operation,
             detect_available_tools,
-            install_component
+            install_component,
+            allow_preview
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {
@@ -61,6 +62,23 @@ struct OperationProgress {
     phase: String,
     progress: Option<f64>,
     message: String,
+}
+
+/// Grants the WebView read access to exactly one file, so it can be previewed.
+///
+/// The asset protocol ships with an empty scope: granting it per file, at the
+/// moment the user picks that file, keeps the window from being able to read
+/// anything else. A blanket scope would hand it every file the account can
+/// open in order to show the handful it actually displays.
+#[tauri::command]
+fn allow_preview(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    let target = std::path::Path::new(&path);
+    if !target.is_file() {
+        return Err("That file no longer exists.".into());
+    }
+    app.asset_protocol_scope()
+        .allow_file(target)
+        .map_err(|error| format!("Could not open that file for preview: {error}"))
 }
 
 #[tauri::command]
