@@ -348,3 +348,15 @@ it('counts a typed URL as work, even with no file chosen', async () => {
   await userEvent.type(screen.getByLabelText('Media URL'), 'https://example.com/watch');
   expect(onDirtyChange).toHaveBeenLastCalledWith(true);
 });
+
+it('says why a file was refused instead of quietly ignoring it', async () => {
+  // The refusal used to be wiped by the feedback reset that ran straight
+  // after it, so the file vanished and nothing explained why.
+  vi.mocked(open).mockResolvedValue('C:\fotos\foto.png');
+  render(<ToolPanel tool={catalogTool('qpdf')} onClose={vi.fn()} onRun={() => jobId} />);
+
+  await userEvent.click(screen.getByRole('button', { name: /choose files/i }));
+
+  expect(await screen.findByRole('alert')).toHaveTextContent(/\.png file is not something this tool reads/i);
+  expect(screen.queryByText('foto.png')).not.toBeInTheDocument();
+});

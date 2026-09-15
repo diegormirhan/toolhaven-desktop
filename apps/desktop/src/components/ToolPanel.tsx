@@ -141,9 +141,11 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
   // A file dropped on the window belongs to the tool the user already has open.
   useEffect(() => {
     if (!droppedPaths?.length || tool.id === "deno" || urlTools.includes(tool.id)) return;
-    setSelectedFiles(admitFiles(droppedPaths));
+    // Clearing first: admitFiles reports why a file was refused, and doing
+    // this after would wipe the only explanation the user gets.
     setFormError("");
     setCurrentJobId(null);
+    setSelectedFiles(admitFiles(droppedPaths));
   }, [droppedPaths, tool.id]);
 
   return (
@@ -417,8 +419,9 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
     const selected = await open({ multiple: !directory && multiple, directory });
     if (!selected) return;
     const paths = Array.isArray(selected) ? selected : [selected];
-    setSelectedFiles(admitFiles(paths));
+    // Same order as the drop path: the refusal message has to survive.
     resetFeedback();
+    setSelectedFiles(admitFiles(paths));
   }
 
   /**
