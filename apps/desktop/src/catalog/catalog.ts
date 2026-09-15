@@ -163,17 +163,31 @@ const presentationById: Record<
   ffmpeg: {
     id: "ffmpeg",
     title: "Convert media",
-    description: "Convert, compress, trim or pull the audio out of a file.",
+    description: "Convert, compress, resize, trim, and fourteen other jobs on video and audio.",
     category: "downloads",
     accent: "cool",
     size: "standard",
     operations: [
-      { id: "convert", label: "Convert format", description: "Change the container, leave the original alone." },
-      { id: "extract-audio", label: "Extract audio", description: "Write an audio file from the video." },
-      { id: "compress", label: "Compress media", description: "Shrink it with an explicit quality setting." },
+      { id: "convert", label: "Convert format", description: "Re-encode into another container." },
+      { id: "compress", label: "Compress media", description: "Shrink it, choosing compatibility or size." },
       { id: "trim", label: "Trim a section", description: "Set start and end, avoiding a re-encode where possible." },
+      { id: "resize", label: "Resize video", description: "Scale to a width, keeping the aspect ratio." },
+      { id: "crop", label: "Crop video", description: "Keep a rectangle of the frame." },
+      { id: "rotate", label: "Rotate video", description: "Turn by a quarter, half or three quarters." },
+      { id: "change-speed", label: "Change speed", description: "Speed up or slow down, audio included." },
+      { id: "fps", label: "Change frame rate", description: "Re-time to a different frame rate." },
+      { id: "extract-audio", label: "Extract audio", description: "Write an audio file from the video." },
+      { id: "remove-audio", label: "Remove audio", description: "Drop the sound without touching the picture." },
+      { id: "normalize-audio", label: "Normalise loudness", description: "Even out the volume to broadcast levels." },
+      { id: "to-gif", label: "Make a GIF", description: "Animated GIF with a palette built from the clip." },
+      { id: "thumbnail", label: "Grab a frame", description: "Save a single frame as an image." },
+      { id: "contact-sheet", label: "Contact sheet", description: "A grid of frames in one image." },
     ],
-    keywords: ["video", "audio", "convert", "compress", "trim", "transcode"],
+    keywords: [
+      "video", "audio", "convert", "compress", "trim", "transcode", "resize",
+      "crop", "rotate", "speed", "fps", "gif", "thumbnail", "frame", "mute",
+      "loudness", "normalise", "normalize", "mp4", "mkv", "webm", "mp3",
+    ],
     downloadLabel: "In-app download",
   },
   mkvtoolnix: {
@@ -347,24 +361,45 @@ const presentationById: Record<
   },
 };
 
+/// Six outcome-shaped groups rather than three broad ones. Three rails meant a
+/// twelve-tool row nobody could scan; naming what you are trying to end up with
+/// — a video, a PDF, a smaller image — is how people actually look for a tool.
 const rowDefinitions = [
   {
-    id: "included",
-    title: "Files, images and documents",
-    description: "Local operations, organised by the result you are after.",
-    toolIds: ["qpdf", "poppler", "libvips", "imagemagick", "oxipng", "exiftool"],
+    id: "video",
+    title: "Video and audio",
+    description: "Convert, compress, trim, resize and inspect what you already have.",
+    toolIds: ["ffmpeg", "ffprobe", "mkvtoolnix"],
   },
   {
     id: "downloads",
-    title: "Media and downloads",
-    description: "Local conversion, and downloads installed when you need them.",
-    toolIds: ["yt-dlp", "gallery-dl", "ffmpeg", "mkvtoolnix", "ffprobe"],
+    title: "Downloads",
+    description: "Save video, audio and image galleries from a link.",
+    toolIds: ["yt-dlp", "gallery-dl", "deno"],
   },
   {
-    id: "developer",
-    title: "Dev tools and archives",
-    description: "Small tools for text, projects and compressed formats.",
-    toolIds: ["jq", "yq", "miller", "difftastic", "ripgrep", "fd", "tokei", "hexyl", "dust", "7zip", "pandoc", "deno"],
+    id: "images",
+    title: "Images",
+    description: "Resize, crop, convert, shrink, and read or strip metadata.",
+    toolIds: ["libvips", "imagemagick", "oxipng", "exiftool"],
+  },
+  {
+    id: "documents",
+    title: "PDFs and documents",
+    description: "Reorganise pages, pull out text, and move between formats.",
+    toolIds: ["qpdf", "poppler", "pandoc"],
+  },
+  {
+    id: "data",
+    title: "Text and data",
+    description: "Query, reshape, search and compare structured text.",
+    toolIds: ["jq", "yq", "miller", "ripgrep", "fd", "difftastic"],
+  },
+  {
+    id: "files",
+    title: "Files and disk",
+    description: "Archives, byte-level inspection, and where the space went.",
+    toolIds: ["7zip", "dust", "tokei", "hexyl"],
   },
 ] as const;
 

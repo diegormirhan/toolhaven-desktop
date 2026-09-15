@@ -178,7 +178,7 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .status-light { width: 7px; height: 7px; border-radius: 50%; background: var(--cool); }
 
 .workspace { min-width: 0; height: 100vh; overflow: auto; scroll-padding-top: 92px; scrollbar-color: var(--line-strong) transparent; scrollbar-width: thin; }
-.catalog-row, .drop-workspace { scroll-margin-top: 24px; }
+.tool-section, .drop-workspace { scroll-margin-top: 24px; }
 .topbar {
   position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 16px;
   min-height: 68px; padding: 12px 32px; background: var(--surface-veil); backdrop-filter: blur(20px) saturate(125%);
@@ -197,12 +197,12 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .search-control input::placeholder { color: var(--text-quiet); opacity: 1; }
 .search-control kbd { padding: 3px 6px; color: var(--text-quiet); background: var(--control); border: 1px solid var(--line); border-radius: 5px; font-size: 0.66rem; }
 
-.button, .icon-button, .rail-controls button {
+.button, .icon-button {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px;
   border: 0; border-radius: var(--radius-control); cursor: pointer;
   transition: transform 100ms ease-out, background 160ms ease-out, color 160ms ease-out, opacity 160ms ease-out;
 }
-.button:active:not(:disabled), .icon-button:active, .rail-controls button:active { transform: scale(0.97); }
+.button:active:not(:disabled), .icon-button:active { transform: scale(0.97); }
 .button { padding: 0 14px; font-size: 0.78rem; font-weight: 650; }
 .button--primary { color: var(--on-action); background: var(--action); }
 .button--primary:hover:not(:disabled) { background: var(--action-hover); }
@@ -228,10 +228,10 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .theme-switch--labelled { align-self: start; }
 .theme-switch--labelled .theme-switch__option { min-height: 38px; padding: 0 14px; }
 
-.catalog-view { padding-bottom: 64px; }
+.catalog-view { padding: 0 32px 64px; }
 .drop-workspace {
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 0.7fr); align-items: end; gap: 24px;
-  min-height: 220px; margin: 24px 32px 30px; padding: 32px; overflow: hidden;
+  min-height: 220px; margin: 24px 0 30px; padding: 32px; overflow: hidden;
   background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-surface); box-shadow: var(--shadow-surface);
 }
 .drop-workspace__copy { max-width: 620px; }
@@ -251,33 +251,7 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .file-drop strong { color: var(--text); font-size: 0.88rem; }
 .file-drop small, .file-drop > span:last-child { color: var(--text-quiet); font-size: 0.74rem; }
 
-.catalog-rows { display: grid; gap: 34px; }
-.catalog-row { min-width: 0; }
-.catalog-row__header { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin: 0 32px 14px; }
-.catalog-row__header h2 { margin: 0; font-size: 1.06rem; line-height: 1.25; letter-spacing: -0.012em; }
-.catalog-row__header p { margin: 5px 0 0; color: var(--text-quiet); font-size: 0.76rem; line-height: 1.45; }
-.rail-controls { display: flex; gap: 6px; }
-.rail-controls button { width: 34px; min-height: 32px; color: var(--text-secondary); background: var(--control); }
-.rail-controls button:hover:not(:disabled) { color: var(--text); background: var(--control-hover); }
-.rail-controls button:disabled { cursor: default; opacity: 0.32; }
-.rail-controls[hidden] { display: none; }
-.tool-rail { padding: 4px 0 20px; overflow-x: auto; scroll-snap-type: x proximity; scroll-padding-inline: 32px; scrollbar-width: none; touch-action: pan-y; overscroll-behavior-x: contain; }
-.tool-rail__track { display: flex; gap: 14px; width: max-content; padding: 0 32px; }
-.tool-rail::-webkit-scrollbar { display: none; }
-.tool-rail[data-dragging="true"] { cursor: grabbing; user-select: none; }
-/* While the rail is driven by pointer or spring, native snapping would fight it and the
-   cards sliding under the cursor would flicker their hover lift. */
-.tool-rail[data-dragging="true"], .tool-rail[data-animating="true"] { scroll-snap-type: none; }
-.tool-rail[data-dragging="true"] .tool-rail__track,
-.tool-rail[data-animating="true"] .tool-rail__track { will-change: transform; }
-.tool-rail[data-dragging="true"] .tool-card,
-.tool-rail[data-animating="true"] .tool-card {
-  transition: none;
-}
-.tool-rail[data-dragging="true"] .tool-card:hover,
-.tool-rail[data-animating="true"] .tool-card:hover {
-  background: var(--surface-raised); box-shadow: var(--shadow-card); transform: translateZ(0);
-}
+.catalog-rows { display: grid; gap: 52px; }
 .tool-card {
   --card-accent: var(--text-secondary);
   position: relative; flex: 0 0 292px; display: grid; grid-template-rows: 128px 1fr; min-height: 300px;
@@ -430,6 +404,58 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .operation-options__file .icon-button { flex: 0 0 auto; }
 .source-url__hint { color: var(--text-quiet); font-size: 0.66rem; line-height: 1.4; text-wrap: pretty; }
 .operation-options__hint { color: var(--text-quiet); font-size: 0.66rem; line-height: 1.4; text-wrap: pretty; }
+
+/* ── Category filter ──────────────────────────────────────────
+   Wayfinding before scrolling: what is here, and where can I go. */
+.category-filter { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 30px; }
+.category-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 14px;
+  color: var(--text-secondary);
+  background: var(--surface-sunken);
+  border: 1px solid var(--line);
+  border-radius: 980px;
+  font: inherit; font-size: 0.74rem; font-weight: 500; letter-spacing: -0.005em;
+  cursor: pointer;
+  transition: color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+              background 200ms cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.category-chip:hover { color: var(--text); border-color: var(--line-strong); }
+.category-chip.is-active { color: var(--on-action); background: var(--action); border-color: var(--action); }
+.category-chip__count {
+  min-width: 18px; padding: 1px 5px;
+  color: var(--text-quiet); background: var(--surface);
+  border-radius: 980px; font-size: 0.66rem; font-variant-numeric: tabular-nums; text-align: center;
+}
+.category-chip.is-active .category-chip__count { color: var(--action); background: var(--on-action); }
+
+/* ── Tool section ─────────────────────────────────────────────
+   A wrapping grid, so nothing in a category sits off-screen. */
+.tool-section { display: grid; gap: 18px; }
+.tool-section__header {
+  display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 4px 16px;
+  padding-bottom: 14px; border-bottom: 1px solid var(--line);
+}
+.tool-section__header h2 { margin: 0; font-size: 1.05rem; font-weight: 600; letter-spacing: -0.018em; }
+.tool-section__header p { grid-column: 1; margin: 0; color: var(--text-quiet); font-size: 0.74rem; }
+.tool-section__count {
+  grid-row: 1; grid-column: 2;
+  color: var(--text-quiet); font-size: 0.7rem; font-variant-numeric: tabular-nums;
+}
+.tool-section__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+  gap: 16px;
+}
+/* Sizes existed to vary rhythm along a rail; in a grid they only make holes. */
+.tool-section__grid .tool-card { width: auto; min-width: 0; }
+
+@media (max-width: 720px) {
+  .tool-section__grid { grid-template-columns: 1fr; }
+  .catalog-rows { gap: 38px; }
+}
+
 .run-message { max-height: 180px; overflow: auto; margin: 18px 0 0; padding: 12px; color: var(--text-secondary); background: var(--surface-sunken); border: 1px solid var(--line); border-radius: 8px; font: 0.68rem/1.45 ui-monospace, "Cascadia Mono", monospace; white-space: pre-wrap; }
 .run-message--error { color: var(--error); border-color: color-mix(in srgb, var(--error) 50%, var(--line)); }
 .tool-option { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; padding: 15px 0; border-bottom: 1px solid var(--line); }
@@ -476,10 +502,6 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
   .search-control kbd { display: none; }
   .drop-workspace { margin: 16px 16px 28px; padding: 26px 22px; gap: 22px; }
   .drop-workspace h1 { font-size: 2.15rem; }
-  .catalog-row__header { margin-inline: 16px; }
-  .rail-controls { display: none; }
-  .tool-rail { overflow: visible; scroll-padding-inline: 16px; }
-  .tool-rail__track { display: grid; grid-template-columns: 1fr; width: auto; padding-inline: 16px; transform: none !important; }
   .tool-card, .tool-card--wide, .tool-card--compact { width: 100%; min-height: 286px; }
   .dialog-actions { flex-direction: column-reverse; }
   .dialog-actions .button { width: 100%; }

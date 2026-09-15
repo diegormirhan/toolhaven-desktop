@@ -48,8 +48,8 @@ describe("desktop catalog", () => {
 
     await user.type(screen.getByRole("searchbox"), "pdf");
 
-    expect(screen.getByText("Files, images and documents")).toBeVisible();
-    expect(screen.queryByText("Media and downloads")).not.toBeInTheDocument();
+    expect(screen.getByText("PDFs and documents")).toBeVisible();
+    expect(screen.queryByText("Downloads")).not.toBeInTheDocument();
   });
 
   it("closes the detail panel with Escape", async () => {

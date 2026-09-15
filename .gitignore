@@ -43,3 +43,5 @@ tmp/
 .vscode/
 Thumbs.db
 Desktop.ini
+
+.preview/

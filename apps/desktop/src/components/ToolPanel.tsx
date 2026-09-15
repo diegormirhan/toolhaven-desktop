@@ -521,13 +521,116 @@ function operationFields(toolId: string, operationId: string): OperationField[] 
     });
     return fields;
   }
-  if (toolId === "ffmpeg" && operationId === "trim")
-    return [
-      { key: "start", label: "Start (seconds)", type: "number", defaultValue: "0" },
-      { key: "end", label: "End (seconds)", type: "number", defaultValue: "10" },
+  if (toolId === "ffmpeg") {
+    // Every operation that re-encodes offers the same two choices, so they are
+    // defined once rather than repeated per operation.
+    const encoding: OperationField[] = [
+      {
+        key: "codec",
+        label: "Codec",
+        type: "select",
+        defaultValue: "h264",
+        choices: [
+          { value: "h264", label: "H.264 — plays everywhere" },
+          { value: "av1", label: "AV1 — much smaller, slower to encode" },
+        ],
+        hint: "The bundled FFmpeg is the LGPL build, so H.264 comes from OpenH264 rather than x264. AV1 compresses far better but older players will not open it.",
+      },
+      {
+        key: "quality",
+        label: "Quality",
+        type: "select",
+        defaultValue: "balanced",
+        choices: [
+          { value: "high", label: "High" },
+          { value: "balanced", label: "Balanced" },
+          { value: "small", label: "Smallest file" },
+        ],
+      },
     ];
-  if (toolId === "ffmpeg" && operationId === "compress")
-    return [{ key: "crf", label: "Quality (CRF)", type: "number", defaultValue: "23" }];
+
+    switch (operationId) {
+      case "trim":
+        return [
+          { key: "start", label: "Start (seconds)", type: "number", defaultValue: "0" },
+          { key: "end", label: "End (seconds)", type: "number", defaultValue: "10" },
+        ];
+      case "convert":
+      case "compress":
+      case "fps":
+        return operationId === "fps"
+          ? [{ key: "rate", label: "Frames per second", type: "number", defaultValue: "30" }, ...encoding]
+          : encoding;
+      case "resize":
+        return [
+          { key: "width", label: "Width (pixels)", type: "number", defaultValue: "1280" },
+          ...encoding,
+        ];
+      case "crop":
+        return [
+          { key: "width", label: "Width", type: "number", defaultValue: "640" },
+          { key: "height", label: "Height", type: "number", defaultValue: "480" },
+          { key: "left", label: "Left", type: "number", defaultValue: "0" },
+          { key: "top", label: "Top", type: "number", defaultValue: "0" },
+          ...encoding,
+        ];
+      case "rotate":
+        return [
+          {
+            key: "degrees",
+            label: "Turn",
+            type: "select",
+            defaultValue: "90",
+            choices: [
+              { value: "90", label: "90° clockwise" },
+              { value: "180", label: "180°" },
+              { value: "270", label: "90° anticlockwise" },
+            ],
+          },
+          ...encoding,
+        ];
+      case "change-speed":
+        return [
+          {
+            key: "factor",
+            label: "Speed",
+            type: "number",
+            defaultValue: "2",
+            hint: "2 plays twice as fast, 0.5 half as fast. Audio follows the picture.",
+          },
+          ...encoding,
+        ];
+      case "extract-audio":
+        return [
+          {
+            key: "format",
+            label: "Format",
+            type: "select",
+            defaultValue: "mp3",
+            choices: [
+              { value: "mp3", label: "MP3" },
+              { value: "container", label: "Keep the original codec" },
+            ],
+          },
+        ];
+      case "to-gif":
+        return [
+          { key: "width", label: "Width (pixels)", type: "number", defaultValue: "480" },
+          { key: "rate", label: "Frames per second", type: "number", defaultValue: "12" },
+        ];
+      case "thumbnail":
+        return [{ key: "at", label: "At (seconds)", type: "number", defaultValue: "1" }];
+      case "contact-sheet":
+        return [
+          { key: "columns", label: "Columns", type: "number", defaultValue: "3" },
+          { key: "rows", label: "Rows", type: "number", defaultValue: "3" },
+          { key: "every", label: "Every N frames", type: "number", defaultValue: "48" },
+          { key: "width", label: "Tile width", type: "number", defaultValue: "240" },
+        ];
+      default:
+        return [];
+    }
+  }
   if (toolId === "qpdf" && operationId === "split")
     return [{ key: "pages", label: "Pages", type: "text", defaultValue: "1-z" }];
   if (toolId === "qpdf" && operationId === "rotate")
@@ -614,6 +717,16 @@ function outputExtension(toolId: string, operationId: string, originalExtension:
     "ffmpeg/convert": ".mp4",
     "ffmpeg/compress": ".mp4",
     "ffmpeg/trim": ".mp4",
+    "ffmpeg/resize": ".mp4",
+    "ffmpeg/crop": ".mp4",
+    "ffmpeg/rotate": ".mp4",
+    "ffmpeg/change-speed": ".mp4",
+    "ffmpeg/fps": ".mp4",
+    "ffmpeg/remove-audio": ".mp4",
+    "ffmpeg/normalize-audio": ".mp4",
+    "ffmpeg/to-gif": ".gif",
+    "ffmpeg/thumbnail": ".png",
+    "ffmpeg/contact-sheet": ".png",
     "libvips/compress": ".jpg",
     "poppler/extract-text": ".txt",
     "poppler/rasterize": ".png",

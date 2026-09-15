@@ -693,6 +693,77 @@ Chrome, Edge and other Chromium browsers encrypt their cookies with a key tied t
     String::new()
 }
 
+/// Never overwrite, never wait on stdin, then the input.
+fn ffmpeg_base(input: &str) -> Vec<String> {
+    vec![
+        "-n".to_string(),
+        "-nostdin".to_string(),
+        "-i".to_string(),
+        input.to_string(),
+    ]
+}
+
+/// Video encoding for the build ToolHaven actually ships.
+///
+/// That build is BtbN's **LGPL** FFmpeg, which carries no libx264 and no
+/// libx265 — both are GPL. It does carry Cisco's `libopenh264`, so real H.264
+/// is available; it simply takes a bitrate rather than x264's CRF, which is a
+/// different quality scale and not interchangeable. AV1 through `libsvtav1`
+/// does take CRF, and compresses far better at the cost of encoding time and
+/// of players old enough not to know it.
+fn ffmpeg_video_encoder(codec: &str, quality: &str) -> Vec<String> {
+    match codec {
+        // Remux: keep the streams, change only the container.
+        "copy" => vec!["-c".into(), "copy".into()],
+        "av1" => {
+            let crf = match quality {
+                "high" => "28",
+                "small" => "45",
+                _ => "35",
+            };
+            vec![
+                "-c:v".into(),
+                "libsvtav1".into(),
+                "-crf".into(),
+                crf.into(),
+                "-preset".into(),
+                "8".into(),
+                "-c:a".into(),
+                "libopus".into(),
+            ]
+        }
+        // Bitrate is coarse next to CRF because it ignores resolution, but
+        // libopenh264 offers no scale-free quality target.
+        _ => {
+            let bitrate = match quality {
+                "high" => "4M",
+                "small" => "1M",
+                _ => "2M",
+            };
+            vec![
+                "-c:v".into(),
+                "libopenh264".into(),
+                "-b:v".into(),
+                bitrate.into(),
+                "-c:a".into(),
+                "aac".into(),
+            ]
+        }
+    }
+}
+
+/// A filter that re-encodes video while the audio is carried through untouched.
+fn ffmpeg_filter_args(filter: String, codec: &str, quality: &str) -> Vec<String> {
+    let mut args = vec!["-vf".to_string(), filter];
+    if codec == "copy" {
+        // A filter has to decode and re-encode; "copy" cannot apply one.
+        args.extend(ffmpeg_video_encoder("h264", quality));
+    } else {
+        args.extend(ffmpeg_video_encoder(codec, quality));
+    }
+    args
+}
+
 /// Tools driven by a URL instead of input files.
 const URL_TOOLS: [&str; 2] = ["yt-dlp", "gallery-dl"];
 
@@ -778,36 +849,40 @@ fn resolve_args(request: &OperationRequest) -> Result<Vec<String>, String> {
     };
 
     match (request.tool_id.as_str(), request.operation_id.as_str()) {
-        ("ffmpeg", "convert") => Ok(vec![
-            "-n".into(),
-            "-nostdin".into(),
-            "-i".into(),
-            input,
-            output,
-        ]),
-        ("ffmpeg", "extract-audio") => Ok(vec![
-            "-n".into(),
-            "-nostdin".into(),
-            "-i".into(),
-            input,
-            "-map".into(),
-            "0:a:0".into(),
-            "-vn".into(),
-            output,
-        ]),
-        ("ffmpeg", "compress") => Ok(vec![
-            "-n".into(),
-            "-nostdin".into(),
-            "-i".into(),
-            input,
-            "-c:v".into(),
-            "libx264".into(),
-            "-crf".into(),
-            option("crf", "23"),
-            "-preset".into(),
-            option("preset", "medium"),
-            output,
-        ]),
+        ("ffmpeg", "convert") => {
+            let mut args = ffmpeg_base(&input);
+            args.extend(ffmpeg_video_encoder(
+                &option("codec", "h264"),
+                &option("quality", "balanced"),
+            ));
+            args.push(output);
+            Ok(args)
+        }
+        ("ffmpeg", "extract-audio") => {
+            let mut args = ffmpeg_base(&input);
+            args.extend(["-map".to_string(), "0:a:0".to_string(), "-vn".to_string()]);
+            // The destination extension already names the format; naming the
+            // encoder only matters where the default would cost quality.
+            if option("format", "mp3") == "mp3" {
+                args.extend([
+                    "-c:a".to_string(),
+                    "libmp3lame".to_string(),
+                    "-q:a".to_string(),
+                    "2".to_string(),
+                ]);
+            }
+            args.push(output);
+            Ok(args)
+        }
+        ("ffmpeg", "compress") => {
+            let mut args = ffmpeg_base(&input);
+            args.extend(ffmpeg_video_encoder(
+                &option("codec", "h264"),
+                &option("quality", "balanced"),
+            ));
+            args.push(output);
+            Ok(args)
+        }
         ("ffmpeg", "trim") => Ok(vec![
             "-n".into(),
             "-nostdin".into(),
@@ -821,6 +896,136 @@ fn resolve_args(request: &OperationRequest) -> Result<Vec<String>, String> {
             "copy".into(),
             output,
         ]),
+        ("ffmpeg", "resize") => {
+            let mut args = ffmpeg_base(&input);
+            // -2 preserves the aspect ratio and lands on an even number, which
+            // every H.264 profile requires.
+            args.extend(ffmpeg_filter_args(
+                format!("scale={}:-2", option("width", "1280")),
+                &option("codec", "h264"),
+                &option("quality", "balanced"),
+            ));
+            args.extend(["-c:a".to_string(), "copy".to_string()]);
+            args.push(output);
+            Ok(args)
+        }
+        ("ffmpeg", "crop") => {
+            let mut args = ffmpeg_base(&input);
+            args.extend(ffmpeg_filter_args(
+                format!(
+                    "crop={}:{}:{}:{}",
+                    option("width", "640"),
+                    option("height", "480"),
+                    option("left", "0"),
+                    option("top", "0")
+                ),
+                &option("codec", "h264"),
+                &option("quality", "balanced"),
+            ));
+            args.extend(["-c:a".to_string(), "copy".to_string()]);
+            args.push(output);
+            Ok(args)
+        }
+        ("ffmpeg", "rotate") => {
+            // transpose only turns by quarters, so 180 is two of them.
+            let filter = match option("degrees", "90").as_str() {
+                "180" => "transpose=1,transpose=1".to_string(),
+                "270" => "transpose=2".to_string(),
+                _ => "transpose=1".to_string(),
+            };
+            let mut args = ffmpeg_base(&input);
+            args.extend(ffmpeg_filter_args(
+                filter,
+                &option("codec", "h264"),
+                &option("quality", "balanced"),
+            ));
+            args.extend(["-c:a".to_string(), "copy".to_string()]);
+            args.push(output);
+            Ok(args)
+        }
+        ("ffmpeg", "change-speed") => {
+            let factor = option("factor", "2").parse::<f64>().unwrap_or(2.0);
+            let mut args = ffmpeg_base(&input);
+            args.extend(ffmpeg_filter_args(
+                format!("setpts={:.4}*PTS", 1.0 / factor),
+                &option("codec", "h264"),
+                &option("quality", "balanced"),
+            ));
+            args.extend(["-af".to_string(), format!("atempo={factor:.4}")]);
+            args.push(output);
+            Ok(args)
+        }
+        ("ffmpeg", "fps") => {
+            let mut args = ffmpeg_base(&input);
+            args.extend(["-r".to_string(), option("rate", "30")]);
+            args.extend(ffmpeg_video_encoder(
+                &option("codec", "h264"),
+                &option("quality", "balanced"),
+            ));
+            args.push(output);
+            Ok(args)
+        }
+        ("ffmpeg", "to-gif") => {
+            // Deriving a palette from the clip and applying it in the same
+            // filter graph, because the default 256-colour quantisation
+            // produces a dithered mess on real footage.
+            let mut args = ffmpeg_base(&input);
+            args.extend([
+                "-vf".to_string(),
+                format!(
+                    "fps={},scale={}:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse",
+                    option("rate", "12"),
+                    option("width", "480")
+                ),
+            ]);
+            args.push(output);
+            Ok(args)
+        }
+        ("ffmpeg", "thumbnail") => {
+            let mut args = vec!["-n".to_string(), "-nostdin".to_string()];
+            // Seeking before -i jumps by keyframe: fast, and accurate enough
+            // for a still.
+            args.extend(["-ss".to_string(), option("at", "1")]);
+            args.extend(["-i".to_string(), input]);
+            args.extend(["-frames:v".to_string(), "1".to_string()]);
+            args.push(output);
+            Ok(args)
+        }
+        ("ffmpeg", "contact-sheet") => {
+            let mut args = ffmpeg_base(&input);
+            args.extend([
+                "-vf".to_string(),
+                format!(
+                    r"select=not(mod(n\,{})),scale={}:-1,tile={}x{}",
+                    option("every", "48"),
+                    option("width", "240"),
+                    option("columns", "3"),
+                    option("rows", "3")
+                ),
+                "-frames:v".to_string(),
+                "1".to_string(),
+            ]);
+            args.push(output);
+            Ok(args)
+        }
+        ("ffmpeg", "remove-audio") => {
+            let mut args = ffmpeg_base(&input);
+            args.extend(["-c".to_string(), "copy".to_string(), "-an".to_string()]);
+            args.push(output);
+            Ok(args)
+        }
+        ("ffmpeg", "normalize-audio") => {
+            let mut args = ffmpeg_base(&input);
+            // EBU R128 at broadcast defaults, leaving the video untouched.
+            args.extend([
+                "-af".to_string(),
+                "loudnorm=I=-16:TP=-1.5:LRA=11".to_string(),
+                "-c:v".to_string(),
+                "copy".to_string(),
+            ]);
+            args.push(output);
+            Ok(args)
+        }
         ("ffprobe", "inspect") => Ok(vec![
             "-v".into(),
             "quiet".into(),
@@ -1159,8 +1364,32 @@ mod tests {
         };
         assert_eq!(
             resolve_args(&request).unwrap(),
-            vec!["-n", "-nostdin", "-i", "clip.mp4", "-map", "0:a:0", "-vn", "clip.mp3"]
+            vec![
+                "-n",
+                "-nostdin",
+                "-i",
+                "clip.mp4",
+                "-map",
+                "0:a:0",
+                "-vn",
+                "-c:a",
+                "libmp3lame",
+                "-q:a",
+                "2",
+                "clip.mp3"
+            ]
         );
+        // The shipped build has no libx264 at all — it is GPL and the pinned
+        // artifact is the LGPL one — so asking for it produced a hard failure
+        // for every user who let the app fetch FFmpeg.
+        let compress = OperationRequest {
+            operation_id: "compress".into(),
+            output_path: Some("clip-small.mp4".into()),
+            ..request
+        };
+        let args = resolve_args(&compress).unwrap();
+        assert!(!args.iter().any(|arg| arg == "libx264"));
+        assert!(args.windows(2).any(|pair| pair == ["-c:v", "libopenh264"]));
     }
 
     #[test]
@@ -1538,6 +1767,16 @@ mod tests {
             ("ffmpeg", "extract-audio"),
             ("ffmpeg", "compress"),
             ("ffmpeg", "trim"),
+            ("ffmpeg", "resize"),
+            ("ffmpeg", "crop"),
+            ("ffmpeg", "rotate"),
+            ("ffmpeg", "change-speed"),
+            ("ffmpeg", "fps"),
+            ("ffmpeg", "to-gif"),
+            ("ffmpeg", "thumbnail"),
+            ("ffmpeg", "contact-sheet"),
+            ("ffmpeg", "remove-audio"),
+            ("ffmpeg", "normalize-audio"),
             ("ffprobe", "inspect"),
             ("qpdf", "merge"),
             ("qpdf", "split"),

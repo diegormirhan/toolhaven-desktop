@@ -15,7 +15,10 @@ describe("tool catalog", () => {
 
     expect(filterCatalogRows(rows, "youtube")[0]?.tools[0]?.id).toBe("yt-dlp");
     expect(filterCatalogRows(rows, ".pdf")[0]?.tools[0]?.id).toBe("qpdf");
-    expect(filterCatalogRows(rows, "crop")[0]?.tools[0]?.id).toBe("libvips");
+    // Cropping is no longer libvips alone: FFmpeg crops video now, so the
+    // search has to surface both rather than pick a winner.
+    const cropping = filterCatalogRows(rows, "crop").flatMap((row) => row.tools.map((tool) => tool.id));
+    expect(cropping).toEqual(expect.arrayContaining(["ffmpeg", "libvips"]));
   });
 
   it("removes empty rows from search results", () => {
@@ -27,16 +30,32 @@ describe("tool catalog", () => {
   it("exposes concrete operations for each tool", () => {
     const tools = createCatalogRows().flatMap((row) => row.tools);
     expect(tools.find((tool) => tool.id === "ffmpeg")?.operations.map((operation) => operation.id)).toEqual([
-      "convert", "extract-audio", "compress", "trim",
+      "convert", "compress", "trim", "resize", "crop", "rotate", "change-speed",
+      "fps", "extract-audio", "remove-audio", "normalize-audio", "to-gif",
+      "thumbnail", "contact-sheet",
     ]);
     expect(tools.find((tool) => tool.id === "yt-dlp")?.operations).toHaveLength(3);
   });
 
-  it("includes the essential developer tools in a dedicated rail", () => {
-    const row = createCatalogRows().find((candidate) => candidate.id === "developer");
-    expect(row?.tools.map((tool) => tool.id)).toEqual([
-      "jq", "yq", "miller", "difftastic", "ripgrep", "fd", "tokei", "hexyl", "dust", "7zip", "pandoc", "deno",
+  it("groups tools by outcome, and places every one of them exactly once", () => {
+    const rows = createCatalogRows();
+
+    // The twelve-tool "dev tools" rail was the row nobody could scan; it is
+    // split by what the tools are for.
+    expect(rows.find((row) => row.id === "data")?.tools.map((tool) => tool.id)).toEqual([
+      "jq", "yq", "miller", "ripgrep", "fd", "difftastic",
     ]);
+    expect(rows.find((row) => row.id === "files")?.tools.map((tool) => tool.id)).toEqual([
+      "7zip", "dust", "tokei", "hexyl",
+    ]);
+
+    // A tool in two categories, or in none, is a navigation bug.
+    const placed = rows.flatMap((row) => row.tools.map((tool) => tool.id));
+    expect(new Set(placed).size).toBe(placed.length);
+    expect(placed).toHaveLength(23);
+
+    // No category should be big enough to need scrolling to take in.
+    for (const row of rows) expect(row.tools.length).toBeLessThanOrEqual(6);
   });
 });
 

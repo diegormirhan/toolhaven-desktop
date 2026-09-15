@@ -17,7 +17,8 @@ import { createCatalogRows, filterCatalogRows, type CatalogTool } from "./catalo
 import { InstallDialog } from "./components/InstallDialog";
 import { ThemeSwitch } from "./components/ThemeSwitch";
 import { ToolPanel, type RunOperationInput } from "./components/ToolPanel";
-import { ToolRail } from "./components/ToolRail";
+import { ToolSection } from "./components/ToolSection";
+import { CategoryFilter } from "./components/CategoryFilter";
 import type { ToolJob } from "./domain/job-queue";
 import { useFileDrop } from "./hooks/useFileDrop";
 import { isNativeHost, useOperationRunner } from "./hooks/useOperationRunner";
@@ -68,7 +69,17 @@ export function App() {
   const searchRef = useRef<HTMLInputElement>(null);
   const toolTriggerRef = useRef<HTMLButtonElement | null>(null);
 
-  const visibleRows = useMemo(() => filterCatalogRows(catalogRows, query), [catalogRows, query]);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const searchedRows = useMemo(() => filterCatalogRows(catalogRows, query), [catalogRows, query]);
+  // A search spans every category, so narrowing by category on top of it would
+  // hide matches the user just asked for.
+  const visibleRows = useMemo(
+    () =>
+      query.trim() || activeCategory === null
+        ? searchedRows
+        : searchedRows.filter((row) => row.id === activeCategory),
+    [searchedRows, activeCategory, query],
+  );
   const installationPlan = pendingTool ? installations.planInstallation(pendingTool.id) : [];
   const pinnedToolIds = useMemo(
     () => new Set(toolManifest.tools.filter((tool) => tool.status === "downloadable").map((tool) => tool.id)),
@@ -262,10 +273,14 @@ export function App() {
               )}
             </section>
 
+            {!query.trim() && (
+              <CategoryFilter rows={searchedRows} active={activeCategory} onChange={setActiveCategory} />
+            )}
+
             {visibleRows.length > 0 ? (
               <div className="catalog-rows">
                 {visibleRows.map((row) => (
-                  <ToolRail
+                  <ToolSection
                     key={row.id}
                     row={row}
                     installations={installations.states}
