@@ -6,6 +6,7 @@ import { findJob, type ToolJob } from "../domain/job-queue";
 import { isNativeHost, type OperationRequest } from "../hooks/useOperationRunner";
 import { FilePreview, previewKind } from "./FilePreview";
 import { defaultCrop, type CropRect } from "./CropOverlay";
+import { Select } from "./Select";
 
 export type RunOperationInput = {
   request: OperationRequest;
@@ -111,7 +112,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
 
   return (
     <aside
-      className="tool-panel"
+      className={`tool-panel${previewable ? " tool-panel--wide" : ""}`}
       role="dialog"
       aria-modal="false"
       aria-labelledby="tool-panel-title"
@@ -158,22 +159,20 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
         {tool.operations.length > 0 && (
           <label className="operation-select">
             <span>Operation</span>
-            <select
-              aria-label="Operation"
+            <Select
+              label="Operation"
               value={selectedOperationId}
-              onChange={(event) => {
-                setSelectedOperationId(event.target.value);
+              choices={tool.operations.map((operation) => ({
+                value: operation.id,
+                label: operation.label,
+              }))}
+              onChange={(next) => {
+                setSelectedOperationId(next);
                 setOperationOptions({});
                 setOutputPath("");
                 resetFeedback();
               }}
-            >
-              {tool.operations.map((operation) => (
-                <option key={operation.id} value={operation.id}>
-                  {operation.label}
-                </option>
-              ))}
-            </select>
+            />
             <small>{selectedOperation?.description}</small>
           </label>
         )}
@@ -493,17 +492,12 @@ function OperationOptions({
           <label key={field.key}>
             <span>{field.label}</span>
             {field.type === "select" ? (
-              <select
-                aria-label={field.label}
+              <Select
+                label={field.label}
                 value={value}
-                onChange={(event) => onChange(field.key, event.target.value)}
-              >
-                {(field.choices ?? []).map((choice) => (
-                  <option key={choice.value} value={choice.value}>
-                    {choice.label}
-                  </option>
-                ))}
-              </select>
+                choices={field.choices ?? []}
+                onChange={(next) => onChange(field.key, next)}
+              />
             ) : field.type === "file" ? (
               <span className="operation-options__file">
                 <input

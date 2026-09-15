@@ -78,9 +78,15 @@ describe("desktop catalog", () => {
     if (!tool) throw new Error("qpdf catalog entry missing");
     render(<ToolPanel tool={tool} onClose={vi.fn()} />);
     const panel = screen.getByRole("dialog", { name: "Organise PDFs" });
-    expect(within(panel).getByRole("combobox", { name: "Operation" })).toHaveValue("merge");
-    expect(within(panel).getByRole("option", { name: "Split pages" })).toBeInTheDocument();
-    await user.selectOptions(within(panel).getByRole("combobox", { name: "Operation" }), "rotate");
+    // The trigger is a button now, so the selection is what it reads, not a
+    // form value — and the options exist only while the list is open.
+    const operation = within(panel).getByRole("combobox", { name: "Operation" });
+    expect(operation).toHaveTextContent("Merge PDFs");
+    expect(screen.queryByRole("option")).not.toBeInTheDocument();
+
+    await user.click(operation);
+    expect(await screen.findByRole("option", { name: "Split pages" })).toBeInTheDocument();
+    await user.click(screen.getByRole("option", { name: /rotate/i }));
     expect(within(panel).getByLabelText("Degrees")).toHaveValue(90);
   });
 

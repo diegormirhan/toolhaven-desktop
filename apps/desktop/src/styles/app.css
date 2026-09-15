@@ -272,7 +272,11 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .tool-card--amber { --card-accent: var(--warning); }
 .tool-card--neutral { --card-accent: var(--text-secondary); }
 
-.tool-card:hover, .tool-card:focus-within {
+/* :focus-within would also match the focus the browser hands back when the
+   modal closes, leaving the card lifted as though the pointer were still on
+   it. :focus-visible only fires when focus should be seen — keyboard, not a
+   click — so returning focus is silent again. */
+.tool-card:hover, .tool-card:has(:focus-visible) {
   z-index: 2;
   background: var(--surface-hover);
   border-color: color-mix(in srgb, var(--card-accent) 45%, var(--line));
@@ -290,7 +294,7 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
   background: var(--card-accent); transform: scaleX(0); transform-origin: left;
   transition: transform 460ms var(--ease-out);
 }
-.tool-card:hover::after, .tool-card:focus-within::after { transform: scaleX(1); }
+.tool-card:hover::after, .tool-card:has(:focus-visible)::after { transform: scaleX(1); }
 
 /* Cards arrive in order rather than all at once; the delay is set per card
    from the index, and capped so a long category never feels slow. */
@@ -424,7 +428,9 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .tool-panel {
   position: fixed; z-index: 80; inset: 50% auto auto 50%;
   display: grid; grid-template-rows: auto 1fr auto;
-  width: min(1180px, 88vw); height: min(840px, 86vh);
+  /* Only a workspace earns the whole window. With nothing to preview the
+     modal is the size of its own content instead of a mostly empty frame. */
+  width: min(560px, 92vw); height: auto; max-height: 86vh;
   min-height: 0; overflow: hidden;
   background: var(--surface-raised); border: 1px solid var(--line);
   border-radius: var(--radius-surface); box-shadow: var(--shadow-overlay);
@@ -441,6 +447,7 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
   to { opacity: 0; transform: translate(-50%, -50%) scale(.965); filter: blur(7px); }
 }
 .tool-panel { transform: translate(-50%, -50%); }
+.tool-panel--wide { width: min(1180px, 88vw); height: min(840px, 86vh); }
 .tool-panel[data-leaving="true"] { animation: panel-exit 220ms cubic-bezier(.4,0,.9,.35) forwards; pointer-events: none; }
 .panel-scrim[data-leaving="true"] { animation: fade-out 220ms ease-in forwards; }
 @keyframes fade-out { to { opacity: 0; } }
@@ -525,11 +532,58 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .crop-handle--w  { top: 50%; left: -7px; margin-top: -7px; cursor: ew-resize; }
 
 @media (max-width: 1040px) {
-  .tool-panel { width: 94vw; height: 92vh; }
+  .tool-panel--wide { width: 94vw; height: 92vh; }
   .tool-panel__body--split { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; }
   .tool-panel__workspace { border-right: 0; border-bottom: 1px solid var(--line); padding: 16px; }
   .tool-panel__workspace .file-preview__stage img,
   .tool-panel__workspace .file-preview__stage video { max-height: 34vh; }
+}
+
+
+/* ── Select ───────────────────────────────────────────────────
+   The list is ours, so the popup stops arriving in the system's
+   colours in the middle of a dark window. */
+.select { position: relative; }
+.select__trigger {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; min-height: 40px; padding: 0 11px;
+  color: var(--text); background: var(--surface-sunken);
+  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+  font: inherit; font-size: 0.8rem; text-align: left; cursor: pointer;
+  transition: border-color 200ms var(--ease-out), background 200ms var(--ease-out);
+}
+.select__trigger:hover { border-color: var(--action); background: var(--surface-hover); }
+.select__trigger.is-open { border-color: var(--action); background: var(--surface-hover); }
+.select__value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.select__chevron { flex: 0 0 auto; color: var(--text-quiet); transition: transform 260ms var(--ease-out); }
+.select__trigger.is-open .select__chevron { transform: rotate(180deg); }
+
+.select__list {
+  position: absolute; z-index: 30; top: calc(100% + 6px); left: 0; right: 0;
+  max-height: 264px; overflow: auto; margin: 0; padding: 5px;
+  background: var(--surface-raised); border: 1px solid var(--line);
+  border-radius: var(--radius-card); box-shadow: var(--shadow-overlay);
+  list-style: none;
+  /* Grows from the trigger it belongs to, rather than appearing beside it. */
+  transform-origin: top center;
+  animation: select-open 200ms var(--ease-out);
+}
+@keyframes select-open {
+  from { opacity: 0; transform: translateY(-4px) scale(.97); }
+  to { opacity: 1; transform: none; }
+}
+.select__option {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 9px 10px; border-radius: 9px;
+  color: var(--text-secondary); font-size: 0.78rem; cursor: pointer;
+}
+.select__option.is-active { color: var(--text); background: var(--surface-hover); }
+.select__option.is-selected { color: var(--action); }
+.select__option svg { flex: 0 0 auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  .select__list { animation: none; }
+  .select__chevron { transition: none; }
 }
 
 .tool-panel__topbar { display: flex; align-items: center; justify-content: space-between; min-height: 58px; padding: 0 16px 0 22px; color: var(--text-quiet); font-size: 0.72rem; border-bottom: 1px solid var(--line); }
@@ -548,7 +602,6 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .operation-options label span { color: var(--text-secondary); font-size: 0.7rem; }
 .operation-options input { width: 100%; min-height: 38px; padding: 0 10px; color: var(--text); background: var(--surface-sunken); border: 1px solid var(--line-strong); border-radius: var(--radius-control); transition: border-color 200ms var(--ease-out), background 200ms var(--ease-out); }
 .operation-options input:hover { border-color: var(--line-strong); background: var(--surface-hover); }
-.operation-select select, .operation-options select { width: 100%; min-height: 38px; padding: 0 8px; color: var(--text); background: var(--surface-sunken); border: 1px solid var(--line-strong); border-radius: var(--radius-control); font: inherit; font-size: 0.78rem; }
 /* A field that spans both columns when its guidance needs the room. */
 .operation-options label:has(.operation-options__file), .operation-options label:has(select) { grid-column: 1 / -1; }
 .operation-options__file { display: flex; gap: 8px; align-items: center; }
@@ -621,25 +674,6 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .sidebar { transition: transform 420ms var(--ease-out), opacity 260ms var(--ease-out); }
 .sidebar-toggle { flex: 0 0 auto; margin-right: 4px; }
 
-/* ── Select ───────────────────────────────────────────────────
-   The native control keeps its keyboard behaviour; only the shell is
-   ours. The chevron is drawn rather than an image so it follows the
-   text colour in both themes. */
-.operation-select select, .operation-options select {
-  appearance: none;
-  padding-right: 34px;
-  background-image:
-    linear-gradient(45deg, transparent 50%, currentColor 50%),
-    linear-gradient(135deg, currentColor 50%, transparent 50%);
-  background-position: calc(100% - 18px) calc(50% + 1px), calc(100% - 13px) calc(50% + 1px);
-  background-size: 5px 5px, 5px 5px;
-  background-repeat: no-repeat;
-  cursor: pointer;
-  transition: border-color 200ms var(--ease-out), background-color 200ms var(--ease-out);
-}
-.operation-select select:hover, .operation-options select:hover { border-color: var(--line-strong); background-color: var(--surface-hover); }
-.operation-select select:focus-visible, .operation-options select:focus-visible { border-color: var(--action); }
-.operation-select select option, .operation-options select option { background: var(--surface-raised); color: var(--text); }
 
 /* ── File preview ─────────────────────────────────────────────
    Options like crop and trim act on something the user otherwise
@@ -730,7 +764,7 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 
 @media (prefers-reduced-motion: reduce) {
   .app-shell, .sidebar { transition: none; }
-  .tool-card, .tool-card:hover, .tool-card:focus-within, .tool-card:active { transform: none; }
+  .tool-card, .tool-card:hover, .tool-card:has(:focus-visible), .tool-card:active { transform: none; }
   .tool-card { animation: none; }
   .tool-card::after { transition: none; }
   .tool-card:hover .tool-artwork svg { transform: none; }

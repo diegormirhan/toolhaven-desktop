@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { open, save } from '@tauri-apps/plugin-dialog';
@@ -11,6 +11,18 @@ beforeEach(() => Object.defineProperty(window, '__TAURI_INTERNALS__', { configur
 afterEach(() => { Reflect.deleteProperty(window, '__TAURI_INTERNALS__'); vi.resetAllMocks(); });
 
 const jobId = 'job-1';
+
+/**
+ * Picks a value from the custom select. The native control is gone — its popup
+ * was drawn by Windows, in Windows' own colours — so choosing is now two
+ * steps: open the list, then click the option by the label a user would read.
+ */
+async function choose(combobox: HTMLElement, label: string | RegExp) {
+  await userEvent.click(combobox);
+  const list = await screen.findByRole('listbox');
+  await userEvent.click(within(list).getByRole('option', { name: label }));
+}
+
 
 function catalogTool(toolId: string) {
   const tool = createCatalogRows().flatMap(row => row.tools).find(entry => entry.id === toolId);
@@ -84,7 +96,7 @@ it('shows the host result and the produced output path', async () => {
   vi.mocked(save).mockResolvedValue('image-upscale.png');
   render(<ToolPanel tool={catalogTool('libvips')} initialPath={'C:\\fixtures\\image.png'} jobs={[succeeded]} onClose={vi.fn()} onRun={() => jobId} />);
 
-  await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Operation' }), 'upscale');
+  await choose(screen.getByRole('combobox', { name: 'Operation' }), /upscale/i);
   await userEvent.click(screen.getByRole('button', { name: 'Run' }));
 
   expect(await screen.findByText(/image enlarged 2×/i)).toBeVisible();
@@ -143,7 +155,7 @@ it('never lets a metadata edit touch the original file', async () => {
   const onRun = vi.fn(() => jobId);
   render(<ToolPanel tool={catalogTool('exiftool')} initialPath={'C:\fotos\foto.jpg'} onClose={vi.fn()} onRun={onRun} />);
 
-  await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Operation' }), 'set-title');
+  await choose(screen.getByRole('combobox', { name: 'Operation' }), /set title/i);
   await userEvent.type(screen.getByLabelText('Title'), 'Contrato');
   await userEvent.click(screen.getByRole('button', { name: 'Run' }));
 
@@ -161,7 +173,7 @@ it('never lets a metadata edit touch the original file', async () => {
 it('asks for page and resolution before rasterising a PDF', async () => {
   render(<ToolPanel tool={catalogTool('poppler')} initialPath={'C:\docs\contrato.pdf'} onClose={vi.fn()} onRun={() => jobId} />);
 
-  await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Operation' }), 'rasterize');
+  await choose(screen.getByRole('combobox', { name: 'Operation' }), /page as image/i);
 
   expect(screen.getByLabelText('Page')).toHaveValue(1);
   expect(screen.getByLabelText('Resolution (DPI)')).toHaveValue(150);
@@ -171,7 +183,7 @@ it('does not ask for a destination when the operation only reads', async () => {
   render(<ToolPanel tool={catalogTool('imagemagick')} initialPath={'C:\fotos\foto.png'} onClose={vi.fn()} onRun={() => jobId} />);
 
   expect(screen.getByText(/the extension decides the format/i)).toBeVisible();
-  await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Operation' }), 'inspect');
+  await choose(screen.getByRole('combobox', { name: 'Operation' }), /inspect/i);
   expect(screen.queryByText(/the extension decides the format/i)).not.toBeInTheDocument();
 });
 
@@ -222,7 +234,7 @@ it('sends the chosen browser as the cookie source, and nothing else', async () =
   render(<ToolPanel tool={catalogTool('yt-dlp')} onClose={vi.fn()} onRun={onRun} />);
 
   await userEvent.type(screen.getByLabelText('Media URL'), 'https://example.com/watch');
-  await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sign in' }), 'firefox');
+  await choose(screen.getByRole('combobox', { name: 'Sign in' }), /cookies from firefox/i);
   await userEvent.click(screen.getByRole('button', { name: 'Run' }));
 
   expect(onRun).toHaveBeenCalledWith(expect.objectContaining({
@@ -238,10 +250,10 @@ it('asks for the cookie file only once that method is chosen', async () => {
   render(<ToolPanel tool={catalogTool('yt-dlp')} onClose={vi.fn()} onRun={() => jobId} />);
 
   expect(screen.queryByLabelText('Cookie file')).not.toBeInTheDocument();
-  await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sign in' }), 'file');
+  await choose(screen.getByRole('combobox', { name: 'Sign in' }), /cookie file/i);
   expect(screen.getByLabelText('Cookie file')).toBeVisible();
   // Picking a file must not leave a browser name behind next to it.
-  await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sign in' }), 'firefox');
+  await choose(screen.getByRole('combobox', { name: 'Sign in' }), /cookies from firefox/i);
   expect(screen.queryByLabelText('Cookie file')).not.toBeInTheDocument();
 });
 
