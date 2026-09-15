@@ -326,3 +326,25 @@ it('falls back to the suggested path when no default folder is set', async () =>
 
   expect(save).toHaveBeenCalledWith({ defaultPath: 'C:\\fotos\\foto-optimize.png' });
 });
+
+it('only reports work worth a confirmation once there is some', async () => {
+  const onDirtyChange = vi.fn();
+  vi.mocked(open).mockResolvedValue('C:\fotos\foto.png');
+  render(<ToolPanel tool={catalogTool('libvips')} onClose={vi.fn()} onRun={() => jobId} onDirtyChange={onDirtyChange} />);
+
+  // Opening a tool changes nothing, so closing it should ask nothing.
+  expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+
+  await userEvent.click(screen.getByRole('button', { name: /choose files/i }));
+
+  expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+});
+
+it('counts a typed URL as work, even with no file chosen', async () => {
+  const onDirtyChange = vi.fn();
+  render(<ToolPanel tool={catalogTool('yt-dlp')} onClose={vi.fn()} onRun={() => jobId} onDirtyChange={onDirtyChange} />);
+
+  expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+  await userEvent.type(screen.getByLabelText('Media URL'), 'https://example.com/watch');
+  expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+});

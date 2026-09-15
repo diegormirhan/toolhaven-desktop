@@ -22,6 +22,8 @@ type ToolPanelProps = {
   jobs?: ToolJob[];
   /** Where the save dialog should open, chosen in Settings. */
   defaultFolder?: string;
+  /** Raised when there is work a close would throw away. */
+  onDirtyChange?: (dirty: boolean) => void;
   leaving?: boolean;
   onClose: () => void;
   onExited?: () => void;
@@ -30,7 +32,7 @@ type ToolPanelProps = {
 
 type SelectedFile = { name: string; path: string };
 
-export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultFolder = "", leaving = false, onClose, onExited, onRun }: ToolPanelProps) {
+export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultFolder = "", leaving = false, onClose, onExited, onRun, onDirtyChange }: ToolPanelProps) {
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>(() =>
     initialPath && !["deno", ...urlTools, ...folderTools].includes(tool.id)
       ? [{ path: initialPath, name: fileNameOnly(initialPath) }]
@@ -77,6 +79,18 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
     }));
     resetFeedback();
   };
+
+  // Work worth a question before discarding: a file chosen, a URL typed, or
+  // options touched. Asking when there is nothing to lose trains people to
+  // dismiss the question without reading it.
+  const dirty =
+    selectedFiles.length > 0 ||
+    sourceUrl.trim().length > 0 ||
+    Object.values(operationOptions).some((value) => value.trim().length > 0);
+
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
 
   const previewable = previewKind(selectedFiles[0]?.path) !== "none";
 

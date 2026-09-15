@@ -72,6 +72,8 @@ export function App() {
   const toolTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [panelDirty, setPanelDirty] = useState(false);
+  const [confirmingClose, setConfirmingClose] = useState(false);
   // Remembered per machine: someone who works with the sidebar collapsed does
   // not want to collapse it again every launch.
   const [defaultFolder, setDefaultFolder] = useState(() => {
@@ -160,8 +162,15 @@ export function App() {
   }
 
   /** The panel leaves along the path it arrived on, so it is unmounted only after the exit. */
-  function closeTool() {
+  function closeTool(force = false) {
     if (!selectedTool || panelLeaving) return;
+    // Clicking away is easy to do by accident; losing a crop to it is not
+    // something to shrug at. The question only appears when there is work.
+    if (panelDirty && !force) {
+      setConfirmingClose(true);
+      return;
+    }
+    setConfirmingClose(false);
     setPanelLeaving(true);
     window.setTimeout(() => toolTriggerRef.current?.focus(), 0);
   }
@@ -385,9 +394,27 @@ export function App() {
             className="panel-scrim"
             role="presentation"
             data-leaving={panelLeaving ? "true" : undefined}
-            onMouseDown={closeTool}
+            onMouseDown={() => closeTool()}
           />
+          {confirmingClose && (
+            <div className="confirm-layer" role="presentation">
+              <div className="confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="confirm-close-title">
+                <h2 id="confirm-close-title">Discard this work?</h2>
+                <p>The file you chose and the settings you changed will be cleared. Nothing on disk is touched either way.</p>
+                <div className="dialog-actions">
+                  <button className="button button--light" type="button" autoFocus onClick={() => setConfirmingClose(false)}>
+                    Keep editing
+                  </button>
+                  <button className="button button--primary" type="button" onClick={() => closeTool(true)}>
+                    Discard
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <ToolPanel
+            onDirtyChange={setPanelDirty}
             key={selectedTool.id}
             tool={selectedTool}
             initialPath={pendingFile}
