@@ -215,3 +215,44 @@ it('never offers a destination for a read-only dev tool', () => {
 
   expect(screen.queryByRole('button', { name: 'Choose destination' })).not.toBeInTheDocument();
 });
+
+it('sends the chosen browser as the cookie source, and nothing else', async () => {
+  const onRun = vi.fn(() => jobId);
+  vi.mocked(save).mockResolvedValue('C:\videos\video.mp4');
+  render(<ToolPanel tool={catalogTool('yt-dlp')} onClose={vi.fn()} onRun={onRun} />);
+
+  await userEvent.type(screen.getByLabelText('Media URL'), 'https://example.com/watch');
+  await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sign in' }), 'firefox');
+  await userEvent.click(screen.getByRole('button', { name: 'Run' }));
+
+  expect(onRun).toHaveBeenCalledWith(expect.objectContaining({
+    request: expect.objectContaining({
+      toolId: 'yt-dlp',
+      // The host rejects both sources at once, so the unused one must be empty.
+      options: expect.objectContaining({ cookiesFrom: 'firefox', cookieFile: '' }),
+    }),
+  }));
+});
+
+it('asks for the cookie file only once that method is chosen', async () => {
+  render(<ToolPanel tool={catalogTool('yt-dlp')} onClose={vi.fn()} onRun={() => jobId} />);
+
+  expect(screen.queryByLabelText('Cookie file')).not.toBeInTheDocument();
+  await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sign in' }), 'file');
+  expect(screen.getByLabelText('Cookie file')).toBeVisible();
+  // Picking a file must not leave a browser name behind next to it.
+  await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sign in' }), 'firefox');
+  expect(screen.queryByLabelText('Cookie file')).not.toBeInTheDocument();
+});
+
+it('offers no sign-in or quality controls for tools that have no account', async () => {
+  render(<ToolPanel tool={catalogTool('oxipng')} initialPath={'C:\fotos\foto.png'} onClose={vi.fn()} onRun={() => jobId} />);
+  expect(screen.queryByRole('combobox', { name: 'Sign in' })).not.toBeInTheDocument();
+});
+
+it.each([
+  ['compatible', 'video.mp4'],
+  ['best', 'video.mkv'],
+])('suggests a container the chosen quality can actually hold (%s)', (quality, expected) => {
+  expect(suggestedOutputName(undefined, 'download-video', 'yt-dlp', { quality })).toBe(expected);
+});

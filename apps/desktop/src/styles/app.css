@@ -422,6 +422,13 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .operation-options label { display: grid; gap: 6px; }
 .operation-options label span { color: var(--text-secondary); font-size: 0.7rem; }
 .operation-options input { width: 100%; min-height: 38px; padding: 0 10px; color: var(--text); background: var(--surface-sunken); border: 1px solid var(--line-strong); border-radius: 8px; }
+.operation-options select { width: 100%; min-height: 38px; padding: 0 8px; color: var(--text); background: var(--surface-sunken); border: 1px solid var(--line-strong); border-radius: 8px; font: inherit; font-size: 0.78rem; }
+/* A field that spans both columns when its guidance needs the room. */
+.operation-options label:has(.operation-options__file), .operation-options label:has(select) { grid-column: 1 / -1; }
+.operation-options__file { display: flex; gap: 8px; align-items: center; }
+.operation-options__file input { flex: 1; min-width: 0; }
+.operation-options__file .icon-button { flex: 0 0 auto; }
+.operation-options__hint { color: var(--text-quiet); font-size: 0.66rem; line-height: 1.4; text-wrap: pretty; }
 .run-message { max-height: 180px; overflow: auto; margin: 18px 0 0; padding: 12px; color: var(--text-secondary); background: var(--surface-sunken); border: 1px solid var(--line); border-radius: 8px; font: 0.68rem/1.45 ui-monospace, "Cascadia Mono", monospace; white-space: pre-wrap; }
 .run-message--error { color: var(--error); border-color: color-mix(in srgb, var(--error) 50%, var(--line)); }
 .tool-option { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; padding: 15px 0; border-bottom: 1px solid var(--line); }

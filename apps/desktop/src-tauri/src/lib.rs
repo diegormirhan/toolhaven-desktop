@@ -346,9 +346,7 @@ fn validate_request(request: &OperationRequest) -> Result<(), String> {
             return Err("That input path is not valid.".into());
         }
         if !std::path::Path::new(path).exists() {
-            return Err(format!(
-                "Input file or folder not found: {path}"
-            ));
+            return Err(format!("Input file or folder not found: {path}"));
         }
     }
     if request.tool_id == "difftastic" && request.input_paths.len() < 2 {
@@ -362,7 +360,8 @@ fn validate_request(request: &OperationRequest) -> Result<(), String> {
         let extracting = request.tool_id == "7zip" && request.operation_id == "extract";
         if operation_writes_file(request) && target.exists() && !extracting {
             return Err(
-                "That destination already exists. Choose another name so the original survives.".into(),
+                "That destination already exists. Choose another name so the original survives."
+                    .into(),
             );
         }
         if extracting
@@ -390,6 +389,39 @@ fn validate_request(request: &OperationRequest) -> Result<(), String> {
 
 /// Pure option checks: no filesystem, no process, so they are testable on their own.
 fn validate_options(request: &OperationRequest) -> Result<(), String> {
+    if request.tool_id == "yt-dlp" {
+        let browser = request
+            .options
+            .get("cookiesFrom")
+            .map(|value| value.trim())
+            .unwrap_or("");
+        let file = request
+            .options
+            .get("cookieFile")
+            .map(|value| value.trim())
+            .unwrap_or("");
+
+        if !browser.is_empty() && !file.is_empty() {
+            return Err("Choose one sign-in method: a browser or a cookie file, not both.".into());
+        }
+        if !browser.is_empty() && !COOKIE_BROWSERS.contains(&browser) {
+            return Err(format!(
+                "yt-dlp cannot read cookies from \"{browser}\". Supported: {}.",
+                COOKIE_BROWSERS.join(", ")
+            ));
+        }
+        if !file.is_empty() && !std::path::Path::new(file).is_file() {
+            return Err("That cookie file does not exist.".into());
+        }
+        let quality = request
+            .options
+            .get("quality")
+            .map(|value| value.trim())
+            .unwrap_or("compatible");
+        if !matches!(quality, "compatible" | "best") {
+            return Err("Quality must be either \"compatible\" or \"best\".".into());
+        }
+    }
     if request.tool_id == "exiftool"
         && request.operation_id == "set-title"
         && request
@@ -459,7 +491,6 @@ fn validate_options(request: &OperationRequest) -> Result<(), String> {
     Ok(())
 }
 
-
 fn executable_name(tool_id: &str) -> Result<String, String> {
     let executable = match tool_id {
         "ffmpeg" => "ffmpeg.exe",
@@ -510,7 +541,10 @@ fn resolve_suite_executable(tool_id: &str, executable: &str) -> Result<std::path
     }
     Err(format!(
         "{executable} was not found beside Poppler in {}.",
-        probe.parent().map(|parent| parent.display().to_string()).unwrap_or_default()
+        probe
+            .parent()
+            .map(|parent| parent.display().to_string())
+            .unwrap_or_default()
     ))
 }
 
@@ -613,6 +647,68 @@ fn search_winget_packages(executable: &str) -> Option<std::path::PathBuf> {
     None
 }
 
+/// Browsers yt-dlp can read cookies from. A fixed list, so a value typed in
+/// the interface never reaches the command line unchecked.
+const COOKIE_BROWSERS: [&str; 7] = [
+    "firefox", "chrome", "chromium", "edge", "brave", "opera", "vivaldi",
+];
+
+/// Authentication, plus the client selection that depends on it.
+///
+/// `player_client=web_embedded` is a workaround for the 403 an anonymous
+/// request gets, and it is dropped once cookies are supplied. yt-dlp already
+/// picks cookie-aware clients on its own — `web_embedded, tv_downgraded, web`
+/// for a free account and `web_creator, tv_downgraded, web` for Premium — so
+/// forcing the embedded client would deny a Premium account the `web_creator`
+/// client its higher-quality formats come from.
+fn yt_dlp_session_args(request: &OperationRequest) -> Vec<String> {
+    let browser = request
+        .options
+        .get("cookiesFrom")
+        .map(|value| value.trim())
+        .unwrap_or("");
+    if !browser.is_empty() {
+        return vec!["--cookies-from-browser".into(), browser.to_string()];
+    }
+
+    let file = request
+        .options
+        .get("cookieFile")
+        .map(|value| value.trim())
+        .unwrap_or("");
+    if !file.is_empty() {
+        return vec!["--cookies".into(), file.to_string()];
+    }
+
+    vec![
+        "--extractor-args".into(),
+        "youtube:player_client=web_embedded".into(),
+    ]
+}
+
+/// `compatible` keeps the H.264/AAC pair every player opens. `best` lifts that
+/// restriction, which is what actually reaches 4K and beyond: YouTube publishes
+/// nothing above 1080p in mp4, so the compatible chain caps resolution by
+/// construction. Merging into Matroska because it holds VP9 and AV1, which mp4
+/// does not.
+fn yt_dlp_format_args(quality: &str) -> Vec<String> {
+    if quality == "best" {
+        vec![
+            "-f".into(),
+            "bv*+ba/b".into(),
+            "--merge-output-format".into(),
+            "mkv".into(),
+        ]
+    } else {
+        vec![
+            "-f".into(),
+            "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/bv*+ba/b".into(),
+            "--merge-output-format".into(),
+            "mp4".into(),
+        ]
+    }
+}
+
 fn resolve_args(request: &OperationRequest) -> Result<Vec<String>, String> {
     let input = request.input_paths.first().cloned().unwrap_or_default();
     let output = request
@@ -713,40 +809,39 @@ fn resolve_args(request: &OperationRequest) -> Result<Vec<String>, String> {
             ])
         }
         ("qpdf", "linearize") => Ok(vec!["--linearize".into(), input, output]),
-        ("yt-dlp", "download-video") => Ok(vec![
-            "--no-playlist".into(),
-            "--no-overwrites".into(),
-            "--extractor-args".into(),
-            "youtube:player_client=web_embedded".into(),
-            "--progress".into(),
-            "--newline".into(),
-            "-f".into(),
-            "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/bv*+ba/b".into(),
-            "--merge-output-format".into(),
-            "mp4".into(),
-            "-o".into(),
-            output,
-            request.source_url.clone().unwrap_or(input),
-        ]),
-        ("yt-dlp", "download-audio") => Ok(vec![
-            "--no-playlist".into(),
-            "--no-overwrites".into(),
-            "--extractor-args".into(),
-            "youtube:player_client=web_embedded".into(),
-            "--progress".into(),
-            "--newline".into(),
-            "-x".into(),
-            "--audio-format".into(),
-            "mp3".into(),
-            "-o".into(),
-            output,
-            request.source_url.clone().unwrap_or(input),
-        ]),
-        ("yt-dlp", "inspect-url") => Ok(vec![
-            "--dump-single-json".into(),
-            "--skip-download".into(),
-            request.source_url.clone().unwrap_or(input),
-        ]),
+        ("yt-dlp", "download-video") => {
+            let mut args: Vec<String> = vec!["--no-playlist".into(), "--no-overwrites".into()];
+            args.extend(yt_dlp_session_args(request));
+            args.extend(["--progress".to_string(), "--newline".to_string()]);
+            args.extend(yt_dlp_format_args(&option("quality", "compatible")));
+            args.extend([
+                "-o".to_string(),
+                output,
+                request.source_url.clone().unwrap_or(input),
+            ]);
+            Ok(args)
+        }
+        ("yt-dlp", "download-audio") => {
+            let mut args: Vec<String> = vec!["--no-playlist".into(), "--no-overwrites".into()];
+            args.extend(yt_dlp_session_args(request));
+            args.extend([
+                "--progress".to_string(),
+                "--newline".to_string(),
+                "-x".to_string(),
+                "--audio-format".to_string(),
+                "mp3".to_string(),
+                "-o".to_string(),
+                output,
+                request.source_url.clone().unwrap_or(input),
+            ]);
+            Ok(args)
+        }
+        ("yt-dlp", "inspect-url") => {
+            let mut args: Vec<String> = vec!["--dump-single-json".into(), "--skip-download".into()];
+            args.extend(yt_dlp_session_args(request));
+            args.push(request.source_url.clone().unwrap_or(input));
+            Ok(args)
+        }
         ("exiftool", "inspect") => Ok(vec!["-G".into(), "-s".into(), input]),
         ("exiftool", "strip") => Ok(vec!["-all=".into(), "-o".into(), output, input]),
         ("exiftool", "set-title") => Ok(vec![
@@ -791,12 +886,9 @@ fn resolve_args(request: &OperationRequest) -> Result<Vec<String>, String> {
             input,
         ]),
         ("imagemagick", "convert") => Ok(vec![input, output]),
-        ("imagemagick", "grayscale") => Ok(vec![
-            input,
-            "-colorspace".into(),
-            "Gray".into(),
-            output,
-        ]),
+        ("imagemagick", "grayscale") => {
+            Ok(vec![input, "-colorspace".into(), "Gray".into(), output])
+        }
         ("imagemagick", "inspect") => Ok(vec!["identify".into(), "-verbose".into(), input]),
         ("miller", "to-json") => Ok(vec!["--icsv".into(), "--ojson".into(), "cat".into(), input]),
         ("miller", "to-csv") => Ok(vec!["--ijson".into(), "--ocsv".into(), "cat".into(), input]),
@@ -1042,13 +1134,14 @@ mod tests {
             let request = request_for("exiftool", operation, &[("title", "Contrato")]);
             let args = resolve_args(&request).unwrap();
             assert!(
-                args.windows(2)
-                    .any(|pair| pair == ["-o", "output.fixture"]),
+                args.windows(2).any(|pair| pair == ["-o", "output.fixture"]),
                 "{operation} must publish to a new path"
             );
             assert!(!args.iter().any(|arg| arg == "-overwrite_original"));
         }
-        assert!(validate_options(&request_for("exiftool", "set-title", &[("title", "  ")])).is_err());
+        assert!(
+            validate_options(&request_for("exiftool", "set-title", &[("title", "  ")])).is_err()
+        );
     }
 
     #[test]
@@ -1095,9 +1188,132 @@ mod tests {
     fn calls_imagemagick_by_its_own_binary_never_the_windows_convert() {
         assert_eq!(executable_name("imagemagick").unwrap(), "magick.exe");
         let args = resolve_args(&request_for("imagemagick", "grayscale", &[])).unwrap();
-        assert_eq!(args, vec!["input.fixture", "-colorspace", "Gray", "output.fixture"]);
+        assert_eq!(
+            args,
+            vec!["input.fixture", "-colorspace", "Gray", "output.fixture"]
+        );
         assert!(validate_options(&request_for("oxipng", "optimize", &[("level", "9")])).is_err());
         assert!(validate_options(&request_for("oxipng", "optimize", &[("level", "max")])).is_ok());
+    }
+
+    /// Builds a yt-dlp request; the tool takes a URL rather than input paths.
+    fn download_request(operation: &str, options: &[(&str, &str)]) -> OperationRequest {
+        OperationRequest {
+            tool_id: "yt-dlp".into(),
+            operation_id: operation.into(),
+            input_paths: Vec::new(),
+            output_path: Some("video.mkv".into()),
+            options: options
+                .iter()
+                .map(|(key, value)| (key.to_string(), value.to_string()))
+                .collect(),
+            source_url: Some("https://example.com/video".into()),
+            job_id: None,
+        }
+    }
+
+    #[test]
+    fn signing_in_replaces_the_anonymous_client_workaround() {
+        // The forced embedded client exists to dodge the 403 an anonymous
+        // request gets. With cookies it would cost a Premium account the
+        // web_creator client its best formats come from, so it must go.
+        let args = resolve_args(&download_request(
+            "download-video",
+            &[("cookiesFrom", "firefox")],
+        ))
+        .unwrap();
+        assert!(args
+            .windows(2)
+            .any(|pair| pair == ["--cookies-from-browser", "firefox"]));
+        assert!(!args.iter().any(|arg| arg.contains("player_client")));
+
+        // Without credentials the workaround stays.
+        let anonymous = resolve_args(&download_request("download-video", &[])).unwrap();
+        assert!(anonymous
+            .iter()
+            .any(|arg| arg == "youtube:player_client=web_embedded"));
+        assert!(!anonymous.iter().any(|arg| arg.starts_with("--cookies")));
+    }
+
+    #[test]
+    fn a_cookie_file_is_passed_through_and_checked_for_existence() {
+        let file = std::env::temp_dir().join("toolhaven-cookies-test.txt");
+        std::fs::write(
+            &file,
+            "# Netscape HTTP Cookie File
+",
+        )
+        .unwrap();
+        let path = file.to_string_lossy().to_string();
+
+        let args = resolve_args(&download_request(
+            "download-video",
+            &[("cookieFile", &path)],
+        ))
+        .unwrap();
+        assert!(args.windows(2).any(|pair| pair == ["--cookies", &path]));
+
+        assert!(validate_options(&download_request(
+            "download-video",
+            &[("cookieFile", &path)]
+        ))
+        .is_ok());
+        assert!(validate_options(&download_request(
+            "download-video",
+            &[("cookieFile", r"C:\nowhere\cookies.txt")]
+        ))
+        .is_err());
+        std::fs::remove_file(file).ok();
+    }
+
+    #[test]
+    fn rejects_credentials_that_could_not_work() {
+        // Two sources at once is ambiguous rather than additive.
+        assert!(validate_options(&download_request(
+            "download-video",
+            &[("cookiesFrom", "firefox"), ("cookieFile", "cookies.txt")]
+        ))
+        .is_err());
+        // An unknown browser must never reach the command line.
+        assert!(validate_options(&download_request(
+            "download-video",
+            &[("cookiesFrom", "netscape")]
+        ))
+        .is_err());
+        assert!(
+            validate_options(&download_request("download-video", &[("quality", "ultra")])).is_err()
+        );
+    }
+
+    #[test]
+    fn best_quality_lifts_the_mp4_ceiling() {
+        // YouTube publishes nothing above 1080p in mp4, so the compatible
+        // chain caps resolution by construction.
+        let best =
+            resolve_args(&download_request("download-video", &[("quality", "best")])).unwrap();
+        assert!(best.windows(2).any(|pair| pair == ["-f", "bv*+ba/b"]));
+        assert!(best
+            .windows(2)
+            .any(|pair| pair == ["--merge-output-format", "mkv"]));
+
+        let compatible = resolve_args(&download_request("download-video", &[])).unwrap();
+        assert!(compatible
+            .iter()
+            .any(|arg| arg.contains("bv*[ext=mp4]+ba[ext=m4a]")));
+        assert!(compatible
+            .windows(2)
+            .any(|pair| pair == ["--merge-output-format", "mp4"]));
+    }
+
+    #[test]
+    fn inspecting_a_url_uses_the_same_credentials() {
+        // Otherwise the format list would describe what an anonymous viewer
+        // gets, and the download that follows would not match it.
+        let args =
+            resolve_args(&download_request("inspect-url", &[("cookiesFrom", "edge")])).unwrap();
+        assert!(args
+            .windows(2)
+            .any(|pair| pair == ["--cookies-from-browser", "edge"]));
     }
 
     #[test]
@@ -1133,9 +1349,9 @@ mod tests {
         assert!(args
             .windows(2)
             .any(|pair| pair == ["--progress", "--newline"]));
-        assert!(args.windows(2).any(|pair| {
-            pair == ["--extractor-args", "youtube:player_client=web_embedded"]
-        }));
+        assert!(args
+            .windows(2)
+            .any(|pair| { pair == ["--extractor-args", "youtube:player_client=web_embedded"] }));
 
         let upscale = OperationRequest {
             tool_id: "libvips".into(),

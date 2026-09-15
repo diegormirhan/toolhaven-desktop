@@ -121,11 +121,30 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
         )}
 
         <OperationOptions
+          onPickFile={(key) => {
+            void open({ multiple: false })
+              .then((selected) => {
+                if (typeof selected === "string") {
+                  setOperationOptions((current) => ({ ...current, [key]: selected }));
+                }
+              })
+              .catch(handleFormError);
+          }}
           toolId={tool.id}
           operationId={selectedOperationId}
           values={operationOptions}
           onChange={(key, value) => {
-            setOperationOptions((currentValues) => ({ ...currentValues, [key]: value }));
+            setOperationOptions((currentValues) => {
+              const next = { ...currentValues, [key]: value };
+              // "Sign in" is one control over two host options: a browser
+              // name, or a cookie file. Sending both is rejected, so the
+              // unused one is cleared rather than left behind.
+              if (key === "signIn") {
+                next.cookiesFrom = value === "file" ? "" : value;
+                if (value !== "file") next.cookieFile = "";
+              }
+              return next;
+            });
             resetFeedback();
           }}
         />
@@ -295,7 +314,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
       return;
     }
     const selected = await save({
-      defaultPath: suggestedOutputName(selectedFiles[0]?.path, selectedOperationId, tool.id),
+      defaultPath: suggestedOutputName(selectedFiles[0]?.path, selectedOperationId, tool.id, operationOptions),
     });
     if (selected) setOutputPath(selected);
   }
@@ -334,7 +353,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], leaving 
       return selected;
     }
     const selected = await save({
-      defaultPath: suggestedOutputName(selectedFiles[0]?.path, selectedOperationId, tool.id),
+      defaultPath: suggestedOutputName(selectedFiles[0]?.path, selectedOperationId, tool.id, operationOptions),
     });
     if (!selected) throw new Error("Choose an output file to continue.");
     setOutputPath(selected);
@@ -369,42 +388,138 @@ function OperationOptions({
   operationId,
   values,
   onChange,
+  onPickFile,
 }: {
   toolId: string;
   operationId: string;
   values: Record<string, string>;
   onChange: (key: string, value: string) => void;
+  onPickFile?: (key: string) => void;
 }) {
-  const fields = operationFields(toolId, operationId);
+  const fields = operationFields(toolId, operationId).filter(
+    (field) => field.showWhen?.(values) ?? true,
+  );
   if (fields.length === 0) return null;
   return (
     <div className="operation-options" aria-label="Operation options">
-      {fields.map((field) => (
-        <label key={field.key}>
-          <span>{field.label}</span>
-          <input
-            aria-label={field.label}
-            type={field.type}
-            placeholder={field.placeholder}
-            value={values[field.key] ?? field.defaultValue ?? ""}
-            onChange={(event) => onChange(field.key, event.target.value)}
-          />
-        </label>
-      ))}
+      {fields.map((field) => {
+        const value = values[field.key] ?? field.defaultValue ?? "";
+        return (
+          <label key={field.key}>
+            <span>{field.label}</span>
+            {field.type === "select" ? (
+              <select
+                aria-label={field.label}
+                value={value}
+                onChange={(event) => onChange(field.key, event.target.value)}
+              >
+                {(field.choices ?? []).map((choice) => (
+                  <option key={choice.value} value={choice.value}>
+                    {choice.label}
+                  </option>
+                ))}
+              </select>
+            ) : field.type === "file" ? (
+              <span className="operation-options__file">
+                <input
+                  aria-label={field.label}
+                  type="text"
+                  placeholder={field.placeholder}
+                  value={value}
+                  onChange={(event) => onChange(field.key, event.target.value)}
+                />
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label={`Choose ${field.label}`}
+                  onClick={() => onPickFile?.(field.key)}
+                >
+                  <FilePlus2 size={16} />
+                </button>
+              </span>
+            ) : (
+              <input
+                aria-label={field.label}
+                type={field.type}
+                placeholder={field.placeholder}
+                value={value}
+                onChange={(event) => onChange(field.key, event.target.value)}
+              />
+            )}
+            {field.hint && <small className="operation-options__hint">{field.hint}</small>}
+          </label>
+        );
+      })}
     </div>
   );
 }
 
-function operationFields(
-  toolId: string,
-  operationId: string,
-): Array<{
+type OperationField = {
   key: string;
   label: string;
-  type: "text" | "number" | "password";
+  type: "text" | "number" | "password" | "select" | "file";
   placeholder?: string;
   defaultValue?: string;
-}> {
+  /** Present only for `select`. */
+  choices?: Array<{ value: string; label: string }>;
+  /** Guidance shown under the control, for rules the label cannot carry. */
+  hint?: string;
+  /** Lets a field depend on another one's value. */
+  showWhen?: (values: Record<string, string>) => boolean;
+};
+
+/** Browsers yt-dlp can read cookies from; mirrors COOKIE_BROWSERS in the host. */
+const cookieBrowsers = [
+  { value: "firefox", label: "Firefox" },
+  { value: "chrome", label: "Chrome" },
+  { value: "chromium", label: "Chromium" },
+  { value: "edge", label: "Edge" },
+  { value: "brave", label: "Brave" },
+  { value: "opera", label: "Opera" },
+  { value: "vivaldi", label: "Vivaldi" },
+];
+
+function operationFields(toolId: string, operationId: string): OperationField[] {
+  if (toolId === "yt-dlp") {
+    const fields: OperationField[] = [];
+    if (operationId === "download-video") {
+      fields.push({
+        key: "quality",
+        label: "Quality",
+        type: "select",
+        defaultValue: "compatible",
+        choices: [
+          { value: "compatible", label: "Compatible — mp4, plays anywhere" },
+          { value: "best", label: "Best available — mkv, 4K and beyond" },
+        ],
+        hint: "YouTube publishes nothing above 1080p in mp4, so the highest resolutions need Matroska.",
+      });
+    }
+    fields.push({
+      key: "signIn",
+      label: "Sign in",
+      type: "select",
+      defaultValue: "",
+      choices: [
+        { value: "", label: "Not signed in" },
+        { value: "file", label: "Cookie file…" },
+        ...cookieBrowsers.map((browser) => ({
+          value: browser.value,
+          label: `Cookies from ${browser.label}`,
+        })),
+      ],
+      hint: "Reaches what your account can already watch — age-restricted and members-only. It unlocks nothing your account cannot see, and using an account carries a risk of it being limited.",
+    });
+    fields.push({
+      key: "cookieFile",
+      label: "Cookie file",
+      type: "file",
+      placeholder: "cookies.txt",
+      showWhen: (values) => values.signIn === "file",
+      hint: "Export it from a private window and close that window straight away: YouTube rotates the cookies of any tab left open, which invalidates the file.",
+    });
+    return fields;
+  }
   if (toolId === "ffmpeg" && operationId === "trim")
     return [
       { key: "start", label: "Start (seconds)", type: "number", defaultValue: "0" },
@@ -491,8 +606,16 @@ function outputExtension(toolId: string, operationId: string, originalExtension:
   return byOperation[`${toolId}/${operationId}`] ?? (toolId === "qpdf" ? ".pdf" : originalExtension);
 }
 
-export function suggestedOutputName(inputPath: string | undefined, operationId: string, toolId: string): string {
-  if (toolId === "yt-dlp") return operationId === "download-audio" ? "audio.mp3" : "video.mp4";
+export function suggestedOutputName(
+  inputPath: string | undefined,
+  operationId: string,
+  toolId: string,
+  options: Record<string, string> = {},
+): string {
+  if (toolId === "yt-dlp") {
+    if (operationId === "download-audio") return "audio.mp3";
+    return options.quality === "best" ? "video.mkv" : "video.mp4";
+  }
   const path = inputPath ?? "resultado";
   const filename = fileNameOnly(path);
   const stem = filename.replace(/\.[^.]+$/, "");
