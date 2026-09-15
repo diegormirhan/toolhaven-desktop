@@ -83,10 +83,14 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
   // Work worth a question before discarding: a file chosen, a URL typed, or
   // options touched. Asking when there is nothing to lose trains people to
   // dismiss the question without reading it.
+  // Once the operation has been started the work is in the queue, and the
+  // panel itself says so — closing loses nothing, so asking would contradict
+  // the promise printed two lines below it.
   const dirty =
-    selectedFiles.length > 0 ||
-    sourceUrl.trim().length > 0 ||
-    Object.values(operationOptions).some((value) => value.trim().length > 0);
+    !currentJob &&
+    (selectedFiles.length > 0 ||
+      sourceUrl.trim().length > 0 ||
+      Object.values(operationOptions).some((value) => value.trim().length > 0));
 
   useEffect(() => {
     onDirtyChange?.(dirty);

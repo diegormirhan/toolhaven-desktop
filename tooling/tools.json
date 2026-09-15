@@ -293,6 +293,28 @@
       ]
     },
     {
+      "id": "tesseract",
+      "displayName": "Tesseract",
+      "status": "downloadable",
+      "delivery": "on-demand",
+      "sourceRepository": "https://github.com/tesseract-ocr/tesseract",
+      "licenseExpression": "Apache-2.0",
+      "capabilities": [
+        "text.ocr",
+        "text.ocr_pdf"
+      ],
+      "version": "5.5.3",
+      "artifacts": [
+        {
+          "url": "https://github.com/tesseract-ocr/tesseract/releases/download/5.5.3/tesseract-ocr-w64-setup-5.5.3.20260724.exe",
+          "sha256": "bee9e3434bd94fd65387d9be28cd467a41f61b1275383b55b0f59a1331270ae4",
+          "silentInstall": [
+            "/S"
+          ]
+        }
+      ]
+    },
+    {
       "id": "oxipng",
       "displayName": "Oxipng",
       "status": "bundled",

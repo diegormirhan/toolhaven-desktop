@@ -162,6 +162,13 @@
           "type": "string",
           "description": "Directory inside the extracted archive that holds the executables. Empty when they sit at the root.",
           "pattern": "^(?!\\/)(?!.*\\.\\.)[^:]*$"
+        },
+        "silentInstall": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Flags that make an installer run without a window. Present only for artifacts published solely as an installer."
         }
       }
     }

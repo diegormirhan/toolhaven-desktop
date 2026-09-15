@@ -88,6 +88,7 @@ fn detect_available_tools() -> Vec<String> {
         "ffprobe",
         "yt-dlp",
         "gallery-dl",
+        "tesseract",
         "deno",
         "qpdf",
         "libvips",
@@ -534,6 +535,7 @@ fn executable_name(tool_id: &str) -> Result<String, String> {
         "ffmpeg" => "ffmpeg.exe",
         "ffprobe" => "ffprobe.exe",
         "yt-dlp" => "yt-dlp.exe",
+        "tesseract" => "tesseract.exe",
         "gallery-dl" => "gallery-dl.exe",
         "deno" => "deno.exe",
         "qpdf" => "qpdf.exe",
@@ -1134,6 +1136,23 @@ fn resolve_args(request: &OperationRequest) -> Result<Vec<String>, String> {
             args.push(request.source_url.clone().unwrap_or(input));
             Ok(args)
         }
+        ("tesseract", "ocr") => Ok(vec![
+            input,
+            // Tesseract appends the extension itself, so it is handed a base
+            // name — the same shape pdftoppm needs.
+            rasterize_prefix(&output),
+            "-l".into(),
+            option("language", "eng"),
+        ]),
+        ("tesseract", "ocr-pdf") => Ok(vec![
+            input,
+            rasterize_prefix(&output),
+            "-l".into(),
+            option("language", "eng"),
+            // A PDF with the recognised text behind the original image, so the
+            // page still looks like the scan it came from.
+            "pdf".into(),
+        ]),
         ("exiftool", "inspect") => Ok(vec!["-G".into(), "-s".into(), input]),
         ("exiftool", "strip") => Ok(vec!["-all=".into(), "-o".into(), output, input]),
         ("exiftool", "set-title") => Ok(vec![

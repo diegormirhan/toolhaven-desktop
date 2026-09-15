@@ -335,6 +335,20 @@ const presentationById: Record<
     ],
     keywords: ["zip", "7z", "rar", "compress", "extract", "archive"],
   },
+  tesseract: {
+    id: "tesseract",
+    title: "Read text from images",
+    description: "Pull the words out of a scan or a photograph.",
+    category: "documents",
+    accent: "amber",
+    size: "standard",
+    operations: [
+      { id: "ocr", label: "Extract text", description: "Write what it reads into a text file." },
+      { id: "ocr-pdf", label: "Searchable PDF", description: "Keep the picture, add a text layer you can search." },
+    ],
+    keywords: ["ocr", "text", "scan", "recognise", "recognize", "read", "image", "pdf", "handwriting"],
+    downloadLabel: "In-app download",
+  },
   pandoc: {
     id: "pandoc",
     title: "Convert documents",
@@ -387,7 +401,7 @@ const rowDefinitions = [
     id: "documents",
     title: "PDFs and documents",
     description: "Reorganise pages, pull out text, and move between formats.",
-    toolIds: ["qpdf", "poppler", "pandoc"],
+    toolIds: ["qpdf", "poppler", "tesseract", "pandoc"],
   },
   {
     id: "data",

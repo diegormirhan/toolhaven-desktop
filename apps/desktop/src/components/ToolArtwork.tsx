@@ -103,6 +103,19 @@ const glyphByToolId: Record<string, ReactNode> = {
       <path className="aw-solid-line" d="M144 34v32" />
     </>
   ),
+  tesseract: (
+    <>
+      <rect className="aw-soft" x="40" y="20" width="62" height="62" rx="5" />
+      <g className="aw-soft-fill">
+        <rect x="50" y="32" width="42" height="5" rx="2" />
+        <rect x="50" y="44" width="30" height="5" rx="2" />
+        <rect x="50" y="56" width="38" height="5" rx="2" />
+        <rect x="50" y="68" width="22" height="5" rx="2" />
+      </g>
+      <path className="aw-line" d="M112 51h16M121 45l7 6-7 6" strokeLinecap="round" strokeLinejoin="round" />
+      <path className="aw-line" d="M140 26v50M140 26h22M140 51h16M140 76h20" strokeLinecap="round" />
+    </>
+  ),
   pandoc: (
     <>
       <path className="aw-soft" d="M38 18h30l14 14v44a5 5 0 0 1-5 5H43a5 5 0 0 1-5-5V23a5 5 0 0 1 5-5z" />

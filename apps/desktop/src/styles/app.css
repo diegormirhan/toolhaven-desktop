@@ -456,7 +456,7 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
    Preview on the left, controls on the right. Without a preview the
    controls take the whole width rather than leaving a hole. */
 .tool-panel__body--split {
-  display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(340px, 0.65fr);
+  display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(400px, 0.7fr);
   gap: 0; padding: 0;
 }
 .tool-panel__workspace {
@@ -621,7 +621,13 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .operation-options input { width: 100%; min-height: 38px; padding: 0 10px; color: var(--text); background: var(--surface-sunken); border: 1px solid var(--line-strong); border-radius: var(--radius-control); transition: border-color 200ms var(--ease-out), background 200ms var(--ease-out); }
 .operation-options input:hover { border-color: var(--line-strong); background: var(--surface-hover); }
 /* A field that spans both columns when its guidance needs the room. */
-.operation-options label:has(.operation-options__file), .operation-options label:has(select) { grid-column: 1 / -1; }
+/* The native <select> is gone, so :has(select) stopped matching and the
+   controls it used to widen fell back into two cramped columns. */
+.operation-options label:has(.operation-options__file),
+.operation-options label:has(.select) { grid-column: 1 / -1; }
+/* A field with guidance under it sets the row height; without this its
+   neighbour floats against the top of that row. */
+.operation-options label { align-content: start; }
 .operation-options__file { display: flex; gap: 8px; align-items: center; }
 .operation-options__file input { flex: 1; min-width: 0; }
 .operation-options__file .icon-button { flex: 0 0 auto; }

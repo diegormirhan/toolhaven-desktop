@@ -37,6 +37,15 @@ pub struct Artifact {
     pub sha256: String,
     #[serde(default)]
     pub binary_directory: String,
+    /// Arguments that make this artifact install itself without a window.
+    ///
+    /// Some projects publish only an NSIS installer — Tesseract, 7-Zip and
+    /// MKVToolNix among them — which is why those tools sat in the manual
+    /// list for so long. The flags are declared per artifact rather than
+    /// guessed, because a wrong guess would run an interactive installer
+    /// with no window to answer.
+    #[serde(default)]
+    pub silent_install: Vec<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -196,7 +205,9 @@ pub fn install(
     std::fs::create_dir_all(&staging)
         .map_err(|error| format!("Could not prepare the installation: {error}"))?;
 
-    let result = if artifact.url.to_ascii_lowercase().ends_with(".exe") {
+    let result = if !artifact.silent_install.is_empty() {
+        run_silent_installer(artifact, &bytes, &staging)
+    } else if artifact.url.to_ascii_lowercase().ends_with(".exe") {
         write_single_executable(&artifact.url, &bytes, &staging)
     } else {
         extract_zip(&bytes, &staging)
@@ -277,6 +288,50 @@ fn sha256(bytes: &[u8]) -> String {
         .iter()
         .map(|byte| format!("{byte:02x}"))
         .collect()
+}
+
+/// Runs a downloaded installer into the component directory.
+///
+/// The bytes were checked against the pinned digest before this point, which
+/// is the same trust the app already places in every tool it executes: an
+/// installer is not more dangerous than the binary it installs, provided it
+/// is the one that was reviewed. It is pointed at the component store, so
+/// nothing lands outside the app's own folder and no elevation is asked for.
+fn run_silent_installer(artifact: &Artifact, bytes: &[u8], staging: &Path) -> Result<(), String> {
+    let installer = staging.join("__installer.exe");
+    std::fs::write(&installer, bytes)
+        .map_err(|error| format!("Could not write the installer: {error}"))?;
+
+    let mut command = std::process::Command::new(&installer);
+    command.args(&artifact.silent_install);
+    // NSIS requires /D last, unquoted, and takes the rest of the line as the
+    // path — so it cannot be passed as a normal argument with the others.
+    command.arg(format!("/D={}", staging.display()));
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+
+    let status = command
+        .status()
+        .map_err(|error| format!("Could not start the installer: {error}"))?;
+    let _ = std::fs::remove_file(&installer);
+
+    if !status.success() {
+        return Err(format!("The installer failed ({status})."));
+    }
+    // An installer that "succeeds" without writing anything would otherwise
+    // activate an empty directory and report the tool as ready.
+    let wrote_something = std::fs::read_dir(staging)
+        .map_err(|error| format!("Could not read the installation: {error}"))?
+        .next()
+        .is_some();
+    if !wrote_something {
+        return Err("The installer produced no files.".into());
+    }
+    Ok(())
 }
 
 fn write_single_executable(url: &str, bytes: &[u8], destination: &Path) -> Result<(), String> {

@@ -162,14 +162,25 @@ export function App() {
   }
 
   /** The panel leaves along the path it arrived on, so it is unmounted only after the exit. */
-  function closeTool(force = false) {
+  /**
+   * Asks first when there is work to lose.
+   *
+   * Deliberately takes no arguments: it is passed straight to onClick in
+   * places, and a "force" parameter would quietly receive the click event —
+   * which is truthy, so every X button would skip the question. Forcing is a
+   * separate function instead of a flag nobody can see being set.
+   */
+  function closeTool() {
     if (!selectedTool || panelLeaving) return;
-    // Clicking away is easy to do by accident; losing a crop to it is not
-    // something to shrug at. The question only appears when there is work.
-    if (panelDirty && !force) {
+    if (panelDirty) {
       setConfirmingClose(true);
       return;
     }
+    discardAndClose();
+  }
+
+  function discardAndClose() {
+    if (!selectedTool || panelLeaving) return;
     setConfirmingClose(false);
     setPanelLeaving(true);
     window.setTimeout(() => toolTriggerRef.current?.focus(), 0);
@@ -394,7 +405,7 @@ export function App() {
             className="panel-scrim"
             role="presentation"
             data-leaving={panelLeaving ? "true" : undefined}
-            onMouseDown={() => closeTool()}
+            onMouseDown={closeTool}
           />
           {confirmingClose && (
             <div className="confirm-layer" role="presentation">
@@ -405,7 +416,7 @@ export function App() {
                   <button className="button button--light" type="button" autoFocus onClick={() => setConfirmingClose(false)}>
                     Keep editing
                   </button>
-                  <button className="button button--primary" type="button" onClick={() => closeTool(true)}>
+                  <button className="button button--primary" type="button" onClick={discardAndClose}>
                     Discard
                   </button>
                 </div>
