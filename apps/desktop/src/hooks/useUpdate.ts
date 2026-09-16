@@ -14,10 +14,11 @@ export type UpdateState =
 /**
  * Keeps the app up to date, without taking it away mid-sentence.
  *
- * It checks once on launch, and downloads and installs on its own — that part
- * is automatic, as asked. What it does not do is restart underneath you: an
- * app that vanishes while a two-hour transcode is running has not been helpful.
- * So the last step is a button, and the banner says the work is already done.
+ * It checks once on launch and downloads on its own — that part is automatic,
+ * as asked. Installing is deliberately not: on Windows the installer exits the
+ * app the moment it is launched, so installing on launch would mean the window
+ * disappearing by itself, possibly mid-job. The download is the slow half, and
+ * it is already done by the time the button is pressed.
  *
  * Everything here is verified before it runs: the plugin checks the download
  * against a signature whose public half is compiled into the binary, so a
@@ -25,6 +26,8 @@ export type UpdateState =
  */
 export function useUpdate() {
   const [state, setState] = useState<UpdateState>({ phase: "idle" });
+  /** Held so the Restart button can install what was already fetched. */
+  const [pending, setPending] = useState<Update | null>(null);
 
   useEffect(() => {
     if (!isNativeHost()) return;
@@ -47,7 +50,7 @@ export function useUpdate() {
       try {
         let total = 0;
         let taken = 0;
-        await update.downloadAndInstall((event) => {
+        await update.download((event) => {
           if (!active) return;
           if (event.event === "Started") {
             total = event.data.contentLength ?? 0;
@@ -62,7 +65,10 @@ export function useUpdate() {
             });
           }
         });
-        if (active) setState({ phase: "ready", version });
+        if (active) {
+          setPending(update);
+          setState({ phase: "ready", version });
+        }
       } catch (error) {
         if (active) setState({ phase: "failed", message: describe(error) });
       }
@@ -74,8 +80,17 @@ export function useUpdate() {
   }, []);
 
   const restart = useCallback(() => {
-    void relaunch();
-  }, []);
+    void (async () => {
+      try {
+        // On Windows this hands over to the installer and exits the app; the
+        // relaunch below is for the platforms where it does not.
+        await pending?.install();
+        await relaunch();
+      } catch (error) {
+        setState({ phase: "failed", message: describe(error) });
+      }
+    })();
+  }, [pending]);
 
   const dismiss = useCallback(() => setState({ phase: "idle" }), []);
 

@@ -2,8 +2,11 @@
 
 # ToolHaven
 
-**A Windows desktop bench for the open-source tools you already trust —
-delivered so you never install a single one of them by hand.**
+**Convert video, download from YouTube, edit PDFs, upscale photos and read text
+out of scans — on Windows, without typing a command.**
+
+A desktop app for FFmpeg, yt-dlp, ImageMagick, Tesseract and 22 more
+open-source tools, delivered so you never install a single one of them by hand.
 
 [![Release](https://img.shields.io/github/v/tag/diegormirhan/toolhaven-desktop?label=release&color=88afff)](https://github.com/diegormirhan/toolhaven-desktop/tags)
 [![License](https://img.shields.io/badge/license-MIT-88afff)](LICENSE)
