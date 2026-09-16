@@ -72,8 +72,8 @@ export function ImageSearchPanel({
   useEffect(() => closeButtonRef.current?.focus(), []);
 
   useEffect(() => {
-    if (error || opened) // Optional call: jsdom has the element but not the method.
-      resultRef.current?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+    // Optional call: jsdom has the element but not the method.
+    if (error || opened) resultRef.current?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
   }, [error, opened]);
 
   useEffect(() => {

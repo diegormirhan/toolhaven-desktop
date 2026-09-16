@@ -50,6 +50,21 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   const selectedOperation = tool.operations.find((operation) => operation.id === selectedOperationId);
+  /**
+   * Where this will be saved without asking, when a default folder is set.
+   *
+   * A folder chosen in Settings used to be only the dialog's starting point,
+   * which meant the setting changed nothing about how many questions you were
+   * asked. It now decides the destination outright, and the row below says so
+   * before the run rather than after it. The folder button still overrides it.
+   */
+  const automaticOutput =
+    defaultFolder && requiresOutput(tool.id, selectedOperationId)
+      ? writesToDirectory(tool.id, selectedOperationId)
+        ? defaultFolder
+        : startingPath()
+      : "";
+  const effectiveOutput = outputPath || automaticOutput;
   const selectedFileNames = selectedFiles.map((file) => file.name);
   const currentJob = findJob(jobs, currentJobId);
   const isRunning = currentJob?.status === "running";
@@ -288,7 +303,15 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
           <div className="tool-option">
             <span>
               <strong>Destination</strong>
-              <small>{outputPath || "Choose the destination when you run it. The extension decides the format."}</small>
+              <small>
+                {effectiveOutput ||
+                  "Choose the destination when you run it. The extension decides the format."}
+              </small>
+              {!outputPath && automaticOutput && (
+                <small className="tool-option__note">
+                  Your default folder, from Settings. Pick another with the button.
+                </small>
+              )}
             </span>
             <button
               className="icon-button"
@@ -460,7 +483,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
     resetFeedback();
     try {
       const resolvedOutput =
-        outputPath ||
+        effectiveOutput ||
         (isNativeHost() && requiresOutput(tool.id, selectedOperationId) ? await pickOutputForOperation() : "");
       const jobId = onRun?.({
         request: {

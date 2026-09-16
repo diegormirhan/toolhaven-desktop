@@ -66,8 +66,8 @@ export function MusicPanel({
   // The answer appears below the fold on a short window, and a panel that has
   // finished without appearing to change reads as one that did nothing.
   useEffect(() => {
-    if (result || error) // Optional call: jsdom has the element but not the method.
-      resultRef.current?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+    // Optional call: jsdom has the element but not the method.
+    if (result || error) resultRef.current?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
   }, [result, error]);
 
   useEffect(() => {

@@ -318,6 +318,71 @@ it('opens the save dialog in the folder chosen in settings', async () => {
   expect(save).toHaveBeenCalledWith({ defaultPath: 'D:\\saida\\foto-optimize.png' });
 });
 
+it('saves into the folder chosen in settings without asking again', async () => {
+  const onRun = vi.fn(() => jobId);
+  render(
+    <ToolPanel
+      tool={catalogTool('oxipng')}
+      initialPath={'C:\\fotos\\foto.png'}
+      defaultFolder={'D:\\saida'}
+      onClose={vi.fn()}
+      onRun={onRun}
+    />,
+  );
+
+  // The destination is settled before the run, and it says where.
+  expect(screen.getByText('D:\\saida\\foto-optimize.png')).toBeInTheDocument();
+  expect(screen.getByText(/your default folder, from settings/i)).toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole('button', { name: 'Run' }));
+
+  // A default folder means the setting decides; no dialog is opened at all.
+  expect(save).not.toHaveBeenCalled();
+  expect(onRun).toHaveBeenCalledWith(
+    expect.objectContaining({
+      request: expect.objectContaining({ outputPath: 'D:\\saida\\foto-optimize.png' }),
+    }),
+  );
+});
+
+it('still asks where to save when no default folder is set', async () => {
+  const onRun = vi.fn(() => jobId);
+  vi.mocked(save).mockResolvedValue('C:\\fotos\\foto-optimize.png');
+  render(
+    <ToolPanel
+      tool={catalogTool('oxipng')}
+      initialPath={'C:\\fotos\\foto.png'}
+      onClose={vi.fn()}
+      onRun={onRun}
+    />,
+  );
+
+  await userEvent.click(screen.getByRole('button', { name: 'Run' }));
+
+  expect(save).toHaveBeenCalled();
+});
+
+it('sends a gallery straight to the default folder rather than a file inside it', async () => {
+  const onRun = vi.fn(() => jobId);
+  render(
+    <ToolPanel
+      tool={catalogTool('gallery-dl')}
+      defaultFolder={'D:\\saida'}
+      onClose={vi.fn()}
+      onRun={onRun}
+    />,
+  );
+
+  await userEvent.type(screen.getByLabelText('Media URL'), 'https://example.test/gallery');
+  await userEvent.click(screen.getByRole('button', { name: 'Run' }));
+
+  expect(onRun).toHaveBeenCalledWith(
+    expect.objectContaining({
+      request: expect.objectContaining({ outputPath: 'D:\\saida' }),
+    }),
+  );
+});
+
 it('falls back to the suggested path when no default folder is set', async () => {
   vi.mocked(save).mockResolvedValue('C:\\fotos\\foto-optimize.png');
   render(<ToolPanel tool={catalogTool('oxipng')} initialPath={'C:\\fotos\\foto.png'} onClose={vi.fn()} onRun={() => jobId} />);

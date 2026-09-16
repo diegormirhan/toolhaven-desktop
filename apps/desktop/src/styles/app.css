@@ -428,8 +428,11 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .panel-scrim {
   position: fixed; z-index: 70; inset: 0;
   background: color-mix(in srgb, var(--scrim) 78%, transparent);
+  /* No hand-written -webkit- twin here. The minifier collapses the pair down
+     to the prefixed one alone, which this WebView does not apply at all — so
+     writing the prefix by hand is what removes the blur in a release build,
+     while every other rule in this file keeps it by not asking. */
   backdrop-filter: blur(10px) saturate(115%);
-  -webkit-backdrop-filter: blur(10px) saturate(115%);
   animation: fade-in 220ms var(--ease-out);
 }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -773,6 +776,7 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .tool-option > span { display: flex; flex-direction: column; gap: 3px; min-width: 0; overflow-wrap: anywhere; }
 .tool-option strong { font-size: 0.78rem; }
 .tool-option small { color: var(--text-quiet); font-size: 0.7rem; }
+.tool-option__note { color: var(--action); }
 /* ── Panels that leave the machine ────────────────────────────
    Two tools send something out, and both say so before they are used
    rather than in a footnote afterwards. The notice is deliberately not
