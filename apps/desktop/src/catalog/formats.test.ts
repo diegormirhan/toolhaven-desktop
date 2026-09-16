@@ -49,3 +49,20 @@ describe("file types", () => {
     }
   });
 });
+
+describe("tools that read less than their family", () => {
+  it("keeps a TIFF out of Real-ESRGAN, which reads three formats", () => {
+    // Declaring it as an "image" tool would let every image extension in and
+    // fail later in the binary, which is the failure the table prevents.
+    expect(acceptsFile("realesrgan", "foto.png").ok).toBe(true);
+    expect(acceptsFile("realesrgan", "foto.JPG").ok).toBe(true);
+    expect(acceptsFile("realesrgan", "foto.webp").ok).toBe(true);
+
+    const verdict = acceptsFile("realesrgan", "scan.tiff");
+    expect(verdict.ok).toBe(false);
+    if (!verdict.ok) expect(verdict.reason).toMatch(/\.jpg, \.jpeg, \.png, \.webp/);
+
+    // A sibling image tool is unaffected by the narrower list.
+    expect(acceptsFile("libvips", "scan.tiff").ok).toBe(true);
+  });
+});

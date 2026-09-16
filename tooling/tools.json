@@ -152,6 +152,24 @@
       ]
     },
     {
+      "id": "realesrgan",
+      "displayName": "Real-ESRGAN",
+      "status": "downloadable",
+      "delivery": "on-demand",
+      "sourceRepository": "https://github.com/xinntao/Real-ESRGAN",
+      "licenseExpression": "BSD-3-Clause",
+      "capabilities": [
+        "image.upscale_model"
+      ],
+      "version": "0.2.5.0",
+      "artifacts": [
+        {
+          "url": "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-windows.zip",
+          "sha256": "abc02804e17982a3be33675e4d471e91ea374e65b70167abc09e31acb412802d"
+        }
+      ]
+    },
+    {
       "id": "jq",
       "displayName": "jq",
       "status": "bundled",

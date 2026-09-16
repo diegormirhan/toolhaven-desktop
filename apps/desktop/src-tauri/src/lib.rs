@@ -89,6 +89,7 @@ fn detect_available_tools() -> Vec<String> {
         "yt-dlp",
         "gallery-dl",
         "tesseract",
+        "realesrgan",
         "deno",
         "qpdf",
         "libvips",
@@ -493,6 +494,20 @@ fn validate_options(request: &OperationRequest) -> Result<(), String> {
             return Err("Page numbering starts at 1.".into());
         }
     }
+    if request.tool_id == "realesrgan" {
+        let scale = request
+            .options
+            .get("scale")
+            .map(|value| value.trim())
+            .unwrap_or("4");
+        // Both models emit tiles at four times the input. Asking the tool for
+        // any other factor leaves it stitching 4x tiles at 2x offsets, and the
+        // picture comes back as a checkerboard of unrelated regions -- which is
+        // what shipped, because the interface offered 2x and 3x.
+        if scale != "4" {
+            return Err("Real-ESRGAN enlarges four times over. Resize afterwards for any other size.".into());
+        }
+    }
     if request.tool_id == "oxipng" && request.operation_id == "optimize" {
         let level = request
             .options
@@ -536,6 +551,7 @@ fn executable_name(tool_id: &str) -> Result<String, String> {
         "ffprobe" => "ffprobe.exe",
         "yt-dlp" => "yt-dlp.exe",
         "tesseract" => "tesseract.exe",
+        "realesrgan" => "realesrgan-ncnn-vulkan.exe",
         "gallery-dl" => "gallery-dl.exe",
         "deno" => "deno.exe",
         "qpdf" => "qpdf.exe",
@@ -1176,6 +1192,30 @@ fn resolve_args(request: &OperationRequest) -> Result<Vec<String>, String> {
             args.push(request.source_url.clone().unwrap_or(input));
             Ok(args)
         }
+        ("realesrgan", "upscale") => {
+            // The model decides what the detail is invented to look like:
+            // x4plus was trained on photographs, the anime variant on line art,
+            // and using the wrong one smears the thing it is trying to sharpen.
+            let model = match option("model", "photo").as_str() {
+                "illustration" => "realesrgan-x4plus-anime",
+                _ => "realesrgan-x4plus",
+            };
+            Ok(vec![
+                "-i".into(),
+                input,
+                "-o".into(),
+                output,
+                "-n".into(),
+                model.into(),
+                // Fixed, not taken from the options: see validate_options.
+                "-s".into(),
+                "4".into(),
+                // 0 lets it choose a tile that fits the GPU's memory; a fixed
+                // size would fail on the smaller cards it is meant to support.
+                "-t".into(),
+                "0".into(),
+            ])
+        }
         ("tesseract", "ocr") => Ok(vec![
             input,
             // Tesseract appends the extension itself, so it is handed a base
@@ -1721,6 +1761,39 @@ mod tests {
         assert!(
             validate_options(&download_request("download-video", &[("quality", "ultra")])).is_err()
         );
+    }
+
+    #[test]
+    fn the_upscaler_is_pointed_at_the_model_its_subject_needs() {
+        let photo = resolve_args(&request_for("realesrgan", "upscale", &[])).unwrap();
+        assert!(photo
+            .windows(2)
+            .any(|pair| pair == ["-n", "realesrgan-x4plus"]));
+        assert!(photo.windows(2).any(|pair| pair == ["-s", "4"]));
+        // Auto tiling: a fixed size fails on the smaller cards this is meant
+        // to run on.
+        assert!(photo.windows(2).any(|pair| pair == ["-t", "0"]));
+
+        // The drawing model smears a photograph, so the choice must reach the
+        // binary rather than being decorative.
+        let drawing = resolve_args(&request_for(
+            "realesrgan",
+            "upscale",
+            &[("model", "illustration")],
+        ))
+        .unwrap();
+        assert!(drawing
+            .windows(2)
+            .any(|pair| pair == ["-n", "realesrgan-x4plus-anime"]));
+
+        // Only the three factors the binary accepts.
+        assert!(
+            validate_options(&request_for("realesrgan", "upscale", &[("scale", "8")])).is_err()
+        );
+        // 2x is the case that shipped broken: the model still returns 4x tiles.
+        assert!(validate_options(&request_for("realesrgan", "upscale", &[("scale", "2")])).is_err());
+        assert!(validate_options(&request_for("realesrgan", "upscale", &[])).is_ok());
+        assert!(photo.windows(2).any(|pair| pair == ["-s", "4"]));
     }
 
     #[test]

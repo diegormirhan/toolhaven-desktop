@@ -80,6 +80,22 @@ const presentationById: Record<
     keywords: ["image", "photo", "resize", "crop", "compress", "convert", "upscale"],
     downloadLabel: "In-app download",
   },
+  realesrgan: {
+    id: "realesrgan",
+    title: "Enlarge with a model",
+    description: "Rebuild detail a plain resize can only blur, on your own machine.",
+    category: "images",
+    accent: "cool",
+    size: "standard",
+    operations: [
+      { id: "upscale", label: "Enlarge", description: "Four times over, with the detail redrawn rather than blurred." },
+    ],
+    keywords: [
+      "upscale", "enlarge", "resize", "ai", "model", "sharpen", "detail",
+      "super resolution", "esrgan", "restore", "quality",
+    ],
+    downloadLabel: "In-app download",
+  },
   imagemagick: {
     id: "imagemagick",
     title: "Image formats",
@@ -395,7 +411,7 @@ const rowDefinitions = [
     id: "images",
     title: "Images",
     description: "Resize, crop, convert, shrink, and read or strip metadata.",
-    toolIds: ["libvips", "imagemagick", "oxipng", "exiftool"],
+    toolIds: ["libvips", "realesrgan", "imagemagick", "oxipng", "exiftool"],
   },
   {
     id: "documents",

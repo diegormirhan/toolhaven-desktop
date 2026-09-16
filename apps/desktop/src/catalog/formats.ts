@@ -26,6 +26,7 @@ export const toolAccepts: Record<string, FormatFamily[]> = {
   ffprobe: ["video", "audio"],
   mkvtoolnix: ["video"],
   libvips: ["image"],
+  realesrgan: ["image"],
   imagemagick: ["image", "pdf"],
   oxipng: ["image"],
   exiftool: ["image", "video", "audio", "pdf", "document"],
@@ -47,6 +48,18 @@ export const toolAccepts: Record<string, FormatFamily[]> = {
   deno: ["any"],
   "yt-dlp": ["any"],
   "gallery-dl": ["any"],
+};
+
+/**
+ * Tools that read a subset of their family, listed by extension.
+ *
+ * A family is the right unit almost everywhere, but not always: Real-ESRGAN is
+ * an image tool that reads three formats, and saying "image" would let a TIFF
+ * through to fail in the binary — which is the failure this table exists to
+ * prevent.
+ */
+export const toolExtensions: Record<string, string[]> = {
+  realesrgan: ["jpg", "jpeg", "png", "webp"],
 };
 
 /**
@@ -80,6 +93,7 @@ export const operationFormats: Record<string, { label: string; formats: string[]
     default: "png",
   },
   "poppler/rasterize": { label: "Image format", formats: ["png", "jpg", "tif"], default: "png" },
+  "realesrgan/upscale": { label: "Write as", formats: ["png", "jpg", "webp"], default: "png" },
   "pandoc/convert": {
     label: "Convert to",
     formats: ["html", "docx", "odt", "epub", "md", "rst", "tex", "txt"],
@@ -99,10 +113,23 @@ export function extensionOf(path: string): string {
 
 /** Whether a tool will take this file, and a sentence saying why not. */
 export function acceptsFile(toolId: string, path: string): { ok: true } | { ok: false; reason: string } {
+  const extension = extensionOf(path);
+
+  const explicit = toolExtensions[toolId];
+  if (explicit) {
+    if (explicit.includes(extension)) return { ok: true };
+    const what = extension ? `A .${extension} file` : "That file";
+    return {
+      ok: false,
+      reason: `${what} is not something this tool reads. It takes ${explicit
+        .map((e) => `.${e}`)
+        .join(", ")}.`,
+    };
+  }
+
   const families = toolAccepts[toolId] ?? ["any"];
   if (families.includes("any")) return { ok: true };
 
-  const extension = extensionOf(path);
   const allowed = families.flatMap((family) =>
     family === "any" ? [] : familyExtensions[family],
   );

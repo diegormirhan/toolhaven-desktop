@@ -147,7 +147,7 @@ button, input, select { font: inherit; }
 input { caret-color: var(--action); }
 button { color: inherit; }
 button, label { -webkit-tap-highlight-color: transparent; }
-button:focus-visible, input:focus-visible, select:focus-visible, label:has(input:focus-visible) {
+button:focus-visible, input:focus-visible, select:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 3px;
 }
@@ -614,6 +614,32 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 }
 .confirm-card h2 { margin: 0 0 8px; font-size: 1.1rem; letter-spacing: -0.015em; }
 .confirm-card p { margin: 0 0 20px; color: var(--text-secondary); font-size: 0.8rem; line-height: 1.5; }
+
+
+/* ── Number field ─────────────────────────────────────────────
+   Chromium's own spinners appear on hover, sit inside the box and are
+   a few pixels tall, so a numeric field reads as plain text until the
+   pointer finds them. These are always visible and worth hitting. */
+.number-field { position: relative; display: block; }
+.number-field input { width: 100%; padding-right: 30px; }
+.number-field input::-webkit-outer-spin-button,
+.number-field input::-webkit-inner-spin-button { appearance: none; margin: 0; }
+.number-field__steppers {
+  position: absolute; top: 1px; right: 1px; bottom: 1px;
+  display: grid; grid-template-rows: 1fr 1fr; width: 26px;
+  border-left: 1px solid var(--line);
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
+  overflow: hidden;
+}
+.number-field__steppers button {
+  display: grid; place-items: center;
+  color: var(--text-quiet); background: var(--control); border: 0;
+  cursor: pointer; transition: color 160ms var(--ease-out), background 160ms var(--ease-out);
+}
+.number-field__steppers button:hover:not(:disabled) { color: var(--text); background: var(--control-hover); }
+.number-field__steppers button:active:not(:disabled) { background: var(--surface-active); }
+.number-field__steppers button:disabled { opacity: 0.35; cursor: default; }
+.number-field__steppers button + button { border-top: 1px solid var(--line); }
 
 .tool-panel__topbar { display: flex; align-items: center; justify-content: space-between; min-height: 58px; padding: 0 16px 0 22px; color: var(--text-quiet); font-size: 0.72rem; border-bottom: 1px solid var(--line); }
 .tool-panel__body { min-width: 0; min-height: 0; overflow: auto; padding: 30px 24px; overflow-wrap: anywhere; }

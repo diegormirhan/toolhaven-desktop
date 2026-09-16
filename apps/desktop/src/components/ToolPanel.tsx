@@ -7,6 +7,7 @@ import { isNativeHost, type OperationRequest } from "../hooks/useOperationRunner
 import { FilePreview, previewKind } from "./FilePreview";
 import { defaultCrop, type CropRect } from "./CropOverlay";
 import { Select } from "./Select";
+import { NumberField } from "./NumberField";
 import { acceptsFile, operationFormats } from "../catalog/formats";
 
 export type RunOperationInput = {
@@ -575,6 +576,16 @@ function OperationOptions({
                   <FilePlus2 size={16} />
                 </button>
               </span>
+            ) : field.type === "number" ? (
+              <NumberField
+                label={field.label}
+                value={value}
+                placeholder={field.placeholder}
+                min={field.min}
+                max={field.max}
+                step={field.step}
+                onChange={(next) => onChange(field.key, next)}
+              />
             ) : (
               <input
                 aria-label={field.label}
@@ -602,6 +613,10 @@ type OperationField = {
   choices?: Array<{ value: string; label: string }>;
   /** Guidance shown under the control, for rules the label cannot carry. */
   hint?: string;
+  /** Limits for a number field, which its steppers clamp to. */
+  min?: number;
+  max?: number;
+  step?: number;
   /** Lets a field depend on another one's value. */
   showWhen?: (values: Record<string, string>) => boolean;
 };
@@ -658,6 +673,20 @@ function operationFields(toolId: string, operationId: string): OperationField[] 
     });
     return fields;
   }
+  if (toolId === "realesrgan" && operationId === "upscale")
+    return [
+      {
+        key: "model",
+        label: "Subject",
+        type: "select",
+        defaultValue: "photo",
+        choices: [
+          { value: "photo", label: "Photograph" },
+          { value: "illustration", label: "Drawing or anime" },
+        ],
+        hint: "Both models enlarge four times over, which is the size they were trained to produce. The model decides what the invented detail looks like: pointing the drawing model at a photograph smears the faces it is meant to sharpen.",
+      },
+    ];
   if (toolId === "ffmpeg") {
     // Every operation that re-encodes offers the same two choices, so they are
     // defined once rather than repeated per operation.
@@ -689,18 +718,18 @@ function operationFields(toolId: string, operationId: string): OperationField[] 
     switch (operationId) {
       case "trim":
         return [
-          { key: "start", label: "Start (seconds)", type: "number", defaultValue: "0" },
-          { key: "end", label: "End (seconds)", type: "number", defaultValue: "10" },
+          { key: "start", label: "Start (seconds)", type: "number", defaultValue: "0", min: 0 },
+          { key: "end", label: "End (seconds)", type: "number", defaultValue: "10", min: 0 },
         ];
       case "convert":
       case "compress":
       case "fps":
         return operationId === "fps"
-          ? [{ key: "rate", label: "Frames per second", type: "number", defaultValue: "30" }, ...encoding]
+          ? [{ key: "rate", label: "Frames per second", type: "number", defaultValue: "30", min: 1, max: 240 }, ...encoding]
           : encoding;
       case "resize":
         return [
-          { key: "width", label: "Width (pixels)", type: "number", defaultValue: "1280" },
+          { key: "width", label: "Width (pixels)", type: "number", defaultValue: "1280", min: 1, step: 10 },
           ...encoding,
         ];
       case "crop":
@@ -733,6 +762,9 @@ function operationFields(toolId: string, operationId: string): OperationField[] 
             label: "Speed",
             type: "number",
             defaultValue: "2",
+            min: 0.25,
+            max: 8,
+            step: 0.25,
             hint: "2 plays twice as fast, 0.5 half as fast. Audio follows the picture.",
           },
           ...encoding,
@@ -756,11 +788,11 @@ function operationFields(toolId: string, operationId: string): OperationField[] 
           { key: "rate", label: "Frames per second", type: "number", defaultValue: "12" },
         ];
       case "thumbnail":
-        return [{ key: "at", label: "At (seconds)", type: "number", defaultValue: "1" }];
+        return [{ key: "at", label: "At (seconds)", type: "number", defaultValue: "1", min: 0 }];
       case "contact-sheet":
         return [
-          { key: "columns", label: "Columns", type: "number", defaultValue: "3" },
-          { key: "rows", label: "Rows", type: "number", defaultValue: "3" },
+          { key: "columns", label: "Columns", type: "number", defaultValue: "3", min: 1, max: 12 },
+          { key: "rows", label: "Rows", type: "number", defaultValue: "3", min: 1, max: 12 },
           { key: "every", label: "Every N frames", type: "number", defaultValue: "48" },
           { key: "width", label: "Tile width", type: "number", defaultValue: "240" },
         ];
@@ -790,22 +822,40 @@ function operationFields(toolId: string, operationId: string): OperationField[] 
       { key: "height", label: "Height", type: "number", defaultValue: "100" },
     ];
   if (toolId === "libvips" && operationId === "compress")
-    return [{ key: "quality", label: "Quality", type: "number", defaultValue: "80" }];
+    return [{ key: "quality", label: "Quality", type: "number", defaultValue: "80", min: 1, max: 100, step: 5 }];
   if (toolId === "poppler" && operationId === "rasterize")
     return [
-      { key: "page", label: "Page", type: "number", defaultValue: "1" },
-      { key: "dpi", label: "Resolution (DPI)", type: "number", defaultValue: "150" },
+      { key: "page", label: "Page", type: "number", defaultValue: "1", min: 1 },
+      { key: "dpi", label: "Resolution (DPI)", type: "number", defaultValue: "150", min: 1, max: 2400, step: 50 },
     ];
   if (toolId === "oxipng" && operationId === "optimize")
-    return [{ key: "level", label: "Level (0–6 or max)", type: "text", defaultValue: "2" }];
+    return [
+      {
+        key: "level",
+        label: "Effort",
+        type: "select",
+        defaultValue: "2",
+        choices: [
+          { value: "0", label: "0 — fastest" },
+          { value: "1", label: "1" },
+          { value: "2", label: "2 — default" },
+          { value: "3", label: "3" },
+          { value: "4", label: "4" },
+          { value: "5", label: "5" },
+          { value: "6", label: "6 — slowest" },
+          { value: "max", label: "Max — try everything" },
+        ],
+        hint: "Higher settings search harder for a smaller file. The picture is identical either way; only the time changes.",
+      },
+    ];
   if (toolId === "exiftool" && operationId === "set-title")
     return [{ key: "title", label: "Title", type: "text", placeholder: "e.g. Signed contract" }];
   if (toolId === "hexyl" && operationId === "preview")
-    return [{ key: "length", label: "Bytes", type: "number", defaultValue: "256" }];
+    return [{ key: "length", label: "Bytes", type: "number", defaultValue: "256", min: 16, step: 16 }];
   if (toolId === "dust" && operationId === "usage")
     return [
-      { key: "depth", label: "Depth", type: "number", defaultValue: "2" },
-      { key: "lines", label: "Rows", type: "number", defaultValue: "20" },
+      { key: "depth", label: "Depth", type: "number", defaultValue: "2", min: 1 },
+      { key: "lines", label: "Rows", type: "number", defaultValue: "20", min: 1 },
     ];
   return [];
 }
@@ -870,6 +920,7 @@ function outputExtension(toolId: string, operationId: string, originalExtension:
     "oxipng/optimize": ".png",
     "mkvtoolnix/remux": ".mkv",
     "imagemagick/convert": ".png",
+    "realesrgan/upscale": ".png",
   };
   return byOperation[`${toolId}/${operationId}`] ?? (toolId === "qpdf" ? ".pdf" : originalExtension);
 }
