@@ -426,7 +426,7 @@ it('says why a file was refused instead of quietly ignoring it', async () => {
   expect(screen.queryByText('foto.png')).not.toBeInTheDocument();
 });
 
-it('sends the model, the factor and the cleanup level the panel offered', async () => {
+it('sends the factor the panel offered, which the host turns into a second pass', async () => {
   const onRun = vi.fn(() => jobId);
   vi.mocked(save).mockResolvedValue('C:\fotos\foto-upscale-model.png');
   render(
@@ -439,9 +439,10 @@ it('sends the model, the factor and the cleanup level the panel offered', async 
   );
 
   await choose(screen.getByRole('combobox', { name: 'Operation' }), 'Enlarge (model)');
-  await choose(screen.getByRole('combobox', { name: 'Enlarge by' }), '4x');
-  await choose(screen.getByRole('combobox', { name: 'Subject' }), /drawing/i);
-  await choose(screen.getByRole('combobox', { name: 'Clean up' }), 'Strong');
+  // Four times is what the model does; the panel opens on it.
+  expect(screen.getByRole('combobox', { name: 'Enlarge by' })).toHaveTextContent('4x');
+
+  await choose(screen.getByRole('combobox', { name: 'Enlarge by' }), '2x');
   await userEvent.click(screen.getByRole('button', { name: 'Run' }));
 
   expect(onRun).toHaveBeenCalledWith(
@@ -449,7 +450,7 @@ it('sends the model, the factor and the cleanup level the panel offered', async 
       request: expect.objectContaining({
         toolId: 'libvips',
         operationId: 'upscale-model',
-        options: expect.objectContaining({ scale: '4', model: 'illustration', denoise: '3' }),
+        options: expect.objectContaining({ scale: '2' }),
       }),
     }),
   );

@@ -69,8 +69,10 @@ describe("tool catalog", () => {
     expect(operations).toContain("upscale");
     expect(operations).toContain("upscale-model");
 
-    // And there is no second image card competing for the same intent.
-    expect(tools.find((tool) => tool.id === "realesrgan")).toBeUndefined();
+    // And nothing else competes for the same intent: the component that does
+    // the work has no card of its own.
+    expect(tools.filter((tool) => tool.operations.some((o) => o.id.startsWith("upscale"))))
+      .toHaveLength(1);
     expect(tools.find((tool) => tool.id === "waifu2x")).toBeUndefined();
   });
 

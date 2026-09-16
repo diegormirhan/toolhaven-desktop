@@ -309,7 +309,7 @@ fn detect_available_tools() -> Vec<String> {
         "yt-dlp",
         "gallery-dl",
         "tesseract",
-        "waifu2x",
+        "upscaler",
         "songrec",
         "deno",
         "qpdf",
@@ -493,6 +493,10 @@ fn execute_operation_with_progress(
             detail,
             explain_known_failure(&detail)
         ));
+    }
+
+    if let Some(written) = output_path.as_deref() {
+        second_pass(&request, written)?;
     }
 
     report_progress(OperationProgress {
@@ -778,17 +782,9 @@ fn validate_options(request: &OperationRequest) -> Result<(), String> {
             .options
             .get("scale")
             .map(|value| value.trim())
-            .unwrap_or("2");
-        if !matches!(scale, "1" | "2" | "4") {
-            return Err("Enlarging with a model works at 2x or 4x.".into());
-        }
-        let denoise = request
-            .options
-            .get("denoise")
-            .map(|value| value.trim())
-            .unwrap_or("1");
-        if !matches!(denoise, "-1" | "0" | "1" | "2" | "3") {
-            return Err("That is not one of the cleanup levels.".into());
+            .unwrap_or("4");
+        if !matches!(scale, "2" | "3" | "4") {
+            return Err("Enlarging with a model works at 2x, 3x or 4x.".into());
         }
     }
     if request.tool_id == "oxipng" && request.operation_id == "optimize" {
@@ -835,7 +831,7 @@ fn executable_name(tool_id: &str) -> Result<String, String> {
         "yt-dlp" => "yt-dlp.exe",
         "tesseract" => "tesseract.exe",
         "songrec" => "songrec.exe",
-        "waifu2x" => "waifu2x-ncnn-vulkan.exe",
+        "upscaler" => "realsr-ncnn-vulkan.exe",
         "gallery-dl" => "gallery-dl.exe",
         "deno" => "deno.exe",
         "qpdf" => "qpdf.exe",
@@ -896,8 +892,79 @@ fn resolve_suite_executable(tool_id: &str, executable: &str) -> Result<std::path
 /// picture bigger goes, but the program that does it is waifu2x.
 fn executing_tool(request: &OperationRequest) -> &str {
     match (request.tool_id.as_str(), request.operation_id.as_str()) {
-        ("libvips", "upscale-model") => "waifu2x",
+        ("libvips", "upscale-model") => "upscaler",
         _ => &request.tool_id,
+    }
+}
+
+/// Work an operation needs after its tool has finished, in the same job.
+///
+/// One case so far, and it is not a workaround. The upscaling model produces
+/// four times the input and nothing else, so a smaller enlargement is that
+/// result resized down — which is also how it is done when quality matters,
+/// because a model run at its trained factor and then reduced beats the same
+/// model asked for a factor it was not trained on.
+fn second_pass(request: &OperationRequest, output: &str) -> Result<(), String> {
+    if request.tool_id != "libvips" || request.operation_id != "upscale-model" {
+        return Ok(());
+    }
+    let Some(factor) = reduction_for(request) else {
+        // Already what the model produced.
+        return Ok(());
+    };
+
+    let written = std::path::Path::new(output);
+    let extension = written
+        .extension()
+        .and_then(|value| value.to_str())
+        .unwrap_or("png");
+    let reduced = written.with_extension(format!("resizing.{extension}"));
+    let vips = resolve_suite_executable("libvips", "vips.exe")?;
+
+    let mut command = std::process::Command::new(vips);
+    command
+        .args([
+            "resize",
+            output,
+            &reduced.to_string_lossy(),
+            factor,
+        ])
+        .stdin(std::process::Stdio::null());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x08000000);
+    }
+    let result = command
+        .output()
+        .map_err(|error| format!("Could not resize the result: {error}"))?;
+    if !result.status.success() {
+        let _ = std::fs::remove_file(&reduced);
+        return Err(format!(
+            "The picture was enlarged but could not be resized to {factor}x: {}",
+            compact_error(&String::from_utf8_lossy(&result.stderr))
+        ));
+    }
+    // Only now is the four-times file replaced, so a failure above leaves the
+    // enlargement rather than nothing at all.
+    std::fs::rename(&reduced, written)
+        .map_err(|error| format!("Could not replace the enlarged picture: {error}"))
+}
+
+/// How much the four-times result has to shrink to reach the factor asked for.
+fn reduction_for(request: &OperationRequest) -> Option<&'static str> {
+    if request.tool_id != "libvips" || request.operation_id != "upscale-model" {
+        return None;
+    }
+    match request
+        .options
+        .get("scale")
+        .map(|value| value.trim())
+        .unwrap_or("4")
+    {
+        "2" => Some("0.5"),
+        "3" => Some("0.75"),
+        _ => None,
     }
 }
 
@@ -907,12 +974,12 @@ fn executing_tool(request: &OperationRequest) -> &str {
 /// directory, so started from anywhere else it reports that it cannot find a
 /// model rather than that it was run from the wrong place.
 fn needs_its_own_directory(tool_id: &str) -> bool {
-    matches!(tool_id, "waifu2x")
+    matches!(tool_id, "upscaler")
 }
 
 fn operation_executable(request: &OperationRequest) -> Result<String, String> {
     let executable = match (request.tool_id.as_str(), request.operation_id.as_str()) {
-        ("libvips", "upscale-model") => "waifu2x-ncnn-vulkan.exe",
+        ("libvips", "upscale-model") => "realsr-ncnn-vulkan.exe",
         ("poppler", "extract-text") => "pdftotext.exe",
         ("poppler", "rasterize") => "pdftoppm.exe",
         ("mkvtoolnix", "remux") | ("mkvtoolnix", "inspect") => "mkvmerge.exe",
@@ -1498,34 +1565,23 @@ fn resolve_args(request: &OperationRequest) -> Result<Vec<String>, String> {
             args.push(request.source_url.clone().unwrap_or(input));
             Ok(args)
         }
-        ("libvips", "upscale-model") => {
-            // cunet is the general model and the one that won the comparison on
-            // photographs: sharper than Lanczos without inventing the texture
-            // that Real-ESRGAN drew onto flat stucco. The line-art model is
-            // kept because it genuinely is better at line art.
-            let model = match option("model", "photo").as_str() {
-                "illustration" => "models-upconv_7_anime_style_art_rgb",
-                _ => "models-cunet",
-            };
-            Ok(vec![
-                "-i".into(),
-                input,
-                "-o".into(),
-                output,
-                // A bare name, resolved against the working directory, which is
-                // set to the binary's own folder below. Building an absolute
-                // path here would mean this could not be worked out until the
-                // component was installed.
-                "-m".into(),
-                model.into(),
-                "-s".into(),
-                option("scale", "2"),
-                // Denoising is the reason to reach for this on a screenshot or
-                // a saved JPEG rather than on a camera original.
-                "-n".into(),
-                option("denoise", "1"),
-            ])
-        }
+        ("libvips", "upscale-model") => Ok(vec![
+            "-i".into(),
+            input,
+            "-o".into(),
+            output,
+            // The runner accepts two hard-coded directory names and refuses any
+            // other with "unknown model dir type", so the weights we want are
+            // installed over this one. The manifest does that rename; this name
+            // is the consequence, not a choice.
+            "-m".into(),
+            "models-DF2K".into(),
+            // The model is a 4x model and the runner offers nothing else. A
+            // smaller result is the model at 4x and then a resize, which is
+            // what the second pass below does.
+            "-s".into(),
+            "4".into(),
+        ]),
         ("tesseract", "ocr") => Ok(vec![
             input,
             // Tesseract appends the extension itself, so it is handed a base
@@ -2108,52 +2164,46 @@ mod tests {
     }
 
     #[test]
-    fn the_upscaler_is_pointed_at_the_model_its_subject_needs() {
-        let photo = resolve_args(&request_for("libvips", "upscale-model", &[])).unwrap();
-        // The general model, which beat the alternatives on a photograph: as
-        // sharp as the sharpest without inventing texture on a flat wall.
-        assert!(photo.windows(2).any(|pair| pair == ["-m", "models-cunet"]));
-        assert!(needs_its_own_directory("waifu2x"), "its models sit beside it");
-        // Doubling by default, because that is what enlarging usually means.
-        assert!(photo.windows(2).any(|pair| pair == ["-s", "2"]));
-        assert!(photo.windows(2).any(|pair| pair == ["-n", "1"]));
+    fn the_upscaler_always_runs_the_model_at_the_one_factor_it_has() {
+        let args = resolve_args(&request_for("libvips", "upscale-model", &[])).unwrap();
+        // Four times, whatever was asked for: the model has no other factor,
+        // and asking a model for a factor it was not trained on is what
+        // produced a scrambled picture the last time.
+        assert!(args.windows(2).any(|pair| pair == ["-s", "4"]));
+        // The runner recognises two hard-coded directory names, so the weights
+        // are installed over one of them rather than sitting under their own.
+        assert!(args.windows(2).any(|pair| pair == ["-m", "models-DF2K"]));
+        assert!(needs_its_own_directory("upscaler"), "its models sit beside it");
 
-        // Line art is the one case the other model genuinely wins, so the
-        // choice has to reach the binary rather than being decorative.
-        let drawing = resolve_args(&request_for(
-            "libvips",
-            "upscale-model",
-            &[("model", "illustration")],
-        ))
-        .unwrap();
-        assert!(drawing
-            .windows(2)
-            .any(|pair| pair == ["-m", "models-upconv_7_anime_style_art_rgb"]));
+        // A smaller result is the same four-times run, resized afterwards.
+        for (scale, argv) in [("2", Some("0.5")), ("3", Some("0.75")), ("4", None)] {
+            let request = request_for("libvips", "upscale-model", &[("scale", scale)]);
+            assert!(
+                resolve_args(&request)
+                    .unwrap()
+                    .windows(2)
+                    .any(|pair| pair == ["-s", "4"]),
+                "{scale} still runs the model at four"
+            );
+            assert_eq!(reduction_for(&request), argv, "second pass for {scale}");
+        }
 
-        // Only the factors and levels the binary accepts.
-        for scale in ["3", "8", "0", ""] {
+        for scale in ["1", "8", "0", ""] {
             assert!(
                 validate_options(&request_for("libvips", "upscale-model", &[("scale", scale)]))
                     .is_err(),
                 "{scale} should be refused"
             );
         }
-        assert!(validate_options(&request_for("libvips", "upscale-model", &[("scale", "4")])).is_ok());
-        assert!(
-            validate_options(&request_for("libvips", "upscale-model", &[("denoise", "9")])).is_err()
-        );
-        assert!(
-            validate_options(&request_for("libvips", "upscale-model", &[("denoise", "-1")])).is_ok()
-        );
     }
 
     #[test]
-    fn enlarging_runs_waifu2x_even_though_it_sits_on_the_image_card() {
+    fn enlarging_runs_the_upscaler_even_though_it_sits_on_the_image_card() {
         // The card someone looks for is "adjust images"; the program that does
         // this one is a different component, and the store is keyed per tool.
         let request = request_for("libvips", "upscale-model", &[]);
-        assert_eq!(executing_tool(&request), "waifu2x");
-        assert_eq!(operation_executable(&request).unwrap(), "waifu2x-ncnn-vulkan.exe");
+        assert_eq!(executing_tool(&request), "upscaler");
+        assert_eq!(operation_executable(&request).unwrap(), "realsr-ncnn-vulkan.exe");
 
         // Every other operation on the card is still libvips' own.
         let resize = request_for("libvips", "resize", &[]);

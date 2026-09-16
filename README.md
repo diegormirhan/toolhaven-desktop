@@ -183,7 +183,7 @@ Twenty-six cards, grouped by the result you want rather than by the project that
 |---|---|---|
 | **Video and audio** | FFmpeg · ffprobe · SongRec · MKVToolNix | transcode, compress, trim, GIFs, contact sheets, inspect codecs, remux to MKV, and name the music that is playing |
 | **Downloads** | yt-dlp · gallery-dl · Deno | video and audio from a link, image galleries, and the runtime they lean on |
-| **Images** | libvips · waifu2x · reverse image search · ImageMagick · Oxipng · ExifTool | resize, crop, convert, enlarge two or four times with a model, find where a picture came from, optimise PNG, read and strip metadata |
+| **Images** | libvips · Nomos8kSC · reverse image search · ImageMagick · Oxipng · ExifTool | resize, crop, convert, enlarge two to four times with a model, find where a picture came from, optimise PNG, read and strip metadata |
 | **PDFs and documents** | qpdf · Poppler · Tesseract · Pandoc | merge, split, rotate, protect, extract text, rasterise a page, OCR into a searchable PDF, convert between document formats |
 | **Text and data** | jq · yq · Miller · ripgrep · fd · Difftastic | JSON and YAML, CSV to JSON, search, find, structural diff |
 | **Files and disk** | 7-Zip · Dust · tokei · hexyl | archives, where the space went, count code, hex preview |

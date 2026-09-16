@@ -714,35 +714,13 @@ function operationFields(toolId: string, operationId: string): OperationField[] 
         key: "scale",
         label: "Enlarge by",
         type: "select",
-        defaultValue: "2",
+        defaultValue: "4",
         choices: [
           { value: "2", label: "2x" },
-          { value: "4", label: "4x" },
+          { value: "3", label: "3x" },
+          { value: "4", label: "4x — what the model produces" },
         ],
-        hint: "Two times is where this is at its best. Four asks the model to invent more, and it shows.",
-      },
-      {
-        key: "model",
-        label: "Subject",
-        type: "select",
-        defaultValue: "photo",
-        choices: [
-          { value: "photo", label: "Photograph or screenshot" },
-          { value: "illustration", label: "Drawing, anime or line art" },
-        ],
-      },
-      {
-        key: "denoise",
-        label: "Clean up",
-        type: "select",
-        defaultValue: "1",
-        choices: [
-          { value: "-1", label: "None — leave the grain alone" },
-          { value: "1", label: "Light" },
-          { value: "2", label: "Medium" },
-          { value: "3", label: "Strong" },
-        ],
-        hint: "Removes the blocks a JPEG or a screenshot picked up. Strong settings also remove real texture.",
+        hint: "The model always works at four times and a smaller result is that, resized down. It is the better way round: a model asked for a factor it was not trained on is where the artefacts come from.",
       },
     ];
   if (toolId === "ffmpeg") {

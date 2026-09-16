@@ -88,12 +88,12 @@ const presentationById: Record<string, ToolPresentation> = {
       {
         id: "upscale-model",
         label: "Enlarge (model)",
-        description: "Twice or four times over, with a model that keeps edges sharp.",
+        description: "Two to four times over, with a model that rebuilds detail instead of blurring it.",
       },
     ],
     keywords: [
       "image", "photo", "resize", "crop", "compress", "convert", "upscale", "enlarge",
-      "bigger", "sharpen", "super resolution", "waifu2x", "denoise", "ai", "model", "quality",
+      "bigger", "sharpen", "super resolution", "nomos", "denoise", "ai", "model", "quality", "sharp",
     ],
     downloadLabel: "In-app download",
   },

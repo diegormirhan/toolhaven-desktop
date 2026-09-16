@@ -178,26 +178,42 @@
         }
       ],
       "dependencies": [
-        "waifu2x"
+        "upscaler"
       ]
     },
     {
-      "id": "waifu2x",
-      "displayName": "waifu2x",
+      "id": "upscaler",
+      "displayName": "Nomos8kSC upscaler",
       "status": "downloadable",
       "delivery": "on-demand",
-      "sourceRepository": "https://github.com/nihui/waifu2x-ncnn-vulkan",
-      "licenseExpression": "MIT",
+      "sourceRepository": "https://github.com/nihui/realsr-ncnn-vulkan",
+      "licenseExpression": "MIT AND CC-BY-4.0",
       "capabilities": [
         "image.upscale_model"
       ],
-      "version": "20250915",
+      "version": "20220728+nomos8ksc",
       "artifacts": [
         {
-          "url": "https://github.com/nihui/waifu2x-ncnn-vulkan/releases/download/20250915/waifu2x-ncnn-vulkan-20250915-windows.zip",
-          "sha256": "7425be94b94e4c8f37a1e433ac0e0100c43790e2c37418f4b65d8235adfbdc87",
-          "binaryDirectory": "waifu2x-ncnn-vulkan-20250915-windows",
-          "sizeBytes": 35497352
+          "url": "https://github.com/nihui/realsr-ncnn-vulkan/releases/download/20220728/realsr-ncnn-vulkan-20220728-windows.zip",
+          "sha256": "db77ca8247642e2b694f1ce0fed3d91f557b75464ff343f5168465fe414223b3",
+          "binaryDirectory": "realsr-ncnn-vulkan-20220728-windows",
+          "sizeBytes": 64005701
+        },
+        {
+          "url": "https://raw.githubusercontent.com/upscayl/custom-models/4b6d2cfa59c7442af115dfc6e50fd8d7d40b96ef/models/4xNomos8kSC.param",
+          "sha256": "4576ed5c2fc5fa250d3c3d585ef02248f26abdfc1867088078f501fe71e5d61e",
+          "rename": {
+            "4xNomos8kSC.param": "realsr-ncnn-vulkan-20220728-windows/models-DF2K/x4.param"
+          },
+          "sizeBytes": 108039
+        },
+        {
+          "url": "https://raw.githubusercontent.com/upscayl/custom-models/4b6d2cfa59c7442af115dfc6e50fd8d7d40b96ef/models/4xNomos8kSC.bin",
+          "sha256": "da16e3880d87b177b7c6b659bbd880f8a101b868eb9ebc08d69eaa6d3edc4517",
+          "rename": {
+            "4xNomos8kSC.bin": "realsr-ncnn-vulkan-20220728-windows/models-DF2K/x4.bin"
+          },
+          "sizeBytes": 33424520
         }
       ]
     },

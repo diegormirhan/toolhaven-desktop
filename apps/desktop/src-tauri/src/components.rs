@@ -174,52 +174,16 @@ pub fn install(
             entry.display_name
         ));
     }
-    let artifact = entry
+    let first = entry
         .artifacts
         .first()
         .ok_or("The tool declares no artifact.")?;
 
-    let target = artifact_directory(artifact)?;
+    let target = artifact_directory(first)?;
     if target.is_dir() {
         return Ok(());
     }
 
-    report(ComponentProgress {
-        tool_id: tool_id.into(),
-        phase: "downloading".into(),
-        progress: Some(0.0),
-        message: format!(
-            "Downloading {} {}…",
-            entry.display_name,
-            entry.version.as_deref().unwrap_or("")
-        ),
-    });
-    let bytes = download(&artifact.url, tool_id, report)?;
-
-    report(ComponentProgress {
-        tool_id: tool_id.into(),
-        phase: "verifying".into(),
-        progress: None,
-        message: "Verifying the download…".into(),
-    });
-    let digest = sha256(&bytes);
-    if digest != artifact.sha256.to_ascii_lowercase() {
-        return Err(format!(
-            "The download does not match what was expected.\nexpected {}\ngot      {digest}",
-            artifact.sha256
-        ));
-    }
-
-    report(ComponentProgress {
-        tool_id: tool_id.into(),
-        phase: "installing".into(),
-        progress: None,
-        message: format!(
-            "Installing {} {}…",
-            entry.display_name,
-            entry.version.as_deref().unwrap_or("")
-        ),
-    });
     // Staging beside the final directory keeps activation on the same volume, so the
     // rename is atomic and a failure never leaves a half-installed component active.
     let staging = target.with_extension("staging");
@@ -227,16 +191,58 @@ pub fn install(
     std::fs::create_dir_all(&staging)
         .map_err(|error| format!("Could not prepare the installation: {error}"))?;
 
-    let result = if artifact.archive == "7z" {
-        extract_seven_zip(&bytes, &staging)
-    } else if !artifact.silent_install.is_empty() {
-        run_silent_installer(artifact, &bytes, &staging)
-    } else if artifact.url.to_ascii_lowercase().ends_with(".exe") {
-        write_single_executable(artifact, &bytes, &staging)
-    } else {
-        extract_zip(&bytes, &staging)
-    }
-    .and_then(|()| apply_renames(artifact, &staging));
+    // Every artifact lands in the same directory, in order. A tool is not always
+    // one download: the model upscaler is a runtime from one project and a set of
+    // weights from another, each with its own licence and its own digest, and the
+    // pair is only useful together.
+    let result = (|| -> Result<(), String> {
+        for (index, artifact) in entry.artifacts.iter().enumerate() {
+            let counted = if entry.artifacts.len() > 1 {
+                format!(" ({} of {})", index + 1, entry.artifacts.len())
+            } else {
+                String::new()
+            };
+            report(ComponentProgress {
+                tool_id: tool_id.into(),
+                phase: "downloading".into(),
+                progress: Some(0.0),
+                message: format!(
+                    "Downloading {} {}{counted}…",
+                    entry.display_name,
+                    entry.version.as_deref().unwrap_or("")
+                ),
+            });
+            let bytes = download(&artifact.url, tool_id, report)?;
+
+            report(ComponentProgress {
+                tool_id: tool_id.into(),
+                phase: "verifying".into(),
+                progress: None,
+                message: "Verifying the download…".into(),
+            });
+            let digest = sha256(&bytes);
+            if digest != artifact.sha256.to_ascii_lowercase() {
+                return Err(format!(
+                    "The download does not match what was expected.\nexpected {}\ngot      {digest}",
+                    artifact.sha256
+                ));
+            }
+
+            report(ComponentProgress {
+                tool_id: tool_id.into(),
+                phase: "installing".into(),
+                progress: None,
+                message: format!(
+                    "Installing {} {}{counted}…",
+                    entry.display_name,
+                    entry.version.as_deref().unwrap_or("")
+                ),
+            });
+            unpack(artifact, &bytes, &staging)?;
+            apply_renames(artifact, &staging)?;
+        }
+        Ok(())
+    })();
     if let Err(error) = result {
         let _ = std::fs::remove_dir_all(&staging);
         return Err(error);
@@ -359,19 +365,41 @@ fn run_silent_installer(artifact: &Artifact, bytes: &[u8], staging: &Path) -> Re
     Ok(())
 }
 
-fn write_single_executable(
+/// Puts one artifact's bytes into the staging directory, however it is packed.
+fn unpack(artifact: &Artifact, bytes: &[u8], staging: &Path) -> Result<(), String> {
+    if artifact.archive == "7z" {
+        extract_seven_zip(bytes, staging)
+    } else if !artifact.silent_install.is_empty() {
+        run_silent_installer(artifact, bytes, staging)
+    } else if is_archive(&artifact.url) {
+        extract_zip(bytes, staging)
+    } else {
+        write_single_file(artifact, bytes, staging)
+    }
+}
+
+/// Whether a URL names something to unpack rather than something to keep.
+fn is_archive(url: &str) -> bool {
+    let name = url.split(['?', '#']).next().unwrap_or(url).to_ascii_lowercase();
+    name.ends_with(".zip")
+}
+
+fn write_single_file(
     artifact: &Artifact,
     bytes: &[u8],
     destination: &Path,
 ) -> Result<(), String> {
     let name = artifact
         .url
+        .split(['?', '#'])
+        .next()
+        .unwrap_or(&artifact.url)
         .rsplit('/')
         .next()
         .filter(|name| !name.is_empty())
         .ok_or("The artifact URL has no file name.")?;
     std::fs::write(destination.join(name), bytes)
-        .map_err(|error| format!("Could not write the executable: {error}"))
+        .map_err(|error| format!("Could not write {name}: {error}"))
 }
 
 /// Applies the manifest's renames inside the staging directory.
@@ -573,6 +601,18 @@ mod tests {
         found.sort();
         found.truncate(30);
         found
+    }
+
+    #[test]
+    fn keeps_a_loose_file_and_unpacks_an_archive() {
+        // A model's weights are a file to keep as it is; a release is a zip to
+        // open. Deciding by extension rather than by "is it an .exe" is what
+        // lets one tool be assembled from both.
+        assert!(is_archive("https://example.test/realsr-windows.zip"));
+        assert!(is_archive("https://example.test/RELEASE.ZIP?token=1"));
+        assert!(!is_archive("https://example.test/models/4xNomos8kSC.bin"));
+        assert!(!is_archive("https://example.test/tool.exe"));
+        assert!(!is_archive("https://example.test/weights.param"));
     }
 
     #[test]
