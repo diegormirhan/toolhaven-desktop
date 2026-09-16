@@ -907,12 +907,15 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .recognition__rows > div { display: grid; gap: 1px; min-width: 0; }
 .recognition__rows dt { color: var(--text-quiet); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em; }
 .recognition__rows dd { margin: 0; font-size: 0.74rem; overflow-wrap: anywhere; }
+.recognition__links { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-1); }
 .recognition__link {
-  display: inline-flex; align-items: center; gap: 6px; padding: 0;
-  color: var(--action); background: none; border: 0; cursor: pointer;
-  font-size: 0.72rem; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px;
+  color: var(--action); background: var(--control); border: 1px solid var(--line);
+  border-radius: 999px; cursor: pointer; font-size: 0.71rem;
+  transition: background 160ms var(--ease-out), border-color 160ms var(--ease-out);
 }
-.recognition__link:hover { text-decoration: underline; }
+.recognition__link:hover { background: var(--control-hover); border-color: var(--line-strong); }
 
 @media (max-width: 640px) {
   .recognition { flex-direction: column; }

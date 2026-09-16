@@ -9,6 +9,8 @@ import { Select } from "./Select";
 
 type AudioSource = { id: string; label: string; kind: "microphone" | "playback"; isDefault: boolean };
 
+type TrackLink = { label: string; url: string };
+
 type Recognition = {
   matched: boolean;
   title: string;
@@ -17,7 +19,7 @@ type Recognition = {
   released: string;
   label: string;
   genre: string;
-  url: string;
+  links: TrackLink[];
   coverUrl: string;
   message: string;
 };
@@ -298,17 +300,23 @@ function RecognitionCard({ result }: { result: Recognition }) {
             ))}
           </dl>
         )}
-        {result.url && (
-          // A link would open inside this window, which has no way back. The
-          // host opens the browser instead, after checking the address.
-          <button
-            className="recognition__link"
-            type="button"
-            onClick={() => void invoke("open_link", { url: result.url })}
-          >
-            <ExternalLink size={14} aria-hidden="true" />
-            Open the track page
-          </button>
+        {result.links.length > 0 && (
+          // Links would open inside this window, which has no way back, so the
+          // host opens the browser after checking each address. The services
+          // rather than the recogniser's own page: that page answers 405.
+          <div className="recognition__links">
+            {result.links.map((link) => (
+              <button
+                key={link.url}
+                className="recognition__link"
+                type="button"
+                onClick={() => void invoke("open_link", { url: link.url })}
+              >
+                <ExternalLink size={13} aria-hidden="true" />
+                {link.label}
+              </button>
+            ))}
+          </div>
         )}
       </div>
     </article>

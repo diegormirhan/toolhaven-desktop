@@ -144,7 +144,11 @@ const match = {
   released: '1975',
   label: 'Hollywood Records',
   genre: 'Rock',
-  url: 'https://www.shazam.com/track/40333615',
+  links: [
+    { label: 'Apple Music', url: 'https://music.apple.com/us/album/bohemian-rhapsody/1' },
+    { label: 'Spotify', url: 'https://open.spotify.com/search/Bohemian%20Rhapsody%20Queen' },
+    { label: 'YouTube Music', url: 'https://music.youtube.com/search?q=Bohemian+Rhapsody' },
+  ],
   coverUrl: 'https://images.test/large.jpg',
   message: 'Matched: Bohemian Rhapsody — Queen.',
 };
@@ -215,16 +219,23 @@ it('shows every field of a match, with the cover art described for a screen read
   expect(within(card).getByAltText('Cover art for Bohemian Rhapsody')).toBeInTheDocument();
 });
 
-it('opens the track page through the host, because a link would open inside the window', async () => {
+it('offers each service, and opens it through the host rather than in this window', async () => {
   hosts(allSources);
   render(<MusicPanel tool={catalogTool('songrec')} onClose={vi.fn()} />);
   await screen.findByRole('combobox', { name: 'Listen to' });
   await userEvent.click(screen.getByRole('button', { name: /listen and identify/i }));
 
   const card = await screen.findByLabelText('What was recognised');
-  await userEvent.click(within(card).getByRole('button', { name: /open the track page/i }));
+  for (const name of ['Apple Music', 'Spotify', 'YouTube Music']) {
+    expect(within(card).getByRole('button', { name })).toBeInTheDocument();
+  }
 
-  expect(invoke).toHaveBeenCalledWith('open_link', { url: 'https://www.shazam.com/track/40333615' });
+  await userEvent.click(within(card).getByRole('button', { name: 'Spotify' }));
+
+  // A plain link would open inside this window, which has no way back.
+  expect(invoke).toHaveBeenCalledWith('open_link', {
+    url: 'https://open.spotify.com/search/Bohemian%20Rhapsody%20Queen',
+  });
 });
 
 it('says so when nothing matched, rather than showing an empty card', async () => {
