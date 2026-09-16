@@ -177,12 +177,22 @@ struct RecognitionRequest {
     device_id: String,
 }
 
-/// How long a clip is taken for.
+/// The longest a recording runs before giving up.
 ///
 /// Fixed rather than offered: nobody knows what to pick, and the answer that
-/// matters is whether it matched. Twelve seconds is comfortably above what the
-/// fingerprint needs and below where waiting starts to feel broken.
+/// matters is whether it matched. Most matches arrive long before this.
 const LISTEN_SECONDS: u32 = 12;
+
+/// When to try identifying what has been heard so far, in seconds.
+///
+/// A recogniser given four seconds of a well-known chorus answers as well as
+/// one given twelve, and waiting the full twelve to find that out makes every
+/// answer cost the worst case. So it asks early and keeps asking while the
+/// recording continues, and stops the moment something comes back.
+///
+/// The gaps widen because each attempt costs about a second of its own: asking
+/// every second would spend the whole recording in lookups.
+const ATTEMPT_AT: [f32; 4] = [4.0, 6.5, 9.0, 12.0];
 
 /// Reported to the window while the clip is being taken, so it can draw the
 /// sound arriving instead of a spinner.
@@ -191,6 +201,18 @@ const LISTEN_SECONDS: u32 = 12;
 struct ListeningLevel {
     level: f32,
     through: f32,
+}
+
+/// One lookup, reported as it happens: the window says "checking" instead of
+/// going quiet, and a measurement can see how long each attempt really had.
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ListeningAttempt {
+    /// How much sound the lookup was given.
+    seconds: f32,
+    matched: bool,
+    /// Milliseconds the lookup itself took.
+    took: u64,
 }
 
 
@@ -209,9 +231,16 @@ async fn recognize_music(
     request: RecognitionRequest,
 ) -> Result<recognize::Recognition, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        recognize_music_inner(&request.device_id, &|level, through| {
-            let _ = app.emit("listening-level", ListeningLevel { level, through });
-        })
+        let reporter = app.clone();
+        recognize_music_inner(
+            &request.device_id,
+            std::sync::Arc::new(move |level, through| {
+                let _ = app.emit("listening-level", ListeningLevel { level, through });
+            }),
+            &move |attempt| {
+                let _ = reporter.emit("listening-attempt", attempt);
+            },
+        )
     })
     .await
     .map_err(|error| format!("The recognition was interrupted: {error}"))?
@@ -225,7 +254,8 @@ fn open_link(url: String) -> Result<(), String> {
 
 fn recognize_music_inner(
     device_id: &str,
-    on_level: audio::OnLevel<'_>,
+    on_level: audio::OnLevel,
+    on_attempt: &(dyn Fn(ListeningAttempt) + Send + Sync),
 ) -> Result<recognize::Recognition, String> {
     let device = device_id.trim();
     if device.is_empty() {
@@ -248,12 +278,81 @@ fn recognize_music_inner(
         .ok_or("That temporary folder has a name this cannot handle.")?
         .to_string();
 
-    audio::capture(device, LISTEN_SECONDS, &clip, on_level)?;
-
+    // Resolved before recording starts: finding out the component is missing
+    // after twelve seconds of listening would be a poor way to be told.
     let executable = resolve_suite_executable("songrec", "songrec.exe")?;
-    let mut command = std::process::Command::new(&executable);
+    let recording = audio::start(device, LISTEN_SECONDS, on_level)?;
+
+    let mut heard_something = false;
+    let mut last_error = None;
+    for wanted in ATTEMPT_AT {
+        // Wait for this much sound, giving up early if the recording stopped.
+        while recording.seconds() < wanted {
+            if !recording.running() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(80));
+        }
+        let Some((samples, rate, channels)) = recording.so_far() else {
+            if !recording.running() {
+                break;
+            }
+            continue;
+        };
+        match audio::write_clip(&samples, rate, channels, &clip) {
+            Ok(()) => heard_something = true,
+            Err(error) => {
+                // Silence so far is not a failure while there is still time.
+                last_error = Some(error);
+                if recording.running() {
+                    continue;
+                }
+                break;
+            }
+        }
+
+        let clip_seconds = samples.len() as f32 / (rate as f32 * channels as f32);
+        let began = std::time::Instant::now();
+        let attempt = identify(&executable, &clip_path);
+        on_attempt(ListeningAttempt {
+            seconds: clip_seconds,
+            matched: matches!(&attempt, Ok(result) if result.matched),
+            took: began.elapsed().as_millis() as u64,
+        });
+        match attempt {
+            Ok(result) if result.matched => {
+                // Nothing more to listen for.
+                drop(recording);
+                let mut result = result;
+                result.message = recognize::describe(&result);
+                return Ok(result);
+            }
+            Ok(_) => {}
+            Err(error) => last_error = Some(error),
+        }
+        if !recording.running() {
+            break;
+        }
+    }
+    recording.finish()?;
+
+    if !heard_something {
+        return Err(last_error.unwrap_or_else(|| audio::NOTHING_HEARD.to_string()));
+    }
+    // Heard, fingerprinted, and not in the index.
+    let mut result = recognize::Recognition::default();
+    result.message = recognize::describe(&result);
+    Ok(result)
+}
+
+/// One lookup of whatever is in the clip right now.
+fn identify(
+    executable: &std::path::Path,
+    clip_path: &str,
+) -> Result<recognize::Recognition, String> {
+    let mut command = std::process::Command::new(executable);
     command
-        .args(["audio-file-to-recognized-song", &clip_path])
+        .args(["audio-file-to-recognized-song", clip_path])
         .stdin(std::process::Stdio::null());
     // It ships a whole GTK stack beside itself and looks for parts of it
     // relative to the working directory, not only beside the executable.
@@ -277,9 +376,7 @@ fn recognize_music_inner(
             compact_error(&String::from_utf8_lossy(&output.stderr))
         ));
     }
-    let mut result = recognize::parse(&stdout)?;
-    result.message = recognize::describe(&result);
-    Ok(result)
+    recognize::parse(&stdout)
 }
 
 #[tauri::command]

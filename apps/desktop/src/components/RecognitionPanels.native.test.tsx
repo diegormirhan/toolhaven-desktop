@@ -14,19 +14,29 @@ vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn(), convertFileSrc: (path:
 // push a level through the same path the host uses.
 let listeners: ((event: { payload: unknown }) => void)[] = [];
 vi.mock('@tauri-apps/api/event', () => ({
-  listen: vi.fn(async (_name: string, handler: (event: { payload: unknown }) => void) => {
+  listen: vi.fn(async (name: string, handler: (event: { payload: unknown }) => void) => {
     listeners.push(handler);
-    return () => { listeners = listeners.filter((entry) => entry !== handler); };
+    (named[name] ??= []).push(handler);
+    return () => {
+      listeners = listeners.filter((entry) => entry !== handler);
+      named[name] = (named[name] ?? []).filter((entry) => entry !== handler);
+    };
   }),
 }));
+// The panel registers one listener per event, in the order the effects run.
+const named: Record<string, ((event: { payload: unknown }) => void)[]> = {};
+function emit(name: string, payload: unknown) {
+  for (const handler of named[name] ?? []) handler({ payload });
+}
 function emitLevel(payload: { level: number; through: number }) {
-  for (const handler of listeners) handler({ payload });
+  emit('listening-level', payload);
 }
 
 beforeEach(() => Object.defineProperty(window, '__TAURI_INTERNALS__', { configurable: true, value: {} }));
 afterEach(() => {
   Reflect.deleteProperty(window, '__TAURI_INTERNALS__');
   listeners = [];
+  for (const key of Object.keys(named)) delete named[key];
   vi.resetAllMocks();
 });
 
@@ -275,4 +285,25 @@ it('promises that only the fingerprint is sent', async () => {
   render(<MusicPanel tool={catalogTool('songrec')} onClose={vi.fn()} />);
 
   expect(screen.getByText(/only the\s+fingerprint is sent/i)).toBeInTheDocument();
+});
+
+it('says it is still going after a lookup came back empty', async () => {
+  // The recognition stays in flight, which is the state this is about.
+  vi.mocked(invoke).mockImplementation(async (command: string) => {
+    if (command === 'list_audio_sources') return allSources;
+    return new Promise(() => {});
+  });
+  render(<MusicPanel tool={catalogTool('songrec')} onClose={vi.fn()} />);
+  await screen.findByRole('combobox', { name: 'Listen to' });
+  await userEvent.click(screen.getByRole('button', { name: /listen and identify/i }));
+
+  expect(await screen.findByText('Listening…')).toBeInTheDocument();
+
+  // It looks as soon as it has enough rather than waiting for the whole clip,
+  // so a first miss is normal and worth saying out loud.
+  await act(async () => {
+    emit('listening-attempt', { seconds: 4, matched: false, took: 750 });
+  });
+
+  expect(screen.getByText('Still listening…')).toBeInTheDocument();
 });

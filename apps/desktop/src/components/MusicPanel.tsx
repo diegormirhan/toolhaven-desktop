@@ -57,6 +57,8 @@ export function MusicPanel({
   const [busy, setBusy] = useState(false);
   const [levels, setLevels] = useState<number[]>(() => Array(BAR_COUNT).fill(0));
   const [through, setThrough] = useState(0);
+  /** Lookups already tried and not matched, so the caption can say so. */
+  const [tried, setTried] = useState(0);
   const [error, setError] = useState("");
   const [result, setResult] = useState<Recognition | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -116,6 +118,29 @@ export function MusicPanel({
     };
   }, []);
 
+  // It does not wait for the whole clip before looking: it asks as soon as it
+  // has enough, and keeps asking. Saying so is the difference between a window
+  // that is working and one that has stalled.
+  useEffect(() => {
+    if (!isNativeHost()) return;
+    let active = true;
+    let stop: (() => void) | undefined;
+
+    void listen<{ seconds: number; matched: boolean }>("listening-attempt", (event) => {
+      if (active && !event.payload.matched) setTried((count) => count + 1);
+    })
+      .then((cleanup) => {
+        if (active) stop = cleanup;
+        else cleanup();
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+      stop?.();
+    };
+  }, []);
+
   const playback = sources.filter((source) => source.kind === "playback");
   const microphones = sources.filter((source) => source.kind === "microphone");
   const chosen = sources.find((source) => source.id === deviceId);
@@ -130,6 +155,7 @@ export function MusicPanel({
     setError("");
     setResult(null);
     setThrough(0);
+    setTried(0);
     setLevels(Array(BAR_COUNT).fill(0));
     void invoke<Recognition>("recognize_music", { request: { deviceId } })
       .then(setResult)
@@ -225,8 +251,14 @@ export function MusicPanel({
             {kind === "playback" ? <Speaker size={30} aria-hidden="true" /> : <Mic size={30} aria-hidden="true" />}
           </button>
           <Meter levels={levels} active={busy} />
-          <p className="listen__caption" role="status">
-            {busy ? "Listening…" : deviceId ? "Tap to identify what is playing." : "No sound device found."}
+          <p className="listen__caption" role="status" data-tried={tried}>
+            {busy
+              ? tried > 0
+                ? "Still listening…"
+                : "Listening…"
+              : deviceId
+                ? "Tap to identify what is playing."
+                : "No sound device found."}
           </p>
         </div>
 
