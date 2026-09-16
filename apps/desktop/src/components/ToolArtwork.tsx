@@ -224,18 +224,6 @@ const glyphByToolId: Record<string, ReactNode> = {
       </g>
     </>
   ),
-  realesrgan: (
-    <>
-      {/* A coarse grid on the left becomes a drawn scene on the right: what
-          enlarging with a model does, as opposed to making pixels bigger. */}
-      <rect className="aw-soft" x="34" y="34" width="34" height="34" rx="3" />
-      <path className="aw-soft" d="M45 34v34M56 34v34M34 45h34M34 56h34" />
-      <path className="aw-line" d="M78 51h16M86 44l8 7-8 7" strokeLinecap="round" strokeLinejoin="round" />
-      <rect className="aw-line" x="104" y="22" width="62" height="58" rx="5" />
-      <path className="aw-line" d="M112 70l16-18 12 12 9-9 13 15" strokeLinecap="round" strokeLinejoin="round" />
-      <circle className="aw-solid" cx="126" cy="38" r="5" />
-    </>
-  ),
   songrec: (
     <>
       {/* Sound arriving from the left, a waveform in the middle, a note at the

@@ -52,10 +52,26 @@ describe("tool catalog", () => {
     // A tool in two categories, or in none, is a navigation bug.
     const placed = rows.flatMap((row) => row.tools.map((tool) => tool.id));
     expect(new Set(placed).size).toBe(placed.length);
-    expect(placed).toHaveLength(27);
+    expect(placed).toHaveLength(26);
 
     // No category should be big enough to need scrolling to take in.
     for (const row of rows) expect(row.tools.length).toBeLessThanOrEqual(6);
+  });
+
+  it("keeps enlarging on the image card rather than in a card of its own", () => {
+    const rows = createCatalogRows();
+    const tools = rows.flatMap((row) => row.tools);
+    const images = tools.find((tool) => tool.id === "libvips");
+
+    // Looking to make a picture bigger means looking at the image card, so
+    // both ways of doing it live there.
+    const operations = images?.operations.map((operation) => operation.id) ?? [];
+    expect(operations).toContain("upscale");
+    expect(operations).toContain("upscale-model");
+
+    // And there is no second image card competing for the same intent.
+    expect(tools.find((tool) => tool.id === "realesrgan")).toBeUndefined();
+    expect(tools.find((tool) => tool.id === "waifu2x")).toBeUndefined();
   });
 
   it("marks the card the app provides itself as ready, with nothing to install", () => {

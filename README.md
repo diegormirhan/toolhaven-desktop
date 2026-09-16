@@ -177,13 +177,13 @@ That single decision explains most of the rest of the design:
 
 ## The catalog
 
-Twenty-seven cards, grouped by the result you want rather than by the project that provides it.
+Twenty-six cards, grouped by the result you want rather than by the project that provides it.
 
 | | Tools | What you get |
 |---|---|---|
 | **Video and audio** | FFmpeg · ffprobe · SongRec · MKVToolNix | transcode, compress, trim, GIFs, contact sheets, inspect codecs, remux to MKV, and name the music that is playing |
 | **Downloads** | yt-dlp · gallery-dl · Deno | video and audio from a link, image galleries, and the runtime they lean on |
-| **Images** | libvips · Real-ESRGAN · reverse image search · ImageMagick · Oxipng · ExifTool | resize, crop, convert, enlarge four times with a model, find where a picture came from, optimise PNG, read and strip metadata |
+| **Images** | libvips · waifu2x · reverse image search · ImageMagick · Oxipng · ExifTool | resize, crop, convert, enlarge two or four times with a model, find where a picture came from, optimise PNG, read and strip metadata |
 | **PDFs and documents** | qpdf · Poppler · Tesseract · Pandoc | merge, split, rotate, protect, extract text, rasterise a page, OCR into a searchable PDF, convert between document formats |
 | **Text and data** | jq · yq · Miller · ripgrep · fd · Difftastic | JSON and YAML, CSV to JSON, search, find, structural diff |
 | **Files and disk** | 7-Zip · Dust · tokei · hexyl | archives, where the space went, count code, hex preview |
@@ -340,8 +340,8 @@ Stated because they are real, not because they are theoretical:
 - **7-Zip is the standalone build, so it does not read rar.** The full `7z.exe` ships only in an
   installer that demands elevation, and no tool here is worth a UAC prompt. What ships reads and
   writes 7z, zip, tar, gzip, bzip2 and xz, and the card claims exactly that.
-- **Enlarging with a model needs a Vulkan-capable GPU.** The published Real-ESRGAN build has no CPU
-  path compiled in at all, so a machine without a Vulkan driver cannot use that one card.
+- **Enlarging with a model needs a Vulkan-capable GPU.** Neither published build has a working CPU
+  path, so a machine without a Vulkan driver cannot use that one operation.
 - **An operation can be stopped but not paused.** Stopping kills the process tree through a Job
   Object, which is immediate and complete; there is no way to resume from where it was.
 - **The bundled tokei is from January 2021.** Upstream stopped publishing Windows binaries; the

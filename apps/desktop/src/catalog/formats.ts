@@ -26,7 +26,6 @@ export const toolAccepts: Record<string, FormatFamily[]> = {
   ffprobe: ["video", "audio"],
   mkvtoolnix: ["video"],
   libvips: ["image"],
-  realesrgan: ["image"],
   "image-search": ["image"],
   // The recogniser is fed through FFmpeg, so anything with sound in it works.
   songrec: ["audio", "video"],
@@ -54,15 +53,15 @@ export const toolAccepts: Record<string, FormatFamily[]> = {
 };
 
 /**
- * Tools that read a subset of their family, listed by extension.
+ * Operations that read less than the card they sit on, listed by extension.
  *
- * A family is the right unit almost everywhere, but not always: Real-ESRGAN is
- * an image tool that reads three formats, and saying "image" would let a TIFF
- * through to fail in the binary — which is the failure this table exists to
- * prevent.
+ * A family is the right unit for a whole tool, but not for every operation on
+ * it. The image card reads a dozen formats; the model that enlarges reads three
+ * of them, and saying "image" would let a TIFF through to fail inside the
+ * binary — which is the failure this table exists to prevent.
  */
-export const toolExtensions: Record<string, string[]> = {
-  realesrgan: ["jpg", "jpeg", "png", "webp"],
+export const operationExtensions: Record<string, string[]> = {
+  "libvips/upscale-model": ["jpg", "jpeg", "png", "webp"],
 };
 
 /**
@@ -96,7 +95,7 @@ export const operationFormats: Record<string, { label: string; formats: string[]
     default: "png",
   },
   "poppler/rasterize": { label: "Image format", formats: ["png", "jpg", "tif"], default: "png" },
-  "realesrgan/upscale": { label: "Write as", formats: ["png", "jpg", "webp"], default: "png" },
+  "libvips/upscale-model": { label: "Write as", formats: ["png", "jpg", "webp"], default: "png" },
   "pandoc/convert": {
     label: "Convert to",
     formats: ["html", "docx", "odt", "epub", "md", "rst", "tex", "txt"],
@@ -115,16 +114,20 @@ export function extensionOf(path: string): string {
 }
 
 /** Whether a tool will take this file, and a sentence saying why not. */
-export function acceptsFile(toolId: string, path: string): { ok: true } | { ok: false; reason: string } {
+export function acceptsFile(
+  toolId: string,
+  path: string,
+  operationId?: string,
+): { ok: true } | { ok: false; reason: string } {
   const extension = extensionOf(path);
 
-  const explicit = toolExtensions[toolId];
+  const explicit = operationId ? operationExtensions[`${toolId}/${operationId}`] : undefined;
   if (explicit) {
     if (explicit.includes(extension)) return { ok: true };
     const what = extension ? `A .${extension} file` : "That file";
     return {
       ok: false,
-      reason: `${what} is not something this tool reads. It takes ${explicit
+      reason: `${what} is not something this operation reads. It takes ${explicit
         .map((e) => `.${e}`)
         .join(", ")}.`,
     };

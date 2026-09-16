@@ -309,7 +309,7 @@ fn detect_available_tools() -> Vec<String> {
         "yt-dlp",
         "gallery-dl",
         "tesseract",
-        "realesrgan",
+        "waifu2x",
         "songrec",
         "deno",
         "qpdf",
@@ -401,7 +401,7 @@ fn execute_operation_with_progress(
     }
     validate_request(&request)?;
     let executable = operation_executable(&request)?;
-    let executable_path = resolve_suite_executable(&request.tool_id, &executable)?;
+    let executable_path = resolve_suite_executable(executing_tool(&request), &executable)?;
     let args = resolve_args(&request)?;
     let output_path = operation_writes_file(&request).then(|| {
         request
@@ -411,6 +411,13 @@ fn execute_operation_with_progress(
     });
     let mut command = std::process::Command::new(&executable_path);
     command.args(args).stdin(std::process::Stdio::null());
+    // Tools that look for their models beside themselves rather than beside
+    // whatever directory the app happened to be started from.
+    if needs_its_own_directory(executing_tool(&request)) {
+        if let Some(home) = executable_path.parent() {
+            command.current_dir(home);
+        }
+    }
     if request.tool_id == "yt-dlp" {
         if let Ok(ffmpeg) = resolve_executable("ffmpeg.exe") {
             command
@@ -766,18 +773,22 @@ fn validate_options(request: &OperationRequest) -> Result<(), String> {
             return Err("Page numbering starts at 1.".into());
         }
     }
-    if request.tool_id == "realesrgan" {
+    if request.tool_id == "libvips" && request.operation_id == "upscale-model" {
         let scale = request
             .options
             .get("scale")
             .map(|value| value.trim())
-            .unwrap_or("4");
-        // Both models emit tiles at four times the input. Asking the tool for
-        // any other factor leaves it stitching 4x tiles at 2x offsets, and the
-        // picture comes back as a checkerboard of unrelated regions -- which is
-        // what shipped, because the interface offered 2x and 3x.
-        if scale != "4" {
-            return Err("Real-ESRGAN enlarges four times over. Resize afterwards for any other size.".into());
+            .unwrap_or("2");
+        if !matches!(scale, "1" | "2" | "4") {
+            return Err("Enlarging with a model works at 2x or 4x.".into());
+        }
+        let denoise = request
+            .options
+            .get("denoise")
+            .map(|value| value.trim())
+            .unwrap_or("1");
+        if !matches!(denoise, "-1" | "0" | "1" | "2" | "3") {
+            return Err("That is not one of the cleanup levels.".into());
         }
     }
     if request.tool_id == "oxipng" && request.operation_id == "optimize" {
@@ -824,7 +835,7 @@ fn executable_name(tool_id: &str) -> Result<String, String> {
         "yt-dlp" => "yt-dlp.exe",
         "tesseract" => "tesseract.exe",
         "songrec" => "songrec.exe",
-        "realesrgan" => "realesrgan-ncnn-vulkan.exe",
+        "waifu2x" => "waifu2x-ncnn-vulkan.exe",
         "gallery-dl" => "gallery-dl.exe",
         "deno" => "deno.exe",
         "qpdf" => "qpdf.exe",
@@ -878,8 +889,30 @@ fn resolve_suite_executable(tool_id: &str, executable: &str) -> Result<std::path
     ))
 }
 
+/// Which installed component actually carries this operation's binary.
+///
+/// Almost always the card's own tool. Enlarging with a model is the exception:
+/// it sits on the image card, because that is where someone looking to make a
+/// picture bigger goes, but the program that does it is waifu2x.
+fn executing_tool(request: &OperationRequest) -> &str {
+    match (request.tool_id.as_str(), request.operation_id.as_str()) {
+        ("libvips", "upscale-model") => "waifu2x",
+        _ => &request.tool_id,
+    }
+}
+
+/// Whether this tool has to run from the directory it was installed into.
+///
+/// The upscaler reads its model files from a path relative to the working
+/// directory, so started from anywhere else it reports that it cannot find a
+/// model rather than that it was run from the wrong place.
+fn needs_its_own_directory(tool_id: &str) -> bool {
+    matches!(tool_id, "waifu2x")
+}
+
 fn operation_executable(request: &OperationRequest) -> Result<String, String> {
     let executable = match (request.tool_id.as_str(), request.operation_id.as_str()) {
+        ("libvips", "upscale-model") => "waifu2x-ncnn-vulkan.exe",
         ("poppler", "extract-text") => "pdftotext.exe",
         ("poppler", "rasterize") => "pdftoppm.exe",
         ("mkvtoolnix", "remux") | ("mkvtoolnix", "inspect") => "mkvmerge.exe",
@@ -1465,28 +1498,32 @@ fn resolve_args(request: &OperationRequest) -> Result<Vec<String>, String> {
             args.push(request.source_url.clone().unwrap_or(input));
             Ok(args)
         }
-        ("realesrgan", "upscale") => {
-            // The model decides what the detail is invented to look like:
-            // x4plus was trained on photographs, the anime variant on line art,
-            // and using the wrong one smears the thing it is trying to sharpen.
+        ("libvips", "upscale-model") => {
+            // cunet is the general model and the one that won the comparison on
+            // photographs: sharper than Lanczos without inventing the texture
+            // that Real-ESRGAN drew onto flat stucco. The line-art model is
+            // kept because it genuinely is better at line art.
             let model = match option("model", "photo").as_str() {
-                "illustration" => "realesrgan-x4plus-anime",
-                _ => "realesrgan-x4plus",
+                "illustration" => "models-upconv_7_anime_style_art_rgb",
+                _ => "models-cunet",
             };
             Ok(vec![
                 "-i".into(),
                 input,
                 "-o".into(),
                 output,
-                "-n".into(),
+                // A bare name, resolved against the working directory, which is
+                // set to the binary's own folder below. Building an absolute
+                // path here would mean this could not be worked out until the
+                // component was installed.
+                "-m".into(),
                 model.into(),
-                // Fixed, not taken from the options: see validate_options.
                 "-s".into(),
-                "4".into(),
-                // 0 lets it choose a tile that fits the GPU's memory; a fixed
-                // size would fail on the smaller cards it is meant to support.
-                "-t".into(),
-                "0".into(),
+                option("scale", "2"),
+                // Denoising is the reason to reach for this on a screenshot or
+                // a saved JPEG rather than on a camera original.
+                "-n".into(),
+                option("denoise", "1"),
             ])
         }
         ("tesseract", "ocr") => Ok(vec![
@@ -2072,35 +2109,56 @@ mod tests {
 
     #[test]
     fn the_upscaler_is_pointed_at_the_model_its_subject_needs() {
-        let photo = resolve_args(&request_for("realesrgan", "upscale", &[])).unwrap();
-        assert!(photo
-            .windows(2)
-            .any(|pair| pair == ["-n", "realesrgan-x4plus"]));
-        assert!(photo.windows(2).any(|pair| pair == ["-s", "4"]));
-        // Auto tiling: a fixed size fails on the smaller cards this is meant
-        // to run on.
-        assert!(photo.windows(2).any(|pair| pair == ["-t", "0"]));
+        let photo = resolve_args(&request_for("libvips", "upscale-model", &[])).unwrap();
+        // The general model, which beat the alternatives on a photograph: as
+        // sharp as the sharpest without inventing texture on a flat wall.
+        assert!(photo.windows(2).any(|pair| pair == ["-m", "models-cunet"]));
+        assert!(needs_its_own_directory("waifu2x"), "its models sit beside it");
+        // Doubling by default, because that is what enlarging usually means.
+        assert!(photo.windows(2).any(|pair| pair == ["-s", "2"]));
+        assert!(photo.windows(2).any(|pair| pair == ["-n", "1"]));
 
-        // The drawing model smears a photograph, so the choice must reach the
-        // binary rather than being decorative.
+        // Line art is the one case the other model genuinely wins, so the
+        // choice has to reach the binary rather than being decorative.
         let drawing = resolve_args(&request_for(
-            "realesrgan",
-            "upscale",
+            "libvips",
+            "upscale-model",
             &[("model", "illustration")],
         ))
         .unwrap();
         assert!(drawing
             .windows(2)
-            .any(|pair| pair == ["-n", "realesrgan-x4plus-anime"]));
+            .any(|pair| pair == ["-m", "models-upconv_7_anime_style_art_rgb"]));
 
-        // Only the three factors the binary accepts.
+        // Only the factors and levels the binary accepts.
+        for scale in ["3", "8", "0", ""] {
+            assert!(
+                validate_options(&request_for("libvips", "upscale-model", &[("scale", scale)]))
+                    .is_err(),
+                "{scale} should be refused"
+            );
+        }
+        assert!(validate_options(&request_for("libvips", "upscale-model", &[("scale", "4")])).is_ok());
         assert!(
-            validate_options(&request_for("realesrgan", "upscale", &[("scale", "8")])).is_err()
+            validate_options(&request_for("libvips", "upscale-model", &[("denoise", "9")])).is_err()
         );
-        // 2x is the case that shipped broken: the model still returns 4x tiles.
-        assert!(validate_options(&request_for("realesrgan", "upscale", &[("scale", "2")])).is_err());
-        assert!(validate_options(&request_for("realesrgan", "upscale", &[])).is_ok());
-        assert!(photo.windows(2).any(|pair| pair == ["-s", "4"]));
+        assert!(
+            validate_options(&request_for("libvips", "upscale-model", &[("denoise", "-1")])).is_ok()
+        );
+    }
+
+    #[test]
+    fn enlarging_runs_waifu2x_even_though_it_sits_on_the_image_card() {
+        // The card someone looks for is "adjust images"; the program that does
+        // this one is a different component, and the store is keyed per tool.
+        let request = request_for("libvips", "upscale-model", &[]);
+        assert_eq!(executing_tool(&request), "waifu2x");
+        assert_eq!(operation_executable(&request).unwrap(), "waifu2x-ncnn-vulkan.exe");
+
+        // Every other operation on the card is still libvips' own.
+        let resize = request_for("libvips", "resize", &[]);
+        assert_eq!(executing_tool(&resize), "libvips");
+        assert_eq!(operation_executable(&resize).unwrap(), "vips.exe");
     }
 
     #[test]

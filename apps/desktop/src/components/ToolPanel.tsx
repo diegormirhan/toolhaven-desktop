@@ -96,7 +96,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
   function admitFiles(paths: string[]): SelectedFile[] {
     const rejected: string[] = [];
     const admitted = paths.filter((path) => {
-      const verdict = acceptsFile(tool.id, path);
+      const verdict = acceptsFile(tool.id, path, selectedOperationId);
       if (!verdict.ok) rejected.push(verdict.reason);
       return verdict.ok;
     });
@@ -708,18 +708,41 @@ function operationFields(toolId: string, operationId: string): OperationField[] 
     });
     return fields;
   }
-  if (toolId === "realesrgan" && operationId === "upscale")
+  if (toolId === "libvips" && operationId === "upscale-model")
     return [
+      {
+        key: "scale",
+        label: "Enlarge by",
+        type: "select",
+        defaultValue: "2",
+        choices: [
+          { value: "2", label: "2x" },
+          { value: "4", label: "4x" },
+        ],
+        hint: "Two times is where this is at its best. Four asks the model to invent more, and it shows.",
+      },
       {
         key: "model",
         label: "Subject",
         type: "select",
         defaultValue: "photo",
         choices: [
-          { value: "photo", label: "Photograph" },
-          { value: "illustration", label: "Drawing or anime" },
+          { value: "photo", label: "Photograph or screenshot" },
+          { value: "illustration", label: "Drawing, anime or line art" },
         ],
-        hint: "Both models enlarge four times over, which is the size they were trained to produce. The model decides what the invented detail looks like: pointing the drawing model at a photograph smears the faces it is meant to sharpen.",
+      },
+      {
+        key: "denoise",
+        label: "Clean up",
+        type: "select",
+        defaultValue: "1",
+        choices: [
+          { value: "-1", label: "None — leave the grain alone" },
+          { value: "1", label: "Light" },
+          { value: "2", label: "Medium" },
+          { value: "3", label: "Strong" },
+        ],
+        hint: "Removes the blocks a JPEG or a screenshot picked up. Strong settings also remove real texture.",
       },
     ];
   if (toolId === "ffmpeg") {
@@ -955,7 +978,7 @@ function outputExtension(toolId: string, operationId: string, originalExtension:
     "oxipng/optimize": ".png",
     "mkvtoolnix/remux": ".mkv",
     "imagemagick/convert": ".png",
-    "realesrgan/upscale": ".png",
+    "libvips/upscale-model": ".png",
   };
   return byOperation[`${toolId}/${operationId}`] ?? (toolId === "qpdf" ? ".pdf" : originalExtension);
 }

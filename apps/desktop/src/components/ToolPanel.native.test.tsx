@@ -96,7 +96,7 @@ it('shows the host result and the produced output path', async () => {
   vi.mocked(save).mockResolvedValue('image-upscale.png');
   render(<ToolPanel tool={catalogTool('libvips')} initialPath={'C:\\fixtures\\image.png'} jobs={[succeeded]} onClose={vi.fn()} onRun={() => jobId} />);
 
-  await choose(screen.getByRole('combobox', { name: 'Operation' }), /upscale/i);
+  await choose(screen.getByRole('combobox', { name: 'Operation' }), 'Enlarge (plain)');
   await userEvent.click(screen.getByRole('button', { name: 'Run' }));
 
   expect(await screen.findByText(/image enlarged 2×/i)).toBeVisible();
@@ -424,4 +424,46 @@ it('says why a file was refused instead of quietly ignoring it', async () => {
 
   expect(await screen.findByRole('alert')).toHaveTextContent(/\.png file is not something this tool reads/i);
   expect(screen.queryByText('foto.png')).not.toBeInTheDocument();
+});
+
+it('sends the model, the factor and the cleanup level the panel offered', async () => {
+  const onRun = vi.fn(() => jobId);
+  vi.mocked(save).mockResolvedValue('C:\fotos\foto-upscale-model.png');
+  render(
+    <ToolPanel
+      tool={catalogTool('libvips')}
+      initialPath={'C:\fotos\foto.png'}
+      onClose={vi.fn()}
+      onRun={onRun}
+    />,
+  );
+
+  await choose(screen.getByRole('combobox', { name: 'Operation' }), 'Enlarge (model)');
+  await choose(screen.getByRole('combobox', { name: 'Enlarge by' }), '4x');
+  await choose(screen.getByRole('combobox', { name: 'Subject' }), /drawing/i);
+  await choose(screen.getByRole('combobox', { name: 'Clean up' }), 'Strong');
+  await userEvent.click(screen.getByRole('button', { name: 'Run' }));
+
+  expect(onRun).toHaveBeenCalledWith(
+    expect.objectContaining({
+      request: expect.objectContaining({
+        toolId: 'libvips',
+        operationId: 'upscale-model',
+        options: expect.objectContaining({ scale: '4', model: 'illustration', denoise: '3' }),
+      }),
+    }),
+  );
+});
+
+it('refuses a TIFF for the model but takes it for every other image operation', async () => {
+  vi.mocked(open).mockResolvedValue('C:\scans\scan.tiff');
+  render(<ToolPanel tool={catalogTool('libvips')} onClose={vi.fn()} onRun={() => jobId} />);
+
+  await choose(screen.getByRole('combobox', { name: 'Operation' }), 'Enlarge (model)');
+  await userEvent.click(screen.getByRole('button', { name: /choose files/i }));
+  expect(await screen.findByText(/not something this operation reads/i)).toBeInTheDocument();
+
+  await choose(screen.getByRole('combobox', { name: 'Operation' }), 'Resize');
+  await userEvent.click(screen.getByRole('button', { name: /choose files/i }));
+  expect(await screen.findByRole('button', { name: /scan\.tiff/i })).toBeInTheDocument();
 });

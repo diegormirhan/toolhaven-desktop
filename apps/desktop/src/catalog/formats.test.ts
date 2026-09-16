@@ -50,19 +50,20 @@ describe("file types", () => {
   });
 });
 
-describe("tools that read less than their family", () => {
-  it("keeps a TIFF out of Real-ESRGAN, which reads three formats", () => {
-    // Declaring it as an "image" tool would let every image extension in and
-    // fail later in the binary, which is the failure the table prevents.
-    expect(acceptsFile("realesrgan", "foto.png").ok).toBe(true);
-    expect(acceptsFile("realesrgan", "foto.JPG").ok).toBe(true);
-    expect(acceptsFile("realesrgan", "foto.webp").ok).toBe(true);
+describe("operations that read less than the card they sit on", () => {
+  it("keeps a TIFF out of the model that enlarges, which reads three formats", () => {
+    // The image card reads a dozen formats. The model reads three, and letting
+    // a TIFF through would fail inside the binary instead of here.
+    expect(acceptsFile("libvips", "foto.png", "upscale-model").ok).toBe(true);
+    expect(acceptsFile("libvips", "foto.JPG", "upscale-model").ok).toBe(true);
+    expect(acceptsFile("libvips", "foto.webp", "upscale-model").ok).toBe(true);
 
-    const verdict = acceptsFile("realesrgan", "scan.tiff");
+    const verdict = acceptsFile("libvips", "scan.tiff", "upscale-model");
     expect(verdict.ok).toBe(false);
     if (!verdict.ok) expect(verdict.reason).toMatch(/\.jpg, \.jpeg, \.png, \.webp/);
 
-    // A sibling image tool is unaffected by the narrower list.
+    // Every other operation on the same card still reads the whole family.
+    expect(acceptsFile("libvips", "scan.tiff", "resize").ok).toBe(true);
     expect(acceptsFile("libvips", "scan.tiff").ok).toBe(true);
   });
 });

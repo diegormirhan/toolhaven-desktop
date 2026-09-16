@@ -176,24 +176,28 @@
           "binaryDirectory": "vips-dev-8.18/bin",
           "sizeBytes": 19746903
         }
+      ],
+      "dependencies": [
+        "waifu2x"
       ]
     },
     {
-      "id": "realesrgan",
-      "displayName": "Real-ESRGAN",
+      "id": "waifu2x",
+      "displayName": "waifu2x",
       "status": "downloadable",
       "delivery": "on-demand",
-      "sourceRepository": "https://github.com/xinntao/Real-ESRGAN",
-      "licenseExpression": "BSD-3-Clause",
+      "sourceRepository": "https://github.com/nihui/waifu2x-ncnn-vulkan",
+      "licenseExpression": "MIT",
       "capabilities": [
         "image.upscale_model"
       ],
-      "version": "0.2.5.0",
+      "version": "20250915",
       "artifacts": [
         {
-          "url": "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-windows.zip",
-          "sha256": "abc02804e17982a3be33675e4d471e91ea374e65b70167abc09e31acb412802d",
-          "sizeBytes": 45474481
+          "url": "https://github.com/nihui/waifu2x-ncnn-vulkan/releases/download/20250915/waifu2x-ncnn-vulkan-20250915-windows.zip",
+          "sha256": "7425be94b94e4c8f37a1e433ac0e0100c43790e2c37418f4b65d8235adfbdc87",
+          "binaryDirectory": "waifu2x-ncnn-vulkan-20250915-windows",
+          "sizeBytes": 35497352
         }
       ]
     },
