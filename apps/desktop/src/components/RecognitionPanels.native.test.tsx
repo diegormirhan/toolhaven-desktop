@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { invoke } from '@tauri-apps/api/core';
@@ -10,9 +10,23 @@ import { createCatalogRows } from '../catalog/catalog';
 vi.mock('@tauri-apps/plugin-dialog', () => ({ open: vi.fn(), save: vi.fn() }));
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn(), convertFileSrc: (path: string) => `asset://${path}` }));
 
+// One listener at a time is all the panel registers, and holding it lets a test
+// push a level through the same path the host uses.
+let listeners: ((event: { payload: unknown }) => void)[] = [];
+vi.mock('@tauri-apps/api/event', () => ({
+  listen: vi.fn(async (_name: string, handler: (event: { payload: unknown }) => void) => {
+    listeners.push(handler);
+    return () => { listeners = listeners.filter((entry) => entry !== handler); };
+  }),
+}));
+function emitLevel(payload: { level: number; through: number }) {
+  for (const handler of listeners) handler({ payload });
+}
+
 beforeEach(() => Object.defineProperty(window, '__TAURI_INTERNALS__', { configurable: true, value: {} }));
 afterEach(() => {
   Reflect.deleteProperty(window, '__TAURI_INTERNALS__');
+  listeners = [];
   vi.resetAllMocks();
 });
 
@@ -35,8 +49,9 @@ const engines = [
   { id: 'tineye', label: 'TinEye', uploads: false },
 ];
 
-const sources = [
+const allSources = [
   { id: 'dev-speakers', label: 'Speakers (Realtek)', kind: 'playback', isDefault: true },
+  { id: 'dev-hdmi', label: 'Display (HDMI)', kind: 'playback', isDefault: false },
   { id: 'dev-mic', label: 'Microphone (Blue Yeti)', kind: 'microphone', isDefault: true },
 ];
 
@@ -134,96 +149,118 @@ const match = {
   message: 'Matched: Bohemian Rhapsody — Queen.',
 };
 
-it('listens to what the machine is playing by default, not to the room', async () => {
+function hosts(sources: typeof allSources, answer: unknown = match) {
   vi.mocked(invoke).mockImplementation(async (command: string) => {
     if (command === 'list_audio_sources') return sources;
-    return match;
+    if (command === 'open_link') return undefined;
+    return answer;
   });
+}
 
+it('listens to what the machine is playing, and asks for nothing else first', async () => {
+  hosts(allSources);
   render(<MusicPanel tool={catalogTool('songrec')} onClose={vi.fn()} />);
-  await screen.findByRole('combobox', { name: 'Sound source' });
-  await userEvent.click(screen.getByRole('button', { name: /identify/i }));
+
+  // One question at the start, and the answer that matters is already chosen.
+  await waitFor(() => expect(screen.getByRole('combobox', { name: 'Listen to' })).toHaveTextContent(/playing/i));
+
+  // Nothing to configure about the clip: the length is the app's business.
+  expect(screen.queryByLabelText(/clip length/i)).not.toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole('button', { name: /listen and identify/i }));
 
   await waitFor(() =>
-    expect(invoke).toHaveBeenCalledWith('recognize_music', {
-      request: { source: 'device', path: null, deviceId: 'dev-speakers', seconds: 12, startSeconds: 0 },
-    }),
+    expect(invoke).toHaveBeenCalledWith('recognize_music', { request: { deviceId: 'dev-speakers' } }),
+  );
+});
+
+it('asks which device only when there is more than one of that kind', async () => {
+  hosts(allSources);
+  render(<MusicPanel tool={catalogTool('songrec')} onClose={vi.fn()} />);
+  await screen.findByRole('combobox', { name: 'Listen to' });
+
+  // Two speakers, so which one is a real question.
+  expect(await screen.findByRole('combobox', { name: 'Sound source' })).toBeInTheDocument();
+
+  // One microphone, so it is not.
+  await choose(screen.getByRole('combobox', { name: 'Listen to' }), /microphone/i);
+  await waitFor(() =>
+    expect(screen.queryByRole('combobox', { name: 'Sound source' })).not.toBeInTheDocument(),
+  );
+});
+
+it('records the microphone once that is what was chosen', async () => {
+  hosts(allSources);
+  render(<MusicPanel tool={catalogTool('songrec')} onClose={vi.fn()} />);
+  await screen.findByRole('combobox', { name: 'Listen to' });
+
+  await choose(screen.getByRole('combobox', { name: 'Listen to' }), /microphone/i);
+  await userEvent.click(screen.getByRole('button', { name: /listen and identify/i }));
+
+  await waitFor(() =>
+    expect(invoke).toHaveBeenCalledWith('recognize_music', { request: { deviceId: 'dev-mic' } }),
   );
 });
 
 it('shows every field of a match, with the cover art described for a screen reader', async () => {
-  vi.mocked(invoke).mockImplementation(async (command: string) => {
-    if (command === 'list_audio_sources') return sources;
-    return match;
-  });
-
+  hosts(allSources);
   render(<MusicPanel tool={catalogTool('songrec')} onClose={vi.fn()} />);
-  await screen.findByRole('combobox', { name: 'Sound source' });
-  await userEvent.click(screen.getByRole('button', { name: /identify/i }));
+  await screen.findByRole('combobox', { name: 'Listen to' });
+  await userEvent.click(screen.getByRole('button', { name: /listen and identify/i }));
 
   const card = await screen.findByLabelText('What was recognised');
   expect(within(card).getByRole('heading', { name: 'Bohemian Rhapsody' })).toBeInTheDocument();
   expect(within(card).getByText('Queen')).toBeInTheDocument();
   expect(within(card).getByText('A Night at the Opera')).toBeInTheDocument();
-  expect(within(card).getByText('1975')).toBeInTheDocument();
   expect(within(card).getByAltText('Cover art for Bohemian Rhapsody')).toBeInTheDocument();
-  expect(within(card).getByRole('link', { name: /open the track page/i })).toHaveAttribute(
-    'href',
-    'https://www.shazam.com/track/40333615',
-  );
+});
+
+it('opens the track page through the host, because a link would open inside the window', async () => {
+  hosts(allSources);
+  render(<MusicPanel tool={catalogTool('songrec')} onClose={vi.fn()} />);
+  await screen.findByRole('combobox', { name: 'Listen to' });
+  await userEvent.click(screen.getByRole('button', { name: /listen and identify/i }));
+
+  const card = await screen.findByLabelText('What was recognised');
+  await userEvent.click(within(card).getByRole('button', { name: /open the track page/i }));
+
+  expect(invoke).toHaveBeenCalledWith('open_link', { url: 'https://www.shazam.com/track/40333615' });
 });
 
 it('says so when nothing matched, rather than showing an empty card', async () => {
-  vi.mocked(invoke).mockImplementation(async (command: string) => {
-    if (command === 'list_audio_sources') return sources;
-    return { ...match, matched: false, title: '', artist: '', message: 'No match. Try a louder clip.' };
-  });
-
+  hosts(allSources, { ...match, matched: false, title: '', artist: '', message: 'No match. Turn it up.' });
   render(<MusicPanel tool={catalogTool('songrec')} onClose={vi.fn()} />);
-  await screen.findByRole('combobox', { name: 'Sound source' });
-  await userEvent.click(screen.getByRole('button', { name: /identify/i }));
+  await screen.findByRole('combobox', { name: 'Listen to' });
+  await userEvent.click(screen.getByRole('button', { name: /listen and identify/i }));
 
-  expect(await screen.findByText('No match. Try a louder clip.')).toBeInTheDocument();
+  expect(await screen.findByText('No match. Turn it up.')).toBeInTheDocument();
   expect(screen.queryByLabelText('What was recognised')).not.toBeInTheDocument();
 });
 
-it('reads a file instead, and passes the point to start from', async () => {
-  vi.mocked(invoke).mockImplementation(async (command: string) => {
-    if (command === 'list_audio_sources') return sources;
-    return match;
+it('draws the sound the host reports while it is still recording', async () => {
+  hosts(allSources);
+  const { container } = render(<MusicPanel tool={catalogTool('songrec')} onClose={vi.fn()} />);
+  await screen.findByRole('combobox', { name: 'Listen to' });
+
+  const bars = () =>
+    Array.from(container.querySelectorAll<HTMLElement>('.meter__bar')).map(
+      (bar) => bar.style.getPropertyValue('--level'),
+    );
+
+  // Flat until something arrives.
+  expect(bars().every((level) => level === '0')).toBe(true);
+
+  await act(async () => {
+    emitLevel({ level: 0.64, through: 0.25 });
   });
-  vi.mocked(open).mockResolvedValue('C:/music/track.mp3');
 
-  render(<MusicPanel tool={catalogTool('songrec')} onClose={vi.fn()} />);
-  await choose(await screen.findByRole('combobox', { name: 'Listen to' }), 'A file on this machine');
-  await userEvent.click(screen.getByRole('button', { name: 'Choose a file' }));
-  await screen.findByText('track.mp3');
-
-  const start = screen.getByLabelText('Start at (seconds)');
-  await userEvent.clear(start);
-  await userEvent.type(start, '45');
-  await userEvent.click(screen.getByRole('button', { name: /identify/i }));
-
-  await waitFor(() =>
-    expect(invoke).toHaveBeenCalledWith('recognize_music', {
-      request: { source: 'file', path: 'C:/music/track.mp3', deviceId: null, seconds: 12, startSeconds: 45 },
-    }),
-  );
-});
-
-it('keeps a picture out of the recogniser', async () => {
-  vi.mocked(invoke).mockResolvedValue(sources);
-  vi.mocked(open).mockResolvedValue('C:/pictures/cat.png');
-
-  render(<MusicPanel tool={catalogTool('songrec')} onClose={vi.fn()} />);
-  await choose(await screen.findByRole('combobox', { name: 'Listen to' }), 'A file on this machine');
-  await userEvent.click(screen.getByRole('button', { name: 'Choose a file' }));
-
-  expect(await screen.findByText(/not something this tool reads/i)).toBeInTheDocument();
+  // The newest value is appended, so it is the last bar that moves.
+  expect(bars().at(-1)).toBe('0.8');
+  expect(bars().at(-2)).toBe('0');
 });
 
 it('promises that only the fingerprint is sent', async () => {
-  vi.mocked(invoke).mockResolvedValue(sources);
+  hosts(allSources);
   render(<MusicPanel tool={catalogTool('songrec')} onClose={vi.fn()} />);
 
   expect(screen.getByText(/only the\s+fingerprint is sent/i)).toBeInTheDocument();

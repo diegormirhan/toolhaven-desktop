@@ -226,12 +226,12 @@ const presentationById: Record<string, ToolPresentation> = {
   songrec: {
     id: "songrec",
     title: "Name the music",
-    description: "Identify what is playing, from the speakers, the room, or a file.",
+    description: "Identify what is playing, from the speakers or the room.",
     category: "video",
     accent: "action",
     size: "standard",
     operations: [
-      { id: "identify", label: "Identify", description: "Fingerprint a short clip and look it up." },
+      { id: "identify", label: "Identify", description: "Listen for a moment and name the track." },
     ],
     keywords: [
       "music", "song", "identify", "recognise", "recognize", "shazam", "track",

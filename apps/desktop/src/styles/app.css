@@ -803,6 +803,85 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .panel-actions { display: flex; justify-content: flex-end; margin-top: var(--space-5); }
 .panel-actions .button { min-width: 140px; justify-content: center; }
 
+/* ── Listening ────────────────────────────────────────────────
+   One button and a meter. The ring around the button fills as the clip
+   is taken, so the wait has a length you can see rather than a spinner
+   that could mean anything. */
+.listen { display: grid; justify-items: center; gap: var(--space-4); margin-top: var(--space-5); }
+.listen__button {
+  position: relative; display: grid; place-items: center;
+  inline-size: 86px; block-size: 86px; padding: 0;
+  color: var(--on-action); background: var(--action);
+  border: 0; border-radius: 50%; cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: transform 220ms var(--ease-out), background 220ms var(--ease-out);
+}
+.listen__button:hover:not(:disabled):not([aria-busy="true"]) { background: var(--action-hover); transform: scale(1.04); }
+.listen__button:active:not(:disabled) { transform: scale(0.97); }
+.listen__button:disabled { opacity: 0.45; cursor: default; }
+.listen__button[aria-busy="true"] { cursor: default; }
+.listen__button svg { position: relative; z-index: 1; }
+
+/* The ring is a conic sweep masked to a band, so it reads as progress rather
+   than as a pie chart. It starts at the top and runs clockwise, which is the
+   only direction anyone reads a timer in. */
+.listen__ring {
+  position: absolute; inset: -10px; border-radius: 50%;
+  background: conic-gradient(
+    from -90deg,
+    var(--action) calc(var(--through, 0) * 360deg),
+    var(--surface-sunken) 0
+  );
+  /* A mask reads only the alpha channel, so any opaque colour does. Taking
+     the element's own keeps a literal out of a file that has none. */
+  mask: radial-gradient(farthest-side, transparent calc(100% - 5px), currentColor calc(100% - 4px));
+  opacity: 0;
+  transition: opacity 260ms var(--ease-out);
+}
+/* Nothing to show before it starts, and a full ring afterwards would read as
+   an error state rather than as a finished one. */
+.listen__button[aria-busy="true"] .listen__ring { opacity: 1; }
+.listen__button--busy { animation: listen-pulse 1.8s var(--ease-out) infinite; }
+@keyframes listen-pulse {
+  0%, 100% { box-shadow: var(--shadow-card), 0 0 0 0 color-mix(in srgb, var(--action) 45%, transparent); }
+  50% { box-shadow: var(--shadow-card), 0 0 0 16px color-mix(in srgb, var(--action) 0%, transparent); }
+}
+.listen__caption { margin: 0; color: var(--text-quiet); font-size: 0.74rem; }
+
+/* ── The meter ────────────────────────────────────────────────
+   Forty bars, each one a level the host reported while it was still
+   recording. It scrolls because the newest value is appended and the
+   oldest falls off, which is what makes it read as live. */
+.meter {
+  position: relative;
+  display: flex; align-items: center; justify-content: center; gap: 3px;
+  inline-size: 100%; block-size: 60px;
+}
+/* A baseline behind the bars. Without it silence is a row of dots; with it,
+   silence is a line and sound grows out of it, which is what a waveform is. */
+.meter::before {
+  content: ""; position: absolute; inset-inline: 50%; inset-block-start: 50%;
+  inline-size: 296px; block-size: 1px; translate: -50% -50%;
+  background: var(--line);
+}
+.meter__bar {
+  position: relative;
+  inline-size: 3px; border-radius: 999px;
+  /* Symmetric around the middle, so silence is a line rather than a row of
+     dots, and a loud moment grows in both directions like a waveform. */
+  block-size: max(3px, calc(var(--level, 0) * 60px));
+  background: var(--line);
+  transition: block-size 110ms var(--ease-out), background 300ms var(--ease-out);
+}
+.meter--active .meter__bar { background: var(--action); }
+/* Quiet while nothing is being recorded: the baseline alone carries it. */
+.meter:not(.meter--active) .meter__bar { block-size: 1px; opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .listen__button--busy { animation: none; }
+  .meter__bar, .listen__ring { transition: none; }
+}
+
 /* ── A recognised track ───────────────────────────────────────
    Cover art earns its place here: it is how anyone confirms at a glance
    that the answer is the right one, faster than reading the title. */
@@ -829,8 +908,9 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .recognition__rows dt { color: var(--text-quiet); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em; }
 .recognition__rows dd { margin: 0; font-size: 0.74rem; overflow-wrap: anywhere; }
 .recognition__link {
-  display: inline-flex; align-items: center; gap: 6px;
-  color: var(--action); font-size: 0.72rem; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 6px; padding: 0;
+  color: var(--action); background: none; border: 0; cursor: pointer;
+  font-size: 0.72rem; text-decoration: none;
 }
 .recognition__link:hover { text-decoration: underline; }
 

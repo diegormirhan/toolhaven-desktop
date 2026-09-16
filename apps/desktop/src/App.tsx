@@ -456,8 +456,6 @@ export function App() {
             <MusicPanel
               key={selectedTool.id}
               tool={selectedTool}
-              initialPath={pendingFile}
-              droppedPaths={fileDrop.droppedPaths}
               leaving={panelLeaving}
               onDirtyChange={setPanelDirty}
               onClose={closeTool}

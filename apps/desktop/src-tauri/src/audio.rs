@@ -42,8 +42,10 @@ const CHANNELS: usize = 2;
 const SILENCE_PEAK: f32 = 0.002;
 
 /// Said for both an empty recording and a flat one, because the fix is the same.
-const NOTHING_HEARD: &str =
-    "Nothing came through. If you chose a speaker, start the music first and try again;      if you chose a microphone, check it is not muted.";
+const NOTHING_HEARD: &str = concat!(
+    "Nothing came through. If you chose a speaker, start the music first and try again; ",
+    "if you chose a microphone, check it is not muted."
+);
 
 #[cfg(windows)]
 pub fn list_sources() -> Result<Vec<AudioSource>, String> {
@@ -105,9 +107,21 @@ pub fn list_sources() -> Result<Vec<AudioSource>, String> {
     Err("Recording is only implemented for Windows.".into())
 }
 
+/// How loud the last moment was, and how far through the recording it is.
+///
+/// Reported while the clip is still being taken, so the window can show the
+/// sound arriving rather than a spinner that means nothing. The level is a
+/// peak in 0..1; the fraction is 0..1 through the requested length.
+pub type OnLevel<'a> = &'a (dyn Fn(f32, f32) + Send + Sync);
+
 /// Records `seconds` of sound from `source_id` into `destination` as a WAV.
 #[cfg(windows)]
-pub fn capture(source_id: &str, seconds: u32, destination: &std::path::Path) -> Result<(), String> {
+pub fn capture(
+    source_id: &str,
+    seconds: u32,
+    destination: &std::path::Path,
+    on_level: OnLevel<'_>,
+) -> Result<(), String> {
     use wasapi::{Direction, StreamMode};
 
     if !(1..=30).contains(&seconds) {
@@ -116,7 +130,9 @@ pub fn capture(source_id: &str, seconds: u32, destination: &std::path::Path) -> 
     let wanted = source_id.to_string();
     let target = destination.to_path_buf();
 
-    let samples = std::thread::spawn(move || -> Result<(Vec<f32>, usize, usize), String> {
+    let samples = std::thread::scope(|scope| {
+        scope
+            .spawn(move || -> Result<(Vec<f32>, usize, usize), String> {
         let _ = wasapi::initialize_mta();
         let enumerator = wasapi::DeviceEnumerator::new()
             .map_err(|error| describe(error, "open the sound device"))?;
@@ -206,9 +222,28 @@ pub fn capture(source_id: &str, seconds: u32, destination: &std::path::Path) -> 
         // otherwise recording a muted machine would never return.
         let deadline =
             std::time::Instant::now() + std::time::Duration::from_secs(seconds as u64 + 4);
+        // Often enough to look continuous, rarely enough not to flood the
+        // window with events nobody can see.
+        let report_every = std::time::Duration::from_millis(60);
+        let mut reported_at = std::time::Instant::now();
+        let mut reported_bytes = 0usize;
+        let started = std::time::Instant::now();
+
         while queue.len() < wanted_frames * block_align && std::time::Instant::now() < deadline {
             if capture.read_from_device_to_deque(&mut queue).is_err() {
                 break;
+            }
+            if reported_at.elapsed() >= report_every {
+                reported_at = std::time::Instant::now();
+                // Only what arrived since the last report, taken from the back
+                // of the queue rather than by walking it from the front.
+                let fresh: Vec<u8> = queue.range(reported_bytes..).copied().collect();
+                reported_bytes = queue.len();
+                let level = decode(&fresh, bits, &sample_type)
+                    .map(|samples| peak(&samples))
+                    .unwrap_or(0.0);
+                let through = started.elapsed().as_secs_f32() / seconds as f32;
+                on_level(level, through.clamp(0.0, 1.0));
             }
             // Half the device period: often enough that the ring buffer never
             // overruns, rarely enough that this is not a spin.
@@ -216,14 +251,16 @@ pub fn capture(source_id: &str, seconds: u32, destination: &std::path::Path) -> 
                 (default_period as u64 / 20).clamp(1_000, 10_000),
             ));
         }
+        on_level(0.0, 1.0);
         let _ = client.stop_stream();
 
         let bytes: Vec<u8> = queue.into_iter().collect();
         let samples = decode(&bytes, bits, &sample_type)
             .ok_or_else(|| format!("This device records in a format ({bits}-bit {sample_type}) that cannot be read."))?;
-        Ok((samples, rate, channels))
+                Ok((samples, rate, channels))
+            })
+            .join()
     })
-    .join()
     .map_err(|_| "Recording stopped unexpectedly.".to_string())??;
     let (samples, rate, channels) = samples;
 
@@ -242,7 +279,12 @@ pub fn capture(source_id: &str, seconds: u32, destination: &std::path::Path) -> 
 }
 
 #[cfg(not(windows))]
-pub fn capture(_source_id: &str, _seconds: u32, _destination: &std::path::Path) -> Result<(), String> {
+pub fn capture(
+    _source_id: &str,
+    _seconds: u32,
+    _destination: &std::path::Path,
+    _on_level: OnLevel<'_>,
+) -> Result<(), String> {
     Err("Recording is only implemented for Windows.".into())
 }
 
@@ -447,12 +489,26 @@ mod tests {
         // A moment for the render stream to actually start before recording.
         std::thread::sleep(std::time::Duration::from_millis(400));
         let path = std::env::temp_dir().join("toolhaven-loopback-test.wav");
-        let outcome = capture(&device.id, 2, &path);
+        let reports = std::sync::atomic::AtomicUsize::new(0);
+        let loudest = std::sync::Mutex::new(0.0_f32);
+        let outcome = capture(&device.id, 2, &path, &|level, through| {
+            reports.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            let mut loudest = loudest.lock().unwrap();
+            *loudest = loudest.max(level);
+            assert!((0.0..=1.0).contains(&through), "progress stays in range");
+        });
         playing.store(false, std::sync::atomic::Ordering::Relaxed);
         let played = player.join().expect("the player should not panic");
 
         played.expect("the tone should play");
         outcome.expect("the tone should come back");
+
+        // The window is told what is arriving while it arrives, not afterwards.
+        assert!(
+            reports.load(std::sync::atomic::Ordering::Relaxed) > 10,
+            "two seconds should report many times"
+        );
+        assert!(*loudest.lock().unwrap() > SILENCE_PEAK, "and report the tone");
 
         let mut reader = hound::WavReader::open(&path).expect("readable");
         let samples: Vec<f32> = reader

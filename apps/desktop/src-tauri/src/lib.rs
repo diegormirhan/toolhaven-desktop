@@ -21,6 +21,7 @@ pub fn run() {
             image_search_engines,
             search_by_image,
             recognize_music,
+            open_link,
             cancel_operation
         ])
         .setup(|app| {
@@ -173,15 +174,25 @@ fn open_externally(url: &str) -> Result<(), String> {
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RecognitionRequest {
-    /// `device` to listen, `file` to read something already on disk.
-    source: String,
-    path: Option<String>,
-    device_id: Option<String>,
-    #[serde(default)]
-    seconds: u32,
-    #[serde(default)]
-    start_seconds: u32,
+    device_id: String,
 }
+
+/// How long a clip is taken for.
+///
+/// Fixed rather than offered: nobody knows what to pick, and the answer that
+/// matters is whether it matched. Twelve seconds is comfortably above what the
+/// fingerprint needs and below where waiting starts to feel broken.
+const LISTEN_SECONDS: u32 = 12;
+
+/// Reported to the window while the clip is being taken, so it can draw the
+/// sound arriving instead of a spinner.
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ListeningLevel {
+    level: f32,
+    through: f32,
+}
+
 
 /// Deletes the clip when the recognition is over, however it ends.
 struct TemporaryClip(std::path::PathBuf);
@@ -193,20 +204,33 @@ impl Drop for TemporaryClip {
 }
 
 #[tauri::command]
-async fn recognize_music(request: RecognitionRequest) -> Result<recognize::Recognition, String> {
-    tauri::async_runtime::spawn_blocking(move || recognize_music_inner(request))
-        .await
-        .map_err(|error| format!("The recognition was interrupted: {error}"))?
+async fn recognize_music(
+    app: tauri::AppHandle,
+    request: RecognitionRequest,
+) -> Result<recognize::Recognition, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        recognize_music_inner(&request.device_id, &|level, through| {
+            let _ = app.emit("listening-level", ListeningLevel { level, through });
+        })
+    })
+    .await
+    .map_err(|error| format!("The recognition was interrupted: {error}"))?
 }
 
-fn recognize_music_inner(request: RecognitionRequest) -> Result<recognize::Recognition, String> {
-    // Four seconds is about the shortest a match comes back from; thirty is
-    // well past the point where more audio helps.
-    let seconds = if request.seconds == 0 {
-        12
-    } else {
-        request.seconds.clamp(4, 30)
-    };
+/// Opens a result in the browser, having first made sure it is an address.
+#[tauri::command]
+fn open_link(url: String) -> Result<(), String> {
+    open_externally(&url)
+}
+
+fn recognize_music_inner(
+    device_id: &str,
+    on_level: audio::OnLevel<'_>,
+) -> Result<recognize::Recognition, String> {
+    let device = device_id.trim();
+    if device.is_empty() {
+        return Err("Choose what to listen to first.".into());
+    }
     let workspace = std::env::temp_dir().join("toolhaven-recognise");
     std::fs::create_dir_all(&workspace)
         .map_err(|error| format!("Could not make room for the clip: {error}"))?;
@@ -224,50 +248,7 @@ fn recognize_music_inner(request: RecognitionRequest) -> Result<recognize::Recog
         .ok_or("That temporary folder has a name this cannot handle.")?
         .to_string();
 
-    match request.source.as_str() {
-        "device" => {
-            let device = request
-                .device_id
-                .as_deref()
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-                .ok_or("Choose what to listen to first.")?;
-            audio::capture(device, seconds, &clip)?;
-        }
-        "file" => {
-            let path = request
-                .path
-                .as_deref()
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-                .ok_or("Choose a file first.")?;
-            let ffmpeg = resolve_executable("ffmpeg.exe")?;
-            let mut command = std::process::Command::new(ffmpeg);
-            command
-                .args(recognize::clip_args(
-                    path,
-                    &clip_path,
-                    request.start_seconds,
-                    seconds,
-                ))
-                .stdin(std::process::Stdio::null());
-            #[cfg(windows)]
-            {
-                use std::os::windows::process::CommandExt;
-                command.creation_flags(0x08000000);
-            }
-            let output = command
-                .output()
-                .map_err(|error| format!("Could not start FFmpeg: {error}"))?;
-            if !output.status.success() {
-                return Err(format!(
-                    "That file could not be read as sound: {}",
-                    compact_error(&String::from_utf8_lossy(&output.stderr))
-                ));
-            }
-        }
-        other => return Err(format!("{other} is not a way of getting a clip.")),
-    }
+    audio::capture(device, LISTEN_SECONDS, &clip, on_level)?;
 
     let executable = resolve_suite_executable("songrec", "songrec.exe")?;
     let mut command = std::process::Command::new(&executable);

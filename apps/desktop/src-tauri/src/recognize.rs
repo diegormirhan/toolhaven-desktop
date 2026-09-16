@@ -1,15 +1,12 @@
 //! Naming a piece of music from a few seconds of it.
 //!
-//! Three steps, and only the middle one leaves the machine. A clip is obtained —
-//! recorded from a microphone, recorded from what the speakers are playing, or
-//! decoded out of a file already on disk. A fingerprint is computed from it
-//! locally. The fingerprint, and never the sound, is what goes to the service
-//! that holds the index.
+//! Three steps, and only the middle one leaves the machine. A clip is recorded —
+//! from a microphone, or from whatever the speakers are playing. A fingerprint
+//! is computed from it locally. The fingerprint, and never the sound, is what
+//! goes to the service that holds the index.
 //!
-//! The clip is always handed over as 16-bit PCM written by the FFmpeg this app
-//! ships, rather than whatever the recogniser can decode on its own: one format
-//! in means one decoder to trust, and it is the one already carrying every other
-//! media operation here.
+//! The clip is 16-bit PCM written by this app, so the recogniser is handed one
+//! format rather than asked to decode whatever it was given.
 
 /// What the interface shows once a match comes back.
 #[derive(Debug, Clone, Default, serde::Serialize, PartialEq)]
@@ -121,40 +118,12 @@ fn first_non_empty(candidates: &[String]) -> String {
         .unwrap_or_default()
 }
 
-/// The FFmpeg arguments that turn any input into the clip the recogniser wants.
-///
-/// Mono at 16 kHz is what the fingerprint is computed from anyway, so sending
-/// anything richer only makes a larger temporary file. The offset lets a long
-/// track be sampled from its middle, where a recogniser has more to work with
-/// than in an intro that is often near-silent.
-pub fn clip_args(input: &str, output: &str, start_seconds: u32, seconds: u32) -> Vec<String> {
-    let mut args = vec!["-hide_banner".into(), "-loglevel".into(), "error".into()];
-    if start_seconds > 0 {
-        args.push("-ss".into());
-        args.push(start_seconds.to_string());
-    }
-    args.extend([
-        "-i".into(),
-        input.into(),
-        "-t".into(),
-        seconds.max(1).to_string(),
-        "-vn".into(),
-        "-ac".into(),
-        "1".into(),
-        "-ar".into(),
-        "16000".into(),
-        "-c:a".into(),
-        "pcm_s16le".into(),
-        "-y".into(),
-        output.into(),
-    ]);
-    args
-}
-
 /// A sentence for a result with nothing in it, so the panel never shows a blank.
 pub fn describe(result: &Recognition) -> String {
     if !result.matched {
-        return "No match. Try a louder or longer clip, or a different part of the track."
+        // There is nothing to adjust any more, so the advice is about the
+        // sound rather than about a setting that no longer exists.
+        return "No match. Turn it up, get closer, or try again during a part with vocals."
             .to_string();
     }
     match (result.title.as_str(), result.artist.as_str()) {
@@ -219,7 +188,10 @@ mod tests {
     fn reports_no_match_rather_than_failing() {
         let result = parse(r#"{"matches": [], "timestamp": 1700000000}"#).unwrap();
         assert!(!result.matched);
-        assert_eq!(describe(&result), "No match. Try a louder or longer clip, or a different part of the track.");
+        assert_eq!(
+            describe(&result),
+            "No match. Turn it up, get closer, or try again during a part with vocals."
+        );
     }
 
     #[test]
@@ -258,34 +230,4 @@ mod tests {
         assert!(parse("{ not json at all").is_err());
     }
 
-    #[test]
-    fn builds_a_clip_command_that_is_mono_sixteen_bit_and_bounded() {
-        let args = clip_args("C:/music/track.mp3", "C:/temp/clip.wav", 0, 12);
-        assert!(args.windows(2).any(|pair| pair == ["-i", "C:/music/track.mp3"]));
-        assert!(args.windows(2).any(|pair| pair == ["-t", "12"]));
-        assert!(args.windows(2).any(|pair| pair == ["-ac", "1"]));
-        assert!(args.windows(2).any(|pair| pair == ["-ar", "16000"]));
-        assert!(args.windows(2).any(|pair| pair == ["-c:a", "pcm_s16le"]));
-        // No video stream reaches the recogniser from an MP4.
-        assert!(args.iter().any(|arg| arg == "-vn"));
-        assert_eq!(args.last().unwrap(), "C:/temp/clip.wav");
-        // Seeking is omitted entirely when starting from the beginning.
-        assert!(!args.iter().any(|arg| arg == "-ss"));
-    }
-
-    #[test]
-    fn seeks_before_the_input_so_the_skip_is_not_decoded() {
-        let args = clip_args("in.mp4", "out.wav", 45, 12);
-        let ss = args.iter().position(|arg| arg == "-ss").unwrap();
-        let input = args.iter().position(|arg| arg == "-i").unwrap();
-        assert!(ss < input, "-ss has to come before -i to seek cheaply");
-        assert_eq!(args[ss + 1], "45");
-    }
-
-    #[test]
-    fn never_asks_for_a_clip_of_no_length() {
-        let args = clip_args("in.mp3", "out.wav", 0, 0);
-        let length = args.iter().position(|arg| arg == "-t").unwrap();
-        assert_eq!(args[length + 1], "1");
-    }
 }
