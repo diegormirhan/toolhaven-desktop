@@ -1,0 +1,62 @@
+import { AlertTriangle, Download, RefreshCw, X } from "lucide-react";
+import type { UpdateState } from "../hooks/useUpdate";
+
+/**
+ * Says what the update is doing, and nothing when it is doing nothing.
+ *
+ * It sits at the bottom rather than the top: an app that greets you with a bar
+ * pushing the catalog down has made its housekeeping your first problem.
+ */
+export function UpdateBanner({
+  state,
+  onRestart,
+  onDismiss,
+}: {
+  state: UpdateState;
+  onRestart: () => void;
+  onDismiss: () => void;
+}) {
+  if (state.phase === "idle") return null;
+
+  const percentage =
+    state.phase === "downloading" && state.progress != null
+      ? Math.round(state.progress * 100)
+      : null;
+
+  return (
+    <aside className={`update-banner update-banner--${state.phase}`} role="status">
+      {state.phase === "downloading" && (
+        <>
+          <Download size={16} aria-hidden="true" />
+          <span>
+            Downloading version {state.version}
+            {percentage == null ? "…" : ` — ${percentage}%`}
+          </span>
+        </>
+      )}
+      {state.phase === "ready" && (
+        <>
+          <RefreshCw size={16} aria-hidden="true" />
+          <span>
+            Version {state.version} is installed. Restart to use it — anything running
+            now will be lost.
+          </span>
+          <button className="button button--primary button--small" type="button" onClick={onRestart}>
+            Restart
+          </button>
+        </>
+      )}
+      {state.phase === "failed" && (
+        <>
+          <AlertTriangle size={16} aria-hidden="true" />
+          <span>The update could not be installed: {state.message}</span>
+        </>
+      )}
+      {state.phase !== "downloading" && (
+        <button className="icon-button update-banner__close" type="button" onClick={onDismiss} aria-label="Dismiss">
+          <X size={16} />
+        </button>
+      )}
+    </aside>
+  );
+}

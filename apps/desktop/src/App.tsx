@@ -23,6 +23,8 @@ import { InstallDialog } from "./components/InstallDialog";
 import { ThemeSwitch } from "./components/ThemeSwitch";
 import { ToolPanel, type RunOperationInput } from "./components/ToolPanel";
 import { ImageSearchPanel } from "./components/ImageSearchPanel";
+import { UpdateBanner } from "./components/UpdateBanner";
+import { useUpdate } from "./hooks/useUpdate";
 import { MusicPanel } from "./components/MusicPanel";
 import { ToolSection } from "./components/ToolSection";
 import { CategoryFilter } from "./components/CategoryFilter";
@@ -77,6 +79,7 @@ export function App() {
     () => readSetting("toolhaven.conflict") || "keep-both",
   );
   const runner = useOperationRunner({ concurrency, conflictPolicy });
+  const update = useUpdate();
 
   useEffect(() => writeSetting("toolhaven.concurrency", String(concurrency)), [concurrency]);
   useEffect(() => writeSetting("toolhaven.conflict", conflictPolicy), [conflictPolicy]);
@@ -416,6 +419,7 @@ export function App() {
           onClose={() => setPendingTool(null)}
         />
       )}
+      <UpdateBanner state={update.state} onRestart={update.restart} onDismiss={update.dismiss} />
       {selectedTool && (
         <>
           <div

@@ -45,3 +45,8 @@ Thumbs.db
 Desktop.ini
 
 .preview/
+
+# Update signing keys. The private one lives outside this repository entirely;
+# this is a guard against it ever arriving by accident.
+*.key
+updater.key*

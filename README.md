@@ -333,6 +333,66 @@ the next change to the interface.
 
 ---
 
+## Staying up to date
+
+The app checks for a new version when it opens, downloads it, and installs it.
+What it will not do is restart itself: a window that disappears while a two-hour
+transcode is running has not been helpful. So the last step is a button, and the
+banner says the work is already done.
+
+Every update is verified before it is allowed to run. The release is signed with
+a key whose public half is compiled into the binary, so a download that has been
+tampered with — or served by anything other than the real release — is refused
+rather than installed. The private half is not in this repository and never will
+be; losing it means no further updates can be signed, which is the trade for not
+being able to push one by compromising a web server.
+
+The check is one request to the release manifest. If there is no network, or the
+manifest is missing, the app carries on at the version it has and says nothing.
+
+```
+apps/desktop/src-tauri/tauri.conf.json   the endpoint and the public key
+scripts/release/build-update-manifest.mjs   writes the latest.json a release needs
+```
+
+Building a release that can be updated to needs the signing key in the
+environment, or the build fails rather than shipping something no client will
+accept:
+
+```bash
+TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.toolhaven/updater.key)" npm run tauri:build
+```
+
+## Staying up to date
+
+The app checks for a new version when it opens, downloads it, and installs it.
+What it will not do is restart itself: a window that disappears while a two-hour
+transcode is running has not been helpful. So the last step is a button, and the
+banner says the work is already done.
+
+Every update is verified before it is allowed to run. The release is signed with
+a key whose public half is compiled into the binary, so a download that has been
+tampered with — or served by anything other than the real release — is refused
+rather than installed. The private half is not in this repository and never will
+be; losing it means no further updates can be signed, which is the trade for not
+being able to push one by compromising a web server.
+
+The check is one request to the release manifest. If there is no network, or the
+manifest is missing, the app carries on at the version it has and says nothing.
+
+```
+apps/desktop/src-tauri/tauri.conf.json   the endpoint and the public key
+scripts/release/build-update-manifest.mjs   writes the latest.json a release needs
+```
+
+Building a release that can be updated to needs the signing key in the
+environment, or the build fails rather than shipping something no client will
+accept:
+
+```bash
+TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.toolhaven/updater.key)" npm run tauri:build
+```
+
 ## Known limitations
 
 Stated because they are real, not because they are theoretical:
@@ -344,6 +404,14 @@ Stated because they are real, not because they are theoretical:
   path, so a machine without a Vulkan driver cannot use that one operation.
 - **An operation can be stopped but not paused.** Stopping kills the process tree through a Job
   Object, which is immediate and complete; there is no way to resume from where it was.
+- **The update path has not been exercised end to end.** The check, the manifest and the signing
+  are all in place and the signature is real, but no release has yet been published for a client
+  to update *from*, and Tauri refuses a non-HTTPS endpoint, so a local rehearsal would have needed
+  a trusted certificate. The first real update is also its first full test.
+- **The update path has not been exercised end to end.** The check, the manifest and the signing
+  are all in place and the signature is real, but no release has yet been published for a client
+  to update *from*, and Tauri refuses a non-HTTPS endpoint, so a local rehearsal would have needed
+  a trusted certificate. The first real update is also its first full test.
 - **The bundled tokei is from January 2021.** Upstream stopped publishing Windows binaries; the
   current tag has no artifacts at all. A five-year-old binary is bad, a permanently dead card is
   worse, and building from source in CI is the actual fix.

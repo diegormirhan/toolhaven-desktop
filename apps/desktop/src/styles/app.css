@@ -803,6 +803,35 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .panel-actions { display: flex; justify-content: flex-end; margin-top: var(--space-5); }
 .panel-actions .button { min-width: 140px; justify-content: center; }
 
+/* ── Update banner ────────────────────────────────────────────
+   Bottom, not top: an app that greets you with a bar pushing the catalog
+   down has made its own housekeeping your first problem. */
+.update-banner {
+  position: fixed; z-index: 90; inset-inline: 50%; inset-block-end: var(--space-5);
+  translate: -50% 0;
+  display: flex; align-items: center; gap: var(--space-3);
+  max-inline-size: min(640px, calc(100vw - var(--space-6)));
+  padding: var(--space-3) var(--space-4);
+  color: var(--text); background: var(--surface-raised);
+  border: 1px solid var(--line); border-radius: 999px;
+  box-shadow: var(--shadow-lifted);
+  font-size: 0.76rem; text-wrap: pretty;
+  animation: update-in 420ms var(--ease-out) backwards;
+}
+@keyframes update-in {
+  from { opacity: 0; translate: -50% 12px; }
+  to { opacity: 1; translate: -50% 0; }
+}
+.update-banner > svg { flex-shrink: 0; color: var(--action); }
+.update-banner--failed > svg { color: var(--error); }
+.update-banner > span { min-width: 0; }
+.update-banner .button { flex-shrink: 0; }
+.update-banner__close { flex-shrink: 0; margin-inline-start: calc(var(--space-1) * -1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .update-banner { animation: none; }
+}
+
 /* ── Listening ────────────────────────────────────────────────
    One button and a meter. The ring around the button fills as the clip
    is taken, so the wait has a length you can see rather than a spinner
