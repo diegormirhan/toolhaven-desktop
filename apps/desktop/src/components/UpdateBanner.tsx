@@ -16,7 +16,12 @@ export function UpdateBanner({
   onRestart: () => void;
   onDismiss: () => void;
 }) {
-  if (state.phase === "idle") return null;
+  // "checking" and "current" are answers to a button in Settings, and are
+  // reported there; a banner for them would be an interruption saying nothing
+  // happened.
+  if (state.phase === "idle" || state.phase === "checking" || state.phase === "current") {
+    return null;
+  }
 
   const percentage =
     state.phase === "downloading" && state.progress != null

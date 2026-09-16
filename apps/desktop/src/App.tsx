@@ -24,7 +24,7 @@ import { ThemeSwitch } from "./components/ThemeSwitch";
 import { ToolPanel, type RunOperationInput } from "./components/ToolPanel";
 import { ImageSearchPanel } from "./components/ImageSearchPanel";
 import { UpdateBanner } from "./components/UpdateBanner";
-import { useUpdate } from "./hooks/useUpdate";
+import { useUpdate, type UpdateState } from "./hooks/useUpdate";
 import { MusicPanel } from "./components/MusicPanel";
 import { ToolSection } from "./components/ToolSection";
 import { CategoryFilter } from "./components/CategoryFilter";
@@ -392,6 +392,9 @@ export function App() {
             onConcurrencyChange={setConcurrency}
             conflictPolicy={conflictPolicy}
             onConflictPolicyChange={setConflictPolicy}
+            version={update.version}
+            updateState={update.state}
+            onCheckForUpdates={update.checkNow}
             finishedCount={runner.finishedJobs.length}
             onClearHistory={runner.clearHistory}
             onReturn={() => setActiveNavigation("catalog")}
@@ -640,6 +643,9 @@ function SettingsView({
   onConcurrencyChange,
   conflictPolicy,
   onConflictPolicyChange,
+  version,
+  updateState,
+  onCheckForUpdates,
   finishedCount,
   onClearHistory,
   onReturn,
@@ -654,6 +660,9 @@ function SettingsView({
   onConcurrencyChange: (value: number) => void;
   conflictPolicy: string;
   onConflictPolicyChange: (value: string) => void;
+  version: string;
+  updateState: UpdateState;
+  onCheckForUpdates: () => Promise<void>;
   finishedCount: number;
   onClearHistory: () => void;
   onReturn: () => void;
@@ -780,6 +789,27 @@ function SettingsView({
         </div>
       </div>
 
+      <div className="settings-card">
+        <div className="settings-card__copy">
+          <h2>Version</h2>
+          <p>
+            The app looks for a newer release each time it opens and downloads it on its own;
+            this asks now instead of waiting. {updateMessage(updateState)}
+          </p>
+        </div>
+        <div className="settings-card__control">
+          <span className="settings-card__path">{version ? `ToolHaven ${version}` : "—"}</span>
+          <button
+            className="button button--light"
+            type="button"
+            onClick={() => void onCheckForUpdates()}
+            disabled={updateState.phase === "checking" || updateState.phase === "downloading"}
+          >
+            {updateState.phase === "checking" ? "Checking…" : "Check now"}
+          </button>
+        </div>
+      </div>
+
       <div className="settings-card settings-card--pending">
         <div className="settings-card__copy">
           <h2>Not available yet</h2>
@@ -795,6 +825,22 @@ function SettingsView({
       </button>
     </section>
   );
+}
+
+/** What the last check found, in the one sentence the card has room for. */
+function updateMessage(state: UpdateState): string {
+  switch (state.phase) {
+    case "current":
+      return "This is the newest version.";
+    case "downloading":
+      return "A newer version is downloading.";
+    case "ready":
+      return `Version ${state.version} is ready — restart to use it.`;
+    case "failed":
+      return `The last check failed: ${state.message}`;
+    default:
+      return "";
+  }
 }
 
 /** Reads a saved setting, tolerating a storage that refuses to answer. */

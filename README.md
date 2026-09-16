@@ -339,6 +339,8 @@ the next change to the interface.
 ## Staying up to date
 
 The app checks for a new version when it opens, downloads it, and installs it.
+Settings names the running version and has a *Check now* button for asking
+between launches.
 What it will not do is restart itself: a window that disappears while a two-hour
 transcode is running has not been helpful. So the last step is a button, and the
 banner says the work is already done.
@@ -407,14 +409,10 @@ Stated because they are real, not because they are theoretical:
   path, so a machine without a Vulkan driver cannot use that one operation.
 - **An operation can be stopped but not paused.** Stopping kills the process tree through a Job
   Object, which is immediate and complete; there is no way to resume from where it was.
-- **The update path has not been exercised end to end.** The check, the manifest and the signing
-  are all in place and the signature is real, but no release has yet been published for a client
-  to update *from*, and Tauri refuses a non-HTTPS endpoint, so a local rehearsal would have needed
-  a trusted certificate. The first real update is also its first full test.
-- **The update path has not been exercised end to end.** The check, the manifest and the signing
-  are all in place and the signature is real, but no release has yet been published for a client
-  to update *from*, and Tauri refuses a non-HTTPS endpoint, so a local rehearsal would have needed
-  a trusted certificate. The first real update is also its first full test.
+- **Only half the update path has been exercised.** The check against the live endpoint is
+  verified — it fetches the manifest, verifies the signature and correctly finds nothing newer
+  when there is nothing newer. The download-and-install half waits on a release newer than the
+  one installed; Tauri refuses a non-HTTPS endpoint, so there is no local rehearsal for it.
 - **The bundled tokei is from January 2021.** Upstream stopped publishing Windows binaries; the
   current tag has no artifacts at all. A five-year-old binary is bad, a permanently dead card is
   worse, and building from source in CI is the actual fix.
