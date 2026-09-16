@@ -19,6 +19,8 @@ import { createCatalogRows, filterCatalogRows, type CatalogTool } from "./catalo
 import { InstallDialog } from "./components/InstallDialog";
 import { ThemeSwitch } from "./components/ThemeSwitch";
 import { ToolPanel, type RunOperationInput } from "./components/ToolPanel";
+import { ImageSearchPanel } from "./components/ImageSearchPanel";
+import { MusicPanel } from "./components/MusicPanel";
 import { ToolSection } from "./components/ToolSection";
 import { CategoryFilter } from "./components/CategoryFilter";
 import type { ToolJob } from "./domain/job-queue";
@@ -424,19 +426,43 @@ export function App() {
             </div>
           )}
 
-          <ToolPanel
-            onDirtyChange={setPanelDirty}
-            key={selectedTool.id}
-            tool={selectedTool}
-            initialPath={pendingFile}
-            droppedPaths={fileDrop.droppedPaths}
-            jobs={runner.jobs}
-            defaultFolder={defaultFolder}
-            leaving={panelLeaving}
-            onClose={closeTool}
-            onExited={finishClosingTool}
-            onRun={runToolOperation}
-          />
+          {selectedTool.id === "image-search" ? (
+            <ImageSearchPanel
+              key={selectedTool.id}
+              tool={selectedTool}
+              initialPath={pendingFile}
+              droppedPaths={fileDrop.droppedPaths}
+              leaving={panelLeaving}
+              onDirtyChange={setPanelDirty}
+              onClose={closeTool}
+              onExited={finishClosingTool}
+            />
+          ) : selectedTool.id === "songrec" ? (
+            <MusicPanel
+              key={selectedTool.id}
+              tool={selectedTool}
+              initialPath={pendingFile}
+              droppedPaths={fileDrop.droppedPaths}
+              leaving={panelLeaving}
+              onDirtyChange={setPanelDirty}
+              onClose={closeTool}
+              onExited={finishClosingTool}
+            />
+          ) : (
+            <ToolPanel
+              onDirtyChange={setPanelDirty}
+              key={selectedTool.id}
+              tool={selectedTool}
+              initialPath={pendingFile}
+              droppedPaths={fileDrop.droppedPaths}
+              jobs={runner.jobs}
+              defaultFolder={defaultFolder}
+              leaving={panelLeaving}
+              onClose={closeTool}
+              onExited={finishClosingTool}
+              onRun={runToolOperation}
+            />
+          )}
         </>
       )}
     </div>

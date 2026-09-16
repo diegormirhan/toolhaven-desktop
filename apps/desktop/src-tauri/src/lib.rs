@@ -1,4 +1,7 @@
+mod audio;
 mod components;
+mod recognize;
+mod search;
 
 use std::io::{BufRead, BufReader, Read};
 use tauri::{Emitter, Manager};
@@ -7,11 +10,16 @@ use tauri::{Emitter, Manager};
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             execute_operation,
             detect_available_tools,
             install_component,
-            allow_preview
+            allow_preview,
+            list_audio_sources,
+            image_search_engines,
+            search_by_image,
+            recognize_music
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {
@@ -81,6 +89,203 @@ fn allow_preview(app: tauri::AppHandle, path: String) -> Result<(), String> {
         .map_err(|error| format!("Could not open that file for preview: {error}"))
 }
 
+/// Every place this machine can record sound from, for the recogniser's picker.
+#[tauri::command]
+fn list_audio_sources() -> Result<Vec<audio::AudioSource>, String> {
+    audio::list_sources()
+}
+
+#[tauri::command]
+fn image_search_engines() -> Vec<search::SearchEngine> {
+    search::engines()
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ImageSearchRequest {
+    engine: String,
+    /// A picture on this machine, which has to be uploaded to be searched for.
+    path: Option<String>,
+    /// A picture already on the web, which does not.
+    image_url: Option<String>,
+}
+
+/// Finds where a picture came from, and opens the results in the browser.
+///
+/// The browser is opened from here rather than from the window, so the address
+/// the user lands on is never chosen by the page that asked for the search --
+/// only by this function, and only after it has been checked.
+#[tauri::command]
+async fn search_by_image(request: ImageSearchRequest) -> Result<String, String> {
+    let url = tauri::async_runtime::spawn_blocking(move || -> Result<String, String> {
+        let given_url = request
+            .image_url
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty());
+        if let Some(image_url) = given_url {
+            return search::url_search(&request.engine, image_url);
+        }
+        let path = request
+            .path
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .ok_or("Choose a picture, or paste the address of one.")?;
+        if request.engine != "google" {
+            return Err("Only Google Lens can take a picture from this machine. For the \
+                        others, paste the address of a picture that is already online."
+                .to_string());
+        }
+        search::upload_to_lens(std::path::Path::new(path))
+    })
+    .await
+    .map_err(|error| format!("The search was interrupted: {error}"))??;
+
+    open_externally(&url)?;
+    Ok(url)
+}
+
+/// Opens an address in the default browser, having first made sure it is one.
+fn open_externally(url: &str) -> Result<(), String> {
+    if !(url.starts_with("https://") || url.starts_with("http://")) {
+        return Err("That result is not a web address, so it was not opened.".into());
+    }
+    tauri_plugin_opener::open_url(url, None::<&str>)
+        .map_err(|error| format!("Could not open the browser: {error}"))
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RecognitionRequest {
+    /// `device` to listen, `file` to read something already on disk.
+    source: String,
+    path: Option<String>,
+    device_id: Option<String>,
+    #[serde(default)]
+    seconds: u32,
+    #[serde(default)]
+    start_seconds: u32,
+}
+
+/// Deletes the clip when the recognition is over, however it ends.
+struct TemporaryClip(std::path::PathBuf);
+
+impl Drop for TemporaryClip {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.0);
+    }
+}
+
+#[tauri::command]
+async fn recognize_music(request: RecognitionRequest) -> Result<recognize::Recognition, String> {
+    tauri::async_runtime::spawn_blocking(move || recognize_music_inner(request))
+        .await
+        .map_err(|error| format!("The recognition was interrupted: {error}"))?
+}
+
+fn recognize_music_inner(request: RecognitionRequest) -> Result<recognize::Recognition, String> {
+    // Four seconds is about the shortest a match comes back from; thirty is
+    // well past the point where more audio helps.
+    let seconds = if request.seconds == 0 {
+        12
+    } else {
+        request.seconds.clamp(4, 30)
+    };
+    let workspace = std::env::temp_dir().join("toolhaven-recognise");
+    std::fs::create_dir_all(&workspace)
+        .map_err(|error| format!("Could not make room for the clip: {error}"))?;
+    let clip = workspace.join(format!(
+        "clip-{}-{}.wav",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|elapsed| elapsed.as_millis())
+            .unwrap_or_default()
+    ));
+    let _cleanup = TemporaryClip(clip.clone());
+    let clip_path = clip
+        .to_str()
+        .ok_or("That temporary folder has a name this cannot handle.")?
+        .to_string();
+
+    match request.source.as_str() {
+        "device" => {
+            let device = request
+                .device_id
+                .as_deref()
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .ok_or("Choose what to listen to first.")?;
+            audio::capture(device, seconds, &clip)?;
+        }
+        "file" => {
+            let path = request
+                .path
+                .as_deref()
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .ok_or("Choose a file first.")?;
+            let ffmpeg = resolve_executable("ffmpeg.exe")?;
+            let mut command = std::process::Command::new(ffmpeg);
+            command
+                .args(recognize::clip_args(
+                    path,
+                    &clip_path,
+                    request.start_seconds,
+                    seconds,
+                ))
+                .stdin(std::process::Stdio::null());
+            #[cfg(windows)]
+            {
+                use std::os::windows::process::CommandExt;
+                command.creation_flags(0x08000000);
+            }
+            let output = command
+                .output()
+                .map_err(|error| format!("Could not start FFmpeg: {error}"))?;
+            if !output.status.success() {
+                return Err(format!(
+                    "That file could not be read as sound: {}",
+                    compact_error(&String::from_utf8_lossy(&output.stderr))
+                ));
+            }
+        }
+        other => return Err(format!("{other} is not a way of getting a clip.")),
+    }
+
+    let executable = resolve_suite_executable("songrec", "songrec.exe")?;
+    let mut command = std::process::Command::new(&executable);
+    command
+        .args(["audio-file-to-recognized-song", &clip_path])
+        .stdin(std::process::Stdio::null());
+    // It ships a whole GTK stack beside itself and looks for parts of it
+    // relative to the working directory, not only beside the executable.
+    if let Some(home) = executable.parent() {
+        command.current_dir(home);
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x08000000);
+    }
+    let output = command
+        .output()
+        .map_err(|error| format!("Could not start the recogniser: {error}"))?;
+    let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
+    // A non-zero exit with usable output still counts: the tool logs to stderr
+    // and has been known to exit badly after printing a perfectly good match.
+    if !output.status.success() && stdout.trim().is_empty() {
+        return Err(format!(
+            "The recogniser failed: {}",
+            compact_error(&String::from_utf8_lossy(&output.stderr))
+        ));
+    }
+    let mut result = recognize::parse(&stdout)?;
+    result.message = recognize::describe(&result);
+    Ok(result)
+}
+
 #[tauri::command]
 fn detect_available_tools() -> Vec<String> {
     [
@@ -90,6 +295,7 @@ fn detect_available_tools() -> Vec<String> {
         "gallery-dl",
         "tesseract",
         "realesrgan",
+        "songrec",
         "deno",
         "qpdf",
         "libvips",
@@ -551,6 +757,7 @@ fn executable_name(tool_id: &str) -> Result<String, String> {
         "ffprobe" => "ffprobe.exe",
         "yt-dlp" => "yt-dlp.exe",
         "tesseract" => "tesseract.exe",
+        "songrec" => "songrec.exe",
         "realesrgan" => "realesrgan-ncnn-vulkan.exe",
         "gallery-dl" => "gallery-dl.exe",
         "deno" => "deno.exe",

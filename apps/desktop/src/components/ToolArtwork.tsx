@@ -224,6 +224,45 @@ const glyphByToolId: Record<string, ReactNode> = {
       </g>
     </>
   ),
+  realesrgan: (
+    <>
+      {/* A coarse grid on the left becomes a drawn scene on the right: what
+          enlarging with a model does, as opposed to making pixels bigger. */}
+      <rect className="aw-soft" x="34" y="34" width="34" height="34" rx="3" />
+      <path className="aw-soft" d="M45 34v34M56 34v34M34 45h34M34 56h34" />
+      <path className="aw-line" d="M78 51h16M86 44l8 7-8 7" strokeLinecap="round" strokeLinejoin="round" />
+      <rect className="aw-line" x="104" y="22" width="62" height="58" rx="5" />
+      <path className="aw-line" d="M112 70l16-18 12 12 9-9 13 15" strokeLinecap="round" strokeLinejoin="round" />
+      <circle className="aw-solid" cx="126" cy="38" r="5" />
+    </>
+  ),
+  songrec: (
+    <>
+      {/* Sound arriving from the left, a waveform in the middle, a note at the
+          end: heard, measured, named. */}
+      <path className="aw-soft" d="M38 38a20 20 0 0 1 0 24M28 30a32 32 0 0 1 0 40" strokeLinecap="round" />
+      <path
+        className="aw-line"
+        d="M56 50v8M66 42v24M76 32v44M86 40v28M96 46v14M106 36v36M116 44v22"
+        strokeLinecap="round"
+      />
+      <path className="aw-line" d="M136 70V30l26-6v40" strokeLinecap="round" strokeLinejoin="round" />
+      <g className="aw-soft-fill">
+        <ellipse cx="130" cy="72" rx="8" ry="6" />
+        <ellipse cx="156" cy="66" rx="8" ry="6" />
+      </g>
+    </>
+  ),
+  "image-search": (
+    <>
+      {/* A picture being looked into, rather than a magnifier beside one. */}
+      <rect className="aw-soft" x="36" y="22" width="88" height="62" rx="5" />
+      <path className="aw-soft" d="M44 74l20-22 14 15 11-11 16 18" strokeLinecap="round" strokeLinejoin="round" />
+      <circle className="aw-line" cx="118" cy="50" r="24" />
+      <path className="aw-line" d="M136 68l22 20" strokeLinecap="round" />
+      <path className="aw-soft" d="M106 50h24M118 38v24" strokeLinecap="round" />
+    </>
+  ),
   deno: (
     <>
       <rect className="aw-soft" x="42" y="20" width="116" height="60" rx="9" />

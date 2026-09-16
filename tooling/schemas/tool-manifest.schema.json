@@ -169,6 +169,22 @@
             "type": "string"
           },
           "description": "Flags that make an installer run without a window. Present only for artifacts published solely as an installer."
+        },
+        "archive": {
+          "type": "string",
+          "enum": ["7z"],
+          "description": "Declares a payload that is not a zip. \"7z\" covers a bare .7z and a self-extracting .exe carrying one."
+        },
+        "sizeBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Size of the download in bytes, so the install dialog can state it before the download starts."
+        },
+        "renameTo": {
+          "type": "string",
+          "minLength": 1,
+          "description": "File name to save a single-executable artifact under, so a version in the published file name stays out of the host.",
+          "pattern": "^[^\\/:*?\"<>|]+$"
         }
       }
     }

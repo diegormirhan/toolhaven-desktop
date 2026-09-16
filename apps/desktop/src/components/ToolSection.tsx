@@ -1,4 +1,7 @@
-import type { InstallationState } from "../../../../scripts/component-installation/installation-state.mjs";
+import {
+  createInstallationState,
+  type InstallationState,
+} from "../../../../scripts/component-installation/installation-state.mjs";
 import type { CatalogRow, CatalogTool } from "../catalog/catalog";
 import { ToolCard } from "./ToolCard";
 
@@ -17,6 +20,13 @@ type ToolSectionProps = {
  * off-screen is an obstacle. The grid puts every tool in a category on one
  * screen, so finding one is reading rather than scrolling.
  */
+/**
+ * A card the app itself provides has nothing to install and no manifest entry,
+ * so it has no installation state either. It is ready, always, from the moment
+ * the window opens.
+ */
+const builtIn: InstallationState = createInstallationState({ activeVersion: "built-in" });
+
 export function ToolSection({ row, installations, onOpen, onInstall }: ToolSectionProps) {
   return (
     <section className="tool-section" id={`section-${row.id}`} aria-labelledby={`${row.id}-heading`}>
@@ -33,7 +43,7 @@ export function ToolSection({ row, installations, onOpen, onInstall }: ToolSecti
             key={tool.id}
             index={index}
             tool={tool}
-            installation={installations[tool.id]!}
+            installation={installations[tool.id] ?? builtIn}
             onOpen={onOpen}
             onInstall={onInstall}
           />

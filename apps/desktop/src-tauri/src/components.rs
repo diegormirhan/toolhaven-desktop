@@ -46,6 +46,24 @@ pub struct Artifact {
     /// with no window to answer.
     #[serde(default)]
     pub silent_install: Vec<String>,
+    /// How the payload is packed, when it is not simply a zip.
+    ///
+    /// `7z` covers both a bare `.7z` and a self-extracting `.exe` with a `.7z`
+    /// appended to it — SongRec ships the latter, and its extractor offers no
+    /// silent flag, so the archive is unpacked here rather than by running it.
+    /// Declared rather than sniffed: guessing from a byte signature would mean
+    /// an ordinary executable that happens to contain those six bytes gets
+    /// unpacked instead of installed.
+    #[serde(default)]
+    pub archive: String,
+    /// The name to save a single-executable artifact under.
+    ///
+    /// Projects that publish one bare `.exe` tend to put the version in its
+    /// file name, and the host would then have to know the version in order to
+    /// find the binary. Declaring the name here keeps a version bump inside
+    /// the manifest, where every other detail of an artifact already lives.
+    #[serde(default)]
+    pub rename_to: String,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -205,10 +223,12 @@ pub fn install(
     std::fs::create_dir_all(&staging)
         .map_err(|error| format!("Could not prepare the installation: {error}"))?;
 
-    let result = if !artifact.silent_install.is_empty() {
+    let result = if artifact.archive == "7z" {
+        extract_seven_zip(&bytes, &staging)
+    } else if !artifact.silent_install.is_empty() {
         run_silent_installer(artifact, &bytes, &staging)
     } else if artifact.url.to_ascii_lowercase().ends_with(".exe") {
-        write_single_executable(&artifact.url, &bytes, &staging)
+        write_single_executable(artifact, &bytes, &staging)
     } else {
         extract_zip(&bytes, &staging)
     };
@@ -334,14 +354,43 @@ fn run_silent_installer(artifact: &Artifact, bytes: &[u8], staging: &Path) -> Re
     Ok(())
 }
 
-fn write_single_executable(url: &str, bytes: &[u8], destination: &Path) -> Result<(), String> {
-    let name = url
-        .rsplit('/')
-        .next()
-        .filter(|name| !name.is_empty())
-        .ok_or("The artifact URL has no file name.")?;
+fn write_single_executable(
+    artifact: &Artifact,
+    bytes: &[u8],
+    destination: &Path,
+) -> Result<(), String> {
+    let name = if artifact.rename_to.is_empty() {
+        artifact
+            .url
+            .rsplit('/')
+            .next()
+            .filter(|name| !name.is_empty())
+            .ok_or("The artifact URL has no file name.")?
+    } else {
+        artifact.rename_to.as_str()
+    };
+    // A name from the manifest still must not escape the staging directory.
+    if name.contains(['/', '\\', ':']) || name.starts_with('.') {
+        return Err(format!("{name} is not a usable file name."));
+    }
     std::fs::write(destination.join(name), bytes)
         .map_err(|error| format!("Could not write the executable: {error}"))
+}
+
+/// Where the 7z archive begins inside a file that may be carrying it.
+///
+/// A self-extracting archive is an ordinary executable with the archive glued
+/// on after it, so the signature is found rather than assumed to be at zero.
+pub fn seven_zip_offset(bytes: &[u8]) -> Option<usize> {
+    const SIGNATURE: [u8; 6] = [0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C];
+    bytes.windows(SIGNATURE.len()).position(|window| window == SIGNATURE)
+}
+
+fn extract_seven_zip(bytes: &[u8], destination: &Path) -> Result<(), String> {
+    let offset = seven_zip_offset(bytes)
+        .ok_or("This download does not contain a 7z archive after all.")?;
+    sevenz_rust2::decompress(std::io::Cursor::new(&bytes[offset..]), destination)
+        .map_err(|error| format!("Could not unpack the archive: {error}"))
 }
 
 fn extract_zip(bytes: &[u8], destination: &Path) -> Result<(), String> {
@@ -446,6 +495,23 @@ mod tests {
         // Re-installing an artifact already in the store must be a no-op, not a re-download.
         install("difftastic", &|_| panic!("must not download twice")).unwrap();
         println!("Component installed at {}", binaries.display());
+    }
+
+    #[test]
+    fn finds_the_archive_inside_a_self_extracting_executable() {
+        let signature = [0x37u8, 0x7A, 0xBC, 0xAF, 0x27, 0x1C];
+        // At the very start, as a bare .7z would be.
+        assert_eq!(seven_zip_offset(&signature), Some(0));
+
+        // After a stub, as a self-extractor is.
+        let mut sfx = vec![0x4D, 0x5A, 0x90, 0x00, 0x03];
+        sfx.extend_from_slice(&signature);
+        assert_eq!(seven_zip_offset(&sfx), Some(5));
+
+        // And absent, which has to be said rather than guessed at.
+        assert_eq!(seven_zip_offset(b"MZ this is just a program"), None);
+        assert_eq!(seven_zip_offset(&[]), None);
+        assert_eq!(seven_zip_offset(&signature[..5]), None);
     }
 
     #[test]

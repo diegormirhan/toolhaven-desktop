@@ -52,10 +52,33 @@ describe("tool catalog", () => {
     // A tool in two categories, or in none, is a navigation bug.
     const placed = rows.flatMap((row) => row.tools.map((tool) => tool.id));
     expect(new Set(placed).size).toBe(placed.length);
-    expect(placed).toHaveLength(25);
+    expect(placed).toHaveLength(27);
 
     // No category should be big enough to need scrolling to take in.
     for (const row of rows) expect(row.tools.length).toBeLessThanOrEqual(6);
+  });
+
+  it("marks the card the app provides itself as ready, with nothing to install", () => {
+    const rows = createCatalogRows();
+    const search = rows
+      .flatMap((row) => row.tools)
+      .find((tool) => tool.id === "image-search");
+
+    // It has no manifest entry, because there is no binary behind it.
+    expect(search).toBeDefined();
+    expect(search?.availability).toBe("ready");
+    expect(search?.delivery).toBe("embedded");
+    expect(search?.integrationName).toBe("Reverse image search");
+    expect(search?.downloadLabel).toBeUndefined();
+  });
+
+  it("carries the recogniser as an ordinary component that has to be fetched", () => {
+    const rows = createCatalogRows();
+    const songrec = rows.flatMap((row) => row.tools).find((tool) => tool.id === "songrec");
+
+    expect(songrec?.status).toBe("downloadable");
+    expect(songrec?.availability).toBe("available");
+    expect(songrec?.capabilities).toContain("audio.recognize");
   });
 });
 

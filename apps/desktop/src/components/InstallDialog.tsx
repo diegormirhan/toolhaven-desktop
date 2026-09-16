@@ -2,6 +2,7 @@ import { Download, HardDrive, ShieldCheck, X } from "lucide-react";
 import type { InstallationPlanStep } from "../../../../scripts/component-installation/resolve-installation-plan.mjs";
 import type { InstallationState } from "../../../../scripts/component-installation/installation-state.mjs";
 import type { CatalogTool } from "../catalog/catalog";
+import { downloadSize, formatBytes } from "../catalog/sizes";
 
 type InstallDialogProps = {
   tool: CatalogTool;
@@ -34,6 +35,9 @@ export function InstallDialog({
   const busy = steps.some((step) => states[step.toolId]?.phase !== "idle");
   const failure = steps.map((step) => states[step.toolId]?.lastError).find(Boolean);
   const done = steps.every((step) => states[step.toolId]?.availability === "ready");
+  // Stated before the download starts, not discovered halfway through it. One
+  // of these components is over 200 MB, and that is the user's decision to make.
+  const total = steps.reduce((sum, step) => sum + (downloadSize(step.toolId) ?? 0), 0);
 
   return (
     <div
@@ -51,7 +55,9 @@ export function InstallDialog({
         <h2 id="install-title">Install {tool.integrationName}</h2>
         <p className="install-dialog__lead">
           {canInstall
-            ? "ToolHaven downloads and installs everything below on its own. You never leave the app, and you never install anything by hand."
+            ? `ToolHaven downloads and installs everything below on its own${
+                total > 0 ? ` — ${formatBytes(total)} in total` : ""
+              }. You never leave the app, and you never install anything by hand.`
             : "This component has no pinned artifact and hash yet, so the app cannot install it. It only works if this Windows already has it."}
         </p>
 
@@ -70,9 +76,9 @@ export function InstallDialog({
                       ? "Ready"
                       : state && state.phase !== "idle"
                         ? `${phaseLabels[state.phase]}${progress == null ? "…" : ` ${progress}%`}`
-                        : step.reason === "dependency"
-                          ? "Dependency"
-                          : "Requested tool"}
+                        : `${step.reason === "dependency" ? "Dependency" : "Requested tool"}${
+                            downloadSize(step.toolId) ? ` · ${formatBytes(downloadSize(step.toolId)!)}` : ""
+                          }`}
                   </small>
                 </span>
                 {state && state.phase !== "idle" && !ready && (

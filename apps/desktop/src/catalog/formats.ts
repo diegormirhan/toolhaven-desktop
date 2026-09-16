@@ -27,6 +27,9 @@ export const toolAccepts: Record<string, FormatFamily[]> = {
   mkvtoolnix: ["video"],
   libvips: ["image"],
   realesrgan: ["image"],
+  "image-search": ["image"],
+  // The recogniser is fed through FFmpeg, so anything with sound in it works.
+  songrec: ["audio", "video"],
   imagemagick: ["image", "pdf"],
   oxipng: ["image"],
   exiftool: ["image", "video", "audio", "pdf", "document"],

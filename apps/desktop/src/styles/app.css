@@ -773,6 +773,68 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .tool-option > span { display: flex; flex-direction: column; gap: 3px; min-width: 0; overflow-wrap: anywhere; }
 .tool-option strong { font-size: 0.78rem; }
 .tool-option small { color: var(--text-quiet); font-size: 0.7rem; }
+/* ── Panels that leave the machine ────────────────────────────
+   Two tools send something out, and both say so before they are used
+   rather than in a footnote afterwards. The notice is deliberately not
+   styled as a warning: it is a fact about the tool, not a problem. */
+.notice {
+  display: flex; align-items: flex-start; gap: var(--space-2);
+  margin: var(--space-4) 0 0; padding: var(--space-3);
+  color: var(--text-secondary); background: var(--surface-sunken);
+  border: 1px solid var(--line); border-radius: var(--radius-control);
+  font-size: 0.72rem; line-height: 1.5; text-wrap: pretty;
+}
+.notice svg { flex-shrink: 0; margin-top: 2px; color: var(--action); }
+
+.panel-result {
+  display: flex; align-items: flex-start; gap: var(--space-2);
+  margin: var(--space-4) 0 0; padding: var(--space-3);
+  color: var(--text-secondary); background: var(--surface-sunken);
+  border: 1px solid var(--line); border-radius: var(--radius-control);
+  font-size: 0.74rem; line-height: 1.5; text-wrap: pretty; overflow-wrap: anywhere;
+}
+.panel-result svg { flex-shrink: 0; margin-top: 2px; }
+.panel-result--error { color: var(--error); border-color: color-mix(in srgb, var(--error) 50%, var(--line)); }
+
+.panel-actions { display: flex; justify-content: flex-end; margin-top: var(--space-5); }
+.panel-actions .button { min-width: 140px; justify-content: center; }
+
+/* ── A recognised track ───────────────────────────────────────
+   Cover art earns its place here: it is how anyone confirms at a glance
+   that the answer is the right one, faster than reading the title. */
+.recognition {
+  display: flex; gap: var(--space-4); align-items: flex-start;
+  margin-top: var(--space-4); padding: var(--space-4);
+  background: var(--surface-sunken); border: 1px solid var(--line);
+  border-radius: 14px;
+  animation: recognition-in 420ms var(--ease-out) backwards;
+}
+@keyframes recognition-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.recognition__cover {
+  flex-shrink: 0; inline-size: 92px; block-size: 92px;
+  object-fit: cover; border-radius: 10px; border: 1px solid var(--line);
+}
+.recognition__detail { min-width: 0; display: grid; gap: var(--space-2); }
+.recognition__detail h3 { margin: 0; font-size: 0.95rem; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.recognition__artist { margin: 0; color: var(--text-secondary); font-size: 0.78rem; }
+.recognition__rows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2) var(--space-4); margin: 0; }
+.recognition__rows > div { display: grid; gap: 1px; min-width: 0; }
+.recognition__rows dt { color: var(--text-quiet); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.recognition__rows dd { margin: 0; font-size: 0.74rem; overflow-wrap: anywhere; }
+.recognition__link {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--action); font-size: 0.72rem; text-decoration: none;
+}
+.recognition__link:hover { text-decoration: underline; }
+
+@media (max-width: 640px) {
+  .recognition { flex-direction: column; }
+  .recognition__rows { grid-template-columns: minmax(0, 1fr); }
+}
+
 .tool-panel__footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; background: var(--surface-sunken); border-top: 1px solid var(--line); }
 .tool-panel__footer p { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--text-quiet); font-size: 0.7rem; }
 .tool-panel__footer .button { flex-shrink: 0; }

@@ -29,10 +29,19 @@ export type CatalogRow = {
   tools: CatalogTool[];
 };
 
-const presentationById: Record<
-  string,
-  Omit<CatalogTool, "integrationName" | "delivery" | "status" | "availability" | "capabilities">
-> = {
+type ToolPresentation = Omit<
+  CatalogTool,
+  "integrationName" | "delivery" | "status" | "availability" | "capabilities"
+> & {
+  /**
+   * The app itself does this one, so there is no binary in the manifest to
+   * look it up in. Reverse image search is the only such card: it is an upload
+   * and a browser window, and nothing to install.
+   */
+  builtIn?: { integrationName: string; capabilities: string[] };
+};
+
+const presentationById: Record<string, ToolPresentation> = {
   qpdf: {
     id: "qpdf",
     title: "Organise PDFs",
@@ -95,6 +104,22 @@ const presentationById: Record<
       "super resolution", "esrgan", "restore", "quality",
     ],
     downloadLabel: "In-app download",
+  },
+  "image-search": {
+    id: "image-search",
+    title: "Find where a picture came from",
+    description: "Search the web by picture: the original, bigger copies, and pages using it.",
+    category: "images",
+    accent: "cool",
+    size: "standard",
+    operations: [
+      { id: "search", label: "Search", description: "Open the results in your browser." },
+    ],
+    keywords: [
+      "reverse", "image", "search", "lens", "yandex", "bing", "tineye", "source",
+      "origin", "find", "similar", "where from", "photo",
+    ],
+    builtIn: { integrationName: "Reverse image search", capabilities: ["image.reverse_search"] },
   },
   imagemagick: {
     id: "imagemagick",
@@ -203,6 +228,22 @@ const presentationById: Record<
       "video", "audio", "convert", "compress", "trim", "transcode", "resize",
       "crop", "rotate", "speed", "fps", "gif", "thumbnail", "frame", "mute",
       "loudness", "normalise", "normalize", "mp4", "mkv", "webm", "mp3",
+    ],
+    downloadLabel: "In-app download",
+  },
+  songrec: {
+    id: "songrec",
+    title: "Name the music",
+    description: "Identify what is playing, from the speakers, the room, or a file.",
+    category: "video",
+    accent: "action",
+    size: "standard",
+    operations: [
+      { id: "identify", label: "Identify", description: "Fingerprint a short clip and look it up." },
+    ],
+    keywords: [
+      "music", "song", "identify", "recognise", "recognize", "shazam", "track",
+      "artist", "audio", "listen", "microphone", "what is playing", "name that tune",
     ],
     downloadLabel: "In-app download",
   },
@@ -398,8 +439,8 @@ const rowDefinitions = [
   {
     id: "video",
     title: "Video and audio",
-    description: "Convert, compress, trim, resize and inspect what you already have.",
-    toolIds: ["ffmpeg", "ffprobe", "mkvtoolnix"],
+    description: "Convert, compress, trim, inspect — and name what is playing.",
+    toolIds: ["ffmpeg", "ffprobe", "songrec", "mkvtoolnix"],
   },
   {
     id: "downloads",
@@ -411,7 +452,7 @@ const rowDefinitions = [
     id: "images",
     title: "Images",
     description: "Resize, crop, convert, shrink, and read or strip metadata.",
-    toolIds: ["libvips", "realesrgan", "imagemagick", "oxipng", "exiftool"],
+    toolIds: ["libvips", "realesrgan", "image-search", "imagemagick", "oxipng", "exiftool"],
   },
   {
     id: "documents",
@@ -444,7 +485,24 @@ export function createCatalogRows(): CatalogRow[] {
       const manifestTool = manifestTools.get(toolId);
       const presentation = presentationById[toolId];
 
-      if (!manifestTool || !presentation) {
+      if (!presentation) {
+        throw new Error(`Missing catalog presentation for ${toolId}`);
+      }
+
+      if (presentation.builtIn) {
+        const { builtIn, ...rest } = presentation;
+        return {
+          ...rest,
+          integrationName: builtIn.integrationName,
+          delivery: "embedded" as const,
+          status: "bundled" as const,
+          // Nothing to fetch, so it is ready the moment the app opens.
+          availability: "ready" as const,
+          capabilities: builtIn.capabilities,
+        };
+      }
+
+      if (!manifestTool) {
         throw new Error(`Missing catalog presentation for ${toolId}`);
       }
 

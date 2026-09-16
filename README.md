@@ -177,17 +177,25 @@ That single decision explains most of the rest of the design:
 
 ## The catalog
 
-Twenty-two tools, grouped by the result you want rather than by the project that provides it.
+Twenty-seven cards, grouped by the result you want rather than by the project that provides it.
 
 | | Tools | What you get |
 |---|---|---|
-| **Files, images, documents** | qpdf · Poppler · libvips · ImageMagick · Oxipng · ExifTool | merge and split PDFs, extract text, rasterise a page, resize, crop, convert, optimise PNG, read and strip metadata |
-| **Media and downloads** | yt-dlp · FFmpeg · MKVToolNix · ffprobe | download video or audio, transcode, trim, remux to MKV, inspect codecs |
-| **Dev tools and archives** | jq · yq · Miller · Difftastic · ripgrep · fd · tokei · hexyl · Dust · 7-Zip · Pandoc · Deno | JSON and YAML, CSV to JSON, structural diff, search, find, count code, hex preview, disk usage, archives, document conversion |
+| **Video and audio** | FFmpeg · ffprobe · SongRec · MKVToolNix | transcode, compress, trim, GIFs, contact sheets, inspect codecs, remux to MKV, and name the music that is playing |
+| **Downloads** | yt-dlp · gallery-dl · Deno | video and audio from a link, image galleries, and the runtime they lean on |
+| **Images** | libvips · Real-ESRGAN · reverse image search · ImageMagick · Oxipng · ExifTool | resize, crop, convert, enlarge four times with a model, find where a picture came from, optimise PNG, read and strip metadata |
+| **PDFs and documents** | qpdf · Poppler · Tesseract · Pandoc | merge, split, rotate, protect, extract text, rasterise a page, OCR into a searchable PDF, convert between document formats |
+| **Text and data** | jq · yq · Miller · ripgrep · fd · Difftastic | JSON and YAML, CSV to JSON, search, find, structural diff |
+| **Files and disk** | 7-Zip · Dust · tokei · hexyl | archives, where the space went, count code, hex preview |
 
 Each card's artwork is a drawing of what the tool produces — stacked pages, a crop frame, a
 filmstrip resolving into a waveform — on one shared 200 × 100 grid, in the card's accent colour. A
-rail of twelve reads as one set instead of twelve unrelated icons.
+grid of twenty-seven reads as one set instead of twenty-seven unrelated icons.
+
+Two of those cards reach the internet, and both say so in the panel before they run. Reverse image
+search performs the upload a browser cannot do for a file on your disk, then hands the address to
+your browser; music recognition fingerprints the clip locally and sends only the fingerprint. Every
+other operation is a local process on a file that never moves.
 
 ![The catalog in the light theme](docs/screenshots/catalog-light.png)
 
