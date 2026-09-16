@@ -180,11 +180,13 @@
           "minimum": 1,
           "description": "Size of the download in bytes, so the install dialog can state it before the download starts."
         },
-        "renameTo": {
-          "type": "string",
-          "minLength": 1,
-          "description": "File name to save a single-executable artifact under, so a version in the published file name stays out of the host.",
-          "pattern": "^[^\\/:*?\"<>|]+$"
+        "rename": {
+          "type": "object",
+          "description": "Files to rename once the payload is unpacked, mapping a path inside the download to its new path.",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     }

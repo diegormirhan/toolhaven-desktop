@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Check, FilePlus2, FolderOpen, Play, X } from "lucide-react";
+import { AlertTriangle, Check, CircleSlash, FilePlus2, FolderOpen, Play, X } from "lucide-react";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import type { CatalogTool } from "../catalog/catalog";
 import { findJob, type ToolJob } from "../domain/job-queue";
@@ -30,11 +30,13 @@ type ToolPanelProps = {
   onClose: () => void;
   onExited?: () => void;
   onRun?: (input: RunOperationInput) => string;
+  /** Stops the job this panel started, without leaving the panel. */
+  onCancel?: (jobId: string) => void;
 };
 
 type SelectedFile = { name: string; path: string };
 
-export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultFolder = "", leaving = false, onClose, onExited, onRun, onDirtyChange }: ToolPanelProps) {
+export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultFolder = "", leaving = false, onClose, onExited, onRun, onCancel, onDirtyChange }: ToolPanelProps) {
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>(() =>
     initialPath && !["deno", ...urlTools, ...folderTools].includes(tool.id)
       ? [{ path: initialPath, name: fileNameOnly(initialPath) }]
@@ -58,8 +60,12 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
    * asked. It now decides the destination outright, and the row below says so
    * before the run rather than after it. The folder button still overrides it.
    */
+  // Only once there is something to name it after: a destination invented from
+  // no input reads as a real decision, and it is a placeholder with a made-up
+  // extension.
+  const hasSource = selectedFiles.length > 0 || sourceUrl.trim().length > 0;
   const automaticOutput =
-    defaultFolder && requiresOutput(tool.id, selectedOperationId)
+    defaultFolder && hasSource && requiresOutput(tool.id, selectedOperationId)
       ? writesToDirectory(tool.id, selectedOperationId)
         ? defaultFolder
         : startingPath()
@@ -372,14 +378,20 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
             </p>
           )}
         </div>
-        <button
-          className="button button--primary"
-          type="button"
-          disabled={!canRun || isRunning}
-          onClick={() => void startOperation()}
-        >
-          <Play size={16} aria-hidden="true" /> {isRunning ? "Running" : "Run"}
-        </button>
+        {isRunning && onCancel && currentJobId ? (
+          <button className="button button--light" type="button" onClick={() => onCancel(currentJobId)}>
+            <CircleSlash size={16} aria-hidden="true" /> Stop
+          </button>
+        ) : (
+          <button
+            className="button button--primary"
+            type="button"
+            disabled={!canRun || isRunning}
+            onClick={() => void startOperation()}
+          >
+            <Play size={16} aria-hidden="true" /> {isRunning ? "Running" : "Run"}
+          </button>
+        )}
       </div>
     </aside>
   );

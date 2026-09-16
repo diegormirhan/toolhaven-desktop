@@ -17,15 +17,17 @@ describe("desktop catalog", () => {
     expect(within(dialog).getByRole("button", { name: "Download and install" })).toBeEnabled();
   });
 
-  it("does not offer to install a tool whose artifact is not pinned yet", async () => {
+  it("offers an in-app install for every tool, including the ones that needed a manual one", async () => {
     render(<App />);
     const user = userEvent.setup();
 
     await user.click(screen.getByRole("button", { name: /get 7-zip/i }));
 
     const dialog = screen.getByRole("dialog", { name: /install 7-zip/i });
-    expect(within(dialog).getByText(/no pinned artifact and hash yet/i)).toBeVisible();
-    expect(within(dialog).queryByRole("button", { name: "Download and install" })).not.toBeInTheDocument();
+    // Four tools used to reach this dialog only to be told the app could not
+    // install them. None does now, and the size is on screen before the click.
+    expect(within(dialog).getByRole("button", { name: "Download and install" })).toBeEnabled();
+    expect(within(dialog).getAllByText(/1.6 MB/).length).toBeGreaterThan(0);
   });
 
   it("shows the complete dependency plan before installing", async () => {
@@ -125,7 +127,8 @@ describe("desktop catalog", () => {
 
     expect(screen.getByRole("heading", { name: "Theme" })).toBeVisible();
     expect(screen.getAllByRole("radiogroup", { name: "Interface theme" })).toHaveLength(2);
-    expect(screen.getByText(/cancelling an operation that is already running/i)).toBeVisible();
+    expect(screen.getByRole("heading", { name: "How many at once" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "When the file already exists" })).toBeVisible();
   });
 
   it("explains that the queue survives closing a tool panel", async () => {

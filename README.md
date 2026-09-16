@@ -337,15 +337,13 @@ the next change to the interface.
 
 Stated because they are real, not because they are theoretical:
 
-- **Four tools still need to be there already.** 7-Zip, MKVToolNix, ImageMagick and ExifTool have no
-  pinnable versioned artifact the app can fetch: two ship only as `.7z` or NSIS installers, and
-  ExifTool's site keeps only the current release at a stable URL. Their cards say so instead of
-  offering an install that would fail.
-- **Nothing can be cancelled.** A running operation runs to completion. Killing a process tree on
-  Windows properly needs Job Objects and a per-operation cleanup rule, and a Stop button that only
-  sometimes works is worse than none.
-- **The queue and the history are per session.** Closing the app loses both. Only metadata is worth
-  persisting, and SQLite is not wired up yet.
+- **7-Zip is the standalone build, so it does not read rar.** The full `7z.exe` ships only in an
+  installer that demands elevation, and no tool here is worth a UAC prompt. What ships reads and
+  writes 7z, zip, tar, gzip, bzip2 and xz, and the card claims exactly that.
+- **Enlarging with a model needs a Vulkan-capable GPU.** The published Real-ESRGAN build has no CPU
+  path compiled in at all, so a machine without a Vulkan driver cannot use that one card.
+- **An operation can be stopped but not paused.** Stopping kills the process tree through a Job
+  Object, which is immediate and complete; there is no way to resume from where it was.
 - **The bundled tokei is from January 2021.** Upstream stopped publishing Windows binaries; the
   current tag has no artifacts at all. A five-year-old binary is bad, a permanently dead card is
   worse, and building from source in CI is the actual fix.

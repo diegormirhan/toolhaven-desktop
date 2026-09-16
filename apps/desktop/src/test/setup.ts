@@ -4,6 +4,16 @@ import { afterEach } from "vitest";
 
 afterEach(cleanup);
 
+// The queue and the settings live in localStorage now, so one test's jobs would
+// otherwise be waiting in the next one's history.
+afterEach(() => {
+  try {
+    localStorage.clear();
+  } catch {
+    // A jsdom without storage is fine; there is nothing to leak.
+  }
+});
+
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: (query: string) => ({

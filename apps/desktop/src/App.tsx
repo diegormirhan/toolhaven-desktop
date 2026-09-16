@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Check,
+  CircleSlash,
   Clock3,
   Copy,
   FolderClock,
@@ -14,6 +15,8 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 import toolManifest from "../../../tooling/tools.json";
+import { NumberField } from "./components/NumberField";
+import { Select } from "./components/Select";
 import { open } from "@tauri-apps/plugin-dialog";
 import { createCatalogRows, filterCatalogRows, type CatalogTool } from "./catalog/catalog";
 import { InstallDialog } from "./components/InstallDialog";
@@ -69,7 +72,14 @@ export function App() {
   const installations = useInstallationState();
   const fileDrop = useFileDrop();
   const theme = useTheme();
-  const runner = useOperationRunner();
+  const [concurrency, setConcurrency] = useState(() => readNumberSetting("toolhaven.concurrency", 2));
+  const [conflictPolicy, setConflictPolicy] = useState(
+    () => readSetting("toolhaven.conflict") || "keep-both",
+  );
+  const runner = useOperationRunner({ concurrency, conflictPolicy });
+
+  useEffect(() => writeSetting("toolhaven.concurrency", String(concurrency)), [concurrency]);
+  useEffect(() => writeSetting("toolhaven.conflict", conflictPolicy), [conflictPolicy]);
   const searchRef = useRef<HTMLInputElement>(null);
   const toolTriggerRef = useRef<HTMLButtonElement | null>(null);
 
@@ -375,7 +385,11 @@ export function App() {
             onSidebarChange={setSidebarCollapsed}
             defaultFolder={defaultFolder}
             onDefaultFolderChange={setDefaultFolder}
-            finishedCount={runner.jobs.filter((job) => job.status !== "running").length}
+            concurrency={concurrency}
+            onConcurrencyChange={setConcurrency}
+            conflictPolicy={conflictPolicy}
+            onConflictPolicyChange={setConflictPolicy}
+            finishedCount={runner.finishedJobs.length}
             onClearHistory={runner.clearHistory}
             onReturn={() => setActiveNavigation("catalog")}
           />
@@ -385,6 +399,7 @@ export function App() {
             runningJobs={runner.runningJobs}
             finishedJobs={runner.finishedJobs}
             onClearHistory={runner.clearFinishedJobs}
+            onCancel={runner.cancelOperation}
             onReturn={() => setActiveNavigation("catalog")}
           />
         )}
@@ -461,6 +476,7 @@ export function App() {
               onClose={closeTool}
               onExited={finishClosingTool}
               onRun={runToolOperation}
+              onCancel={runner.cancelOperation}
             />
           )}
         </>
@@ -474,12 +490,14 @@ function JobView({
   runningJobs,
   finishedJobs,
   onClearHistory,
+  onCancel,
   onReturn,
 }: {
   activeNavigation: "queue" | "history";
   runningJobs: ToolJob[];
   finishedJobs: ToolJob[];
   onClearHistory: () => void;
+  onCancel: (jobId: string) => void;
   onReturn: () => void;
 }) {
   const isQueue = activeNavigation === "queue";
@@ -487,13 +505,13 @@ function JobView({
   const title = isQueue ? "Operation queue" : "Result history";
   const emptyTitle = isQueue ? "Nothing running" : "No results yet";
   const emptyDescription = isQueue
-    ? "An operation started from a tool panel keeps running here after you close the panel. Cancelling is not available yet."
-    : "Operations from this session, finished or failed, show up here.";
+    ? "An operation started from a tool panel keeps running here after you close the panel, and can be stopped from here."
+    : "Everything this app has run, kept across restarts until you clear it.";
   const lead = jobs.length
     ? `${jobs.length} operation${jobs.length === 1 ? "" : "s"} in this section.`
     : isQueue
       ? "Nothing is running right now."
-      : "Nothing finished in this session.";
+      : "Nothing has finished yet.";
 
   return (
     <section className="job-view">
@@ -503,14 +521,14 @@ function JobView({
         <p>{lead}</p>
         {!isQueue && jobs.length > 0 && (
           <button className="button button--quiet button--small" type="button" onClick={onClearHistory}>
-            Clear this session
+            Clear the history
           </button>
         )}
       </div>
       {jobs.length ? (
         <div className="job-list">
           {jobs.map((job) => (
-            <JobRow key={job.id} job={job} />
+            <JobRow key={job.id} job={job} onCancel={isQueue ? onCancel : undefined} />
           ))}
         </div>
       ) : (
@@ -527,12 +545,15 @@ function JobView({
 }
 
 const statusLabels: Record<ToolJob["status"], string> = {
+  queued: "Waiting",
   running: "Running",
   succeeded: "Done",
   failed: "Failed",
+  cancelled: "Stopped",
+  interrupted: "Interrupted",
 };
 
-function JobRow({ job }: { job: ToolJob }) {
+function JobRow({ job, onCancel }: { job: ToolJob; onCancel?: (jobId: string) => void }) {
   const [copied, setCopied] = useState(false);
   const percentage = job.progress == null ? null : Math.round(job.progress * 100);
   const optionsLabel = Object.entries(job.options)
@@ -571,10 +592,24 @@ function JobRow({ job }: { job: ToolJob }) {
       <div className="job-row__status">
         <span className="job-row__status-label">
           {job.status === "succeeded" && <Check size={13} aria-hidden="true" />}
-          {job.status === "failed" && <AlertTriangle size={13} aria-hidden="true" />}
+          {(job.status === "failed" || job.status === "interrupted") && (
+            <AlertTriangle size={13} aria-hidden="true" />
+          )}
+          {(job.status === "cancelled" || job.status === "queued") && (
+            <CircleSlash size={13} aria-hidden="true" />
+          )}
           {statusLabels[job.status]}
           {job.status === "running" && percentage != null ? ` ${percentage}%` : ""}
         </span>
+        {onCancel && (job.status === "running" || job.status === "queued") && (
+          <button
+            className="button button--quiet button--small"
+            type="button"
+            onClick={() => onCancel(job.id)}
+          >
+            <CircleSlash size={13} aria-hidden="true" /> Stop
+          </button>
+        )}
         {job.status === "running" && (
           <div
             className={`progress-track${percentage == null ? " progress-track--indeterminate" : ""}`}
@@ -599,6 +634,10 @@ function SettingsView({
   onSidebarChange,
   defaultFolder,
   onDefaultFolderChange,
+  concurrency,
+  onConcurrencyChange,
+  conflictPolicy,
+  onConflictPolicyChange,
   finishedCount,
   onClearHistory,
   onReturn,
@@ -609,6 +648,10 @@ function SettingsView({
   onSidebarChange: (collapsed: boolean) => void;
   defaultFolder: string;
   onDefaultFolderChange: (folder: string) => void;
+  concurrency: number;
+  onConcurrencyChange: (value: number) => void;
+  conflictPolicy: string;
+  onConflictPolicyChange: (value: string) => void;
   finishedCount: number;
   onClearHistory: () => void;
   onReturn: () => void;
@@ -647,7 +690,10 @@ function SettingsView({
       <div className="settings-card">
         <div className="settings-card__copy">
           <h2>Default destination</h2>
-          <p>Where the save dialog opens. Each operation still names its own file, and nothing is written without you choosing.</p>
+          <p>
+            Where results are saved, without being asked each time. Each operation still names its
+            own file, and the folder button in a tool overrides this for that one run.
+          </p>
         </div>
         <div className="settings-card__control">
           <span className="settings-card__path">{defaultFolder || "Not set"}</span>
@@ -677,8 +723,8 @@ function SettingsView({
           <h2>History</h2>
           <p>
             {finishedCount > 0
-              ? `${finishedCount} finished operation${finishedCount === 1 ? "" : "s"} from this session. Running ones are left alone.`
-              : "Nothing finished in this session yet. The list is kept in memory and is lost on restart either way."}
+              ? `${finishedCount} finished operation${finishedCount === 1 ? "" : "s"}, kept across restarts. Running ones are left alone.`
+              : "Nothing has finished yet. What does is kept across restarts until you clear it."}
           </p>
         </div>
         <button
@@ -691,14 +737,53 @@ function SettingsView({
         </button>
       </div>
 
+      <div className="settings-card">
+        <div className="settings-card__copy">
+          <h2>How many at once</h2>
+          <p>
+            Beyond this, operations wait their turn and say so in the queue. Four simultaneous
+            transcodes finish later than four consecutive ones, and make the machine unusable
+            meanwhile.
+          </p>
+        </div>
+        <div className="settings-card__control">
+          <NumberField
+            label="Operations at once"
+            value={String(concurrency)}
+            min={1}
+            max={8}
+            onChange={(value) => onConcurrencyChange(Math.min(8, Math.max(1, Number(value) || 1)))}
+          />
+        </div>
+      </div>
+
+      <div className="settings-card">
+        <div className="settings-card__copy">
+          <h2>When the file already exists</h2>
+          <p>
+            Applies when a result lands on a name that is taken — which the default destination
+            makes likely, since it names files for you.
+          </p>
+        </div>
+        <div className="settings-card__control settings-card__control--wide">
+          <Select
+            label="When the file already exists"
+            value={conflictPolicy}
+            choices={[
+              { value: "keep-both", label: "Keep both — number the new one" },
+              { value: "overwrite", label: "Overwrite the old one" },
+            ]}
+            onChange={onConflictPolicyChange}
+          />
+        </div>
+      </div>
+
       <div className="settings-card settings-card--pending">
         <div className="settings-card__copy">
           <h2>Not available yet</h2>
           <ul>
-            <li>Conflict policy and concurrency limit.</li>
-            <li>Cancelling an operation that is already running.</li>
-            <li>A queue and history that survive a restart.</li>
-            <li>In-app download for the four tools that are still pinned by hand.</li>
+            <li>Pausing a running operation, rather than stopping it.</li>
+            <li>Scheduling an operation for later.</li>
           </ul>
         </div>
       </div>
@@ -708,4 +793,26 @@ function SettingsView({
       </button>
     </section>
   );
+}
+
+/** Reads a saved setting, tolerating a storage that refuses to answer. */
+function readSetting(key: string): string {
+  try {
+    return localStorage.getItem(key) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function readNumberSetting(key: string, fallback: number): number {
+  const value = Number(readSetting(key));
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+function writeSetting(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // A blocked store costs the preference, never the session.
+  }
 }

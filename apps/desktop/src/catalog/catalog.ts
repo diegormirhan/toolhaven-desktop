@@ -382,7 +382,7 @@ const presentationById: Record<string, ToolPresentation> = {
   "7zip": {
     id: "7zip",
     title: "Compress files",
-    description: "Create and extract 7z, zip and the common archive formats.",
+    description: "Create and extract 7z, zip, tar, gzip, bzip2 and xz archives.",
     category: "files",
     accent: "amber",
     size: "standard",
@@ -390,7 +390,7 @@ const presentationById: Record<string, ToolPresentation> = {
       { id: "compress", label: "Compress", description: "Create an archive." },
       { id: "extract", label: "Extract", description: "Unpack the contents into a folder." },
     ],
-    keywords: ["zip", "7z", "rar", "compress", "extract", "archive"],
+    keywords: ["zip", "7z", "tar", "gzip", "bzip2", "xz", "compress", "extract", "archive"],
   },
   tesseract: {
     id: "tesseract",

@@ -27,6 +27,7 @@ fn request(
             .map(|(key, value)| (key.to_string(), value.to_string()))
             .collect(),
         source_url: None,
+        conflict_policy: None,
         job_id: None,
     }
 }

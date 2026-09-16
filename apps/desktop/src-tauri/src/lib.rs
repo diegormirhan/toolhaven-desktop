@@ -1,6 +1,7 @@
 mod audio;
 mod components;
 mod recognize;
+mod running;
 mod search;
 
 use std::io::{BufRead, BufReader, Read};
@@ -19,7 +20,8 @@ pub fn run() {
             list_audio_sources,
             image_search_engines,
             search_by_image,
-            recognize_music
+            recognize_music,
+            cancel_operation
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {
@@ -49,6 +51,9 @@ struct OperationRequest {
     options: std::collections::HashMap<String, String>,
     #[serde(default)]
     source_url: Option<String>,
+    /// `keep-both` or `overwrite`, chosen in Settings.
+    #[serde(default)]
+    conflict_policy: Option<String>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -87,6 +92,16 @@ fn allow_preview(app: tauri::AppHandle, path: String) -> Result<(), String> {
     app.asset_protocol_scope()
         .allow_file(target)
         .map_err(|error| format!("Could not open that file for preview: {error}"))
+}
+
+/// Stops a running operation, and everything it started.
+///
+/// Answers whether there was anything to stop, so the interface can tell the
+/// difference between a job it cancelled and one that had already finished on
+/// its own a moment earlier.
+#[tauri::command]
+fn cancel_operation(job_id: String) -> Result<bool, String> {
+    running::cancel(&job_id)
 }
 
 /// Every place this machine can record sound from, for the recogniser's picker.
@@ -377,6 +392,13 @@ fn execute_operation_with_progress(
     if operation_writes_file(&request) && request.output_path.is_none() {
         request.output_path = Some(default_output_path(&request));
     }
+    // Settled before the tool starts, so what the queue reports as the output
+    // is the file that was actually written.
+    if request.conflict_policy.as_deref() == Some("keep-both") {
+        if let Some(wanted) = request.output_path.clone() {
+            request.output_path = Some(free_name(&wanted));
+        }
+    }
     validate_request(&request)?;
     let executable = operation_executable(&request)?;
     let executable_path = resolve_suite_executable(&request.tool_id, &executable)?;
@@ -436,10 +458,14 @@ fn execute_operation_with_progress(
         run_download_process(&mut command, &request, report_progress)
             .map_err(|error| format!("Could not start {executable}: {error}"))?
     } else {
-        command
-            .output()
+        run_cancellable(&mut command, request.job_id.as_deref())
             .map_err(|error| format!("Could not start {executable}: {error}"))?
     };
+
+    // Whatever the exit status says, a job somebody stopped did not fail.
+    if running::release(request.job_id.as_deref()) == running::Ending::Cancelled {
+        return Err(running::CANCELLED.into());
+    }
 
     let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
     let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
@@ -484,6 +510,41 @@ fn execute_operation_with_progress(
     })
 }
 
+/// Spawns, adopts and waits, so the process can be stopped while it runs.
+///
+/// `Command::output` does all three in one call with no handle in between,
+/// which leaves no moment to take charge of the process.
+fn run_cancellable(
+    command: &mut std::process::Command,
+    job_id: Option<&str>,
+) -> std::io::Result<std::process::Output> {
+    command
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    let child = command.spawn()?;
+    adopt(&child, job_id);
+    child.wait_with_output()
+}
+
+/// Puts a spawned child under the job object that can stop it.
+///
+/// A failure here is not worth refusing to run: the operation still works, it
+/// just cannot be stopped early, and saying so by not running at all would be
+/// the worse trade.
+fn adopt(child: &std::process::Child, job_id: Option<&str>) {
+    #[cfg(windows)]
+    {
+        use std::os::windows::io::AsRawHandle;
+        if let Err(error) = running::watch(job_id, child.as_raw_handle() as isize) {
+            log::warn!("this job cannot be stopped early: {error}");
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (child, job_id);
+    }
+}
+
 fn run_download_process(
     command: &mut std::process::Command,
     request: &OperationRequest,
@@ -493,6 +554,7 @@ fn run_download_process(
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped());
     let mut child = command.spawn()?;
+    adopt(&child, request.job_id.as_deref());
     let stdout = child.stdout.take().expect("stdout was piped");
     let stderr = child.stderr.take().expect("stderr was piped");
     // yt-dlp reports progress on stdout, so that is the stream parsed line by line.
@@ -592,9 +654,13 @@ fn validate_request(request: &OperationRequest) -> Result<(), String> {
             (request.tool_id.as_str(), request.operation_id.as_str()),
             ("7zip", "extract") | ("gallery-dl", "download-gallery")
         );
-        if operation_writes_file(request) && target.exists() && !into_directory {
+        // Refusing by default protects the original; the setting is the one way
+        // to say that overwriting is what was meant. Without this the interface
+        // would offer a choice the host then refused to honour.
+        let may_overwrite = request.conflict_policy.as_deref() == Some("overwrite");
+        if operation_writes_file(request) && target.exists() && !into_directory && !may_overwrite {
             return Err(
-                "That destination already exists. Choose another name so the original survives."
+                "That destination already exists. Choose another name, or set Settings to overwrite."
                     .into(),
             );
         }
@@ -1631,6 +1697,36 @@ fn rasterize_prefix(output: &str) -> String {
     }
 }
 
+/// A name nothing is using yet, by numbering the one asked for.
+///
+/// `photo.png` becomes `photo (2).png`, the convention Windows itself uses, so
+/// the result reads as a second copy rather than as a mangled name. A path that
+/// is free already comes back untouched, and a directory is left alone entirely
+/// — a gallery is meant to be added to.
+fn free_name(wanted: &str) -> String {
+    let path = std::path::Path::new(wanted);
+    if wanted.is_empty() || path.is_dir() || !path.exists() {
+        return wanted.to_string();
+    }
+    let stem = path
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .unwrap_or("output");
+    let extension = path.extension().and_then(|value| value.to_str());
+
+    for attempt in 2..1000 {
+        let candidate = match extension {
+            Some(extension) => path.with_file_name(format!("{stem} ({attempt}).{extension}")),
+            None => path.with_file_name(format!("{stem} ({attempt})")),
+        };
+        if !candidate.exists() {
+            return candidate.to_string_lossy().into_owned();
+        }
+    }
+    // A thousand copies of one name is not a case worth a different answer.
+    wanted.to_string()
+}
+
 fn default_output_path(request: &OperationRequest) -> String {
     if request.tool_id == "yt-dlp" {
         if let Some(downloads) = std::env::var_os("USERPROFILE") {
@@ -1684,6 +1780,7 @@ mod tests {
             output_path: Some("clip.mp3".into()),
             options: std::collections::HashMap::new(),
             source_url: None,
+            conflict_policy: None,
             job_id: None,
         };
         assert_eq!(
@@ -1747,6 +1844,7 @@ mod tests {
                 .map(|(key, value)| (key.to_string(), value.to_string()))
                 .collect(),
             source_url: None,
+            conflict_policy: None,
             job_id: None,
         }
     }
@@ -1831,6 +1929,7 @@ mod tests {
                 .map(|(key, value)| (key.to_string(), value.to_string()))
                 .collect(),
             source_url: Some("https://example.com/video".into()),
+            conflict_policy: None,
             job_id: None,
         }
     }
@@ -1889,6 +1988,7 @@ mod tests {
             output_path: Some(path),
             options: std::collections::HashMap::new(),
             source_url: None,
+            conflict_policy: None,
             job_id: None,
         };
         // Extracting would overwrite whatever shares a name.
@@ -2068,6 +2168,7 @@ mod tests {
             output_path: Some("video.mp4".into()),
             options: std::collections::HashMap::new(),
             source_url: Some("https://example.com/video".into()),
+            conflict_policy: None,
             job_id: None,
         };
         let args = resolve_args(&download).unwrap();
@@ -2086,6 +2187,7 @@ mod tests {
             output_path: Some("video.mp4".into()),
             options: std::collections::HashMap::new(),
             source_url: Some("https://example.com/video".into()),
+            conflict_policy: None,
             job_id: None,
         };
         let args = resolve_args(&download).unwrap();
@@ -2103,6 +2205,7 @@ mod tests {
             output_path: Some("image-upscale.png".into()),
             options: std::collections::HashMap::new(),
             source_url: None,
+            conflict_policy: None,
             job_id: None,
         };
         let args = resolve_args(&upscale).unwrap();
@@ -2124,6 +2227,7 @@ mod tests {
             ),
             options: [("scale".into(), "1".into())].into_iter().collect(),
             source_url: None,
+            conflict_policy: None,
             job_id: None,
         };
         assert!(validate_request(&request)
@@ -2140,6 +2244,65 @@ mod tests {
     fn detects_available_tools_without_starting_a_process() {
         let available = detect_available_tools();
         assert!(available.iter().all(|tool_id| !tool_id.is_empty()));
+    }
+
+    #[test]
+    fn refuses_to_overwrite_unless_that_is_what_was_asked_for() {
+        let directory = std::env::temp_dir().join("toolhaven-overwrite-test");
+        let _ = std::fs::remove_dir_all(&directory);
+        std::fs::create_dir_all(&directory).unwrap();
+        let taken = directory.join("photo.png");
+        std::fs::write(&taken, b"x").unwrap();
+
+        let mut request = request_for("libvips", "convert", &[]);
+        request.input_paths = vec![taken.to_string_lossy().into_owned()];
+        request.output_path = Some(taken.to_string_lossy().into_owned());
+
+        // The default protects what is already there.
+        let refusal = validate_request(&request).unwrap_err();
+        assert!(refusal.contains("already exists"), "{refusal}");
+
+        // The setting is the one way to say that overwriting is the point.
+        request.conflict_policy = Some("overwrite".into());
+        assert!(validate_request(&request).is_ok());
+
+        let _ = std::fs::remove_dir_all(&directory);
+    }
+
+    #[test]
+    fn numbers_a_name_that_is_already_taken() {
+        let directory = std::env::temp_dir().join("toolhaven-conflict-test");
+        let _ = std::fs::remove_dir_all(&directory);
+        std::fs::create_dir_all(&directory).unwrap();
+
+        let first = directory.join("photo.png");
+        // Nothing there yet: the name asked for is the name used.
+        assert_eq!(free_name(first.to_str().unwrap()), first.to_str().unwrap());
+
+        std::fs::write(&first, b"x").unwrap();
+        let second = free_name(first.to_str().unwrap());
+        assert!(second.ends_with("photo (2).png"), "{second}");
+
+        std::fs::write(&second, b"x").unwrap();
+        assert!(free_name(first.to_str().unwrap()).ends_with("photo (3).png"));
+
+        // A folder is a destination to add to, not one to duplicate.
+        assert_eq!(
+            free_name(directory.to_str().unwrap()),
+            directory.to_str().unwrap()
+        );
+
+        // An extensionless name still gets numbered.
+        let plain = directory.join("report");
+        std::fs::write(&plain, b"x").unwrap();
+        assert!(free_name(plain.to_str().unwrap()).ends_with("report (2)"));
+
+        let _ = std::fs::remove_dir_all(&directory);
+    }
+
+    #[test]
+    fn leaves_an_empty_destination_alone() {
+        assert_eq!(free_name(""), "");
     }
 
     #[test]
@@ -2213,6 +2376,7 @@ mod tests {
                 output_path: Some("output.fixture".into()),
                 options: std::collections::HashMap::new(),
                 source_url: Some("https://example.com/media".into()),
+                conflict_policy: None,
                 job_id: None,
             };
             assert!(
@@ -2231,6 +2395,7 @@ mod tests {
             output_path: Some("archive.7z".into()),
             options: std::collections::HashMap::new(),
             source_url: None,
+            conflict_policy: None,
             job_id: None,
         };
         assert_eq!(
@@ -2248,6 +2413,7 @@ mod tests {
             output_path: None,
             options: std::collections::HashMap::new(),
             source_url: None,
+            conflict_policy: None,
             job_id: None,
         };
         assert!(validate_request(&missing).is_err());
@@ -2259,6 +2425,7 @@ mod tests {
             output_path: None,
             options: std::collections::HashMap::new(),
             source_url: Some("file:///secret".into()),
+            conflict_policy: None,
             job_id: None,
         };
         assert!(validate_request(&invalid_url).is_err());
@@ -2270,6 +2437,7 @@ mod tests {
             output_path: None,
             options: std::collections::HashMap::new(),
             source_url: None,
+            conflict_policy: None,
             job_id: None,
         };
         assert!(validate_request(&runtime).is_ok());

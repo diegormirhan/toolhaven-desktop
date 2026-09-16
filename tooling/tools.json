@@ -282,13 +282,26 @@
     {
       "id": "7zip",
       "displayName": "7-Zip",
-      "status": "planned",
+      "status": "downloadable",
       "delivery": "on-demand",
       "sourceRepository": "https://github.com/ip7z/7zip",
       "licenseExpression": "LGPL-2.1-or-later",
       "capabilities": [
         "archive.compress",
         "archive.extract"
+      ],
+      "version": "25.01",
+      "artifacts": [
+        {
+          "url": "https://www.7-zip.org/a/7z2501-extra.7z",
+          "sha256": "cd3cf38085c2cc6839cf72716dafb3175ae425f4fd34faafc6c0b64d618d307f",
+          "binaryDirectory": "x64",
+          "archive": "7z",
+          "rename": {
+            "x64/7za.exe": "x64/7z.exe"
+          },
+          "sizeBytes": 1636158
+        }
       ]
     },
     {
@@ -314,13 +327,25 @@
     {
       "id": "exiftool",
       "displayName": "ExifTool",
-      "status": "planned",
+      "status": "downloadable",
       "delivery": "on-demand",
       "sourceRepository": "https://github.com/exiftool/exiftool",
       "licenseExpression": "Artistic-1.0-Perl OR GPL-1.0-or-later",
       "capabilities": [
         "metadata.read",
         "metadata.write"
+      ],
+      "version": "13.59",
+      "artifacts": [
+        {
+          "url": "https://sourceforge.net/projects/exiftool/files/exiftool-13.59_64.zip/download",
+          "sha256": "44b512b25af500724ba579d0a53c8fc5851628b692dd5e5d94ae4a15c2cba9ec",
+          "binaryDirectory": "exiftool-13.59_64",
+          "rename": {
+            "exiftool-13.59_64/exiftool(-k).exe": "exiftool-13.59_64/exiftool.exe"
+          },
+          "sizeBytes": 11183675
+        }
       ]
     },
     {
@@ -390,19 +415,29 @@
     {
       "id": "mkvtoolnix",
       "displayName": "MKVToolNix",
-      "status": "planned",
+      "status": "downloadable",
       "delivery": "on-demand",
       "sourceRepository": "https://gitlab.com/mbunkus/mkvtoolnix",
       "licenseExpression": "GPL-2.0-or-later",
       "capabilities": [
         "media.remux",
         "media.inspect_matroska"
+      ],
+      "version": "95.0",
+      "artifacts": [
+        {
+          "url": "https://mkvtoolnix.download/windows/releases/95.0/mkvtoolnix-64-bit-95.0.7z",
+          "sha256": "ac56d3a1d31d743b0ba71c0e0924b227ee65f2163b11a4ac76377a9fcb25152f",
+          "binaryDirectory": "mkvtoolnix",
+          "archive": "7z",
+          "sizeBytes": 28350130
+        }
       ]
     },
     {
       "id": "imagemagick",
       "displayName": "ImageMagick",
-      "status": "planned",
+      "status": "downloadable",
       "delivery": "on-demand",
       "sourceRepository": "https://github.com/ImageMagick/ImageMagick",
       "licenseExpression": "ImageMagick",
@@ -410,6 +445,15 @@
         "image.convert_extended",
         "image.grayscale",
         "image.inspect"
+      ],
+      "version": "7.1.2-31",
+      "artifacts": [
+        {
+          "url": "https://github.com/ImageMagick/ImageMagick/releases/download/7.1.2-31/ImageMagick-7.1.2-31-portable-Q16-x64.7z",
+          "sha256": "33d8b47bb404a6b30c672195795e64a8ce0c807f9bba084e359ff086d6c5d50d",
+          "archive": "7z",
+          "sizeBytes": 11739115
+        }
       ]
     },
     {

@@ -56,14 +56,18 @@ pub struct Artifact {
     /// unpacked instead of installed.
     #[serde(default)]
     pub archive: String,
-    /// The name to save a single-executable artifact under.
+    /// Files to rename once the payload is in place, `from` to `to`.
     ///
-    /// Projects that publish one bare `.exe` tend to put the version in its
-    /// file name, and the host would then have to know the version in order to
-    /// find the binary. Declaring the name here keeps a version bump inside
-    /// the manifest, where every other detail of an artifact already lives.
+    /// Two unrelated problems, one mechanism. A project that publishes a bare
+    /// `.exe` puts the version in its file name, and the host would otherwise
+    /// have to know the version to find the binary. ExifTool ships its program
+    /// as `exiftool(-k).exe`, where the suffix makes it wait for a keypress —
+    /// upstream's own install instructions are to rename it.
+    ///
+    /// Both are facts about one artifact, so they live in the manifest beside
+    /// everything else about it rather than in the host.
     #[serde(default)]
-    pub rename_to: String,
+    pub rename: std::collections::BTreeMap<String, String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -231,7 +235,8 @@ pub fn install(
         write_single_executable(artifact, &bytes, &staging)
     } else {
         extract_zip(&bytes, &staging)
-    };
+    }
+    .and_then(|()| apply_renames(artifact, &staging));
     if let Err(error) = result {
         let _ = std::fs::remove_dir_all(&staging);
         return Err(error);
@@ -359,22 +364,51 @@ fn write_single_executable(
     bytes: &[u8],
     destination: &Path,
 ) -> Result<(), String> {
-    let name = if artifact.rename_to.is_empty() {
-        artifact
-            .url
-            .rsplit('/')
-            .next()
-            .filter(|name| !name.is_empty())
-            .ok_or("The artifact URL has no file name.")?
-    } else {
-        artifact.rename_to.as_str()
-    };
-    // A name from the manifest still must not escape the staging directory.
-    if name.contains(['/', '\\', ':']) || name.starts_with('.') {
-        return Err(format!("{name} is not a usable file name."));
-    }
+    let name = artifact
+        .url
+        .rsplit('/')
+        .next()
+        .filter(|name| !name.is_empty())
+        .ok_or("The artifact URL has no file name.")?;
     std::fs::write(destination.join(name), bytes)
         .map_err(|error| format!("Could not write the executable: {error}"))
+}
+
+/// Applies the manifest's renames inside the staging directory.
+///
+/// Both sides are checked rather than trusted: the manifest ships with the
+/// binary, but a path that climbs out of staging would write wherever it liked,
+/// and a rule that silently does nothing is worse than one that says so.
+fn apply_renames(artifact: &Artifact, staging: &Path) -> Result<(), String> {
+    for (from, to) in &artifact.rename {
+        let source = safe_join(staging, from)?;
+        let target = safe_join(staging, to)?;
+        if !source.exists() {
+            return Err(format!("The download does not contain {from}."));
+        }
+        if let Some(parent) = target.parent() {
+            std::fs::create_dir_all(parent)
+                .map_err(|error| format!("Could not make room for {to}: {error}"))?;
+        }
+        std::fs::rename(&source, &target)
+            .map_err(|error| format!("Could not rename {from} to {to}: {error}"))?;
+    }
+    Ok(())
+}
+
+/// Joins a manifest-supplied relative path onto a root, refusing to leave it.
+fn safe_join(root: &Path, relative: &str) -> Result<PathBuf, String> {
+    let mut path = root.to_path_buf();
+    for segment in relative.split(['/', '\\']).filter(|part| !part.is_empty()) {
+        if segment == ".." || segment.contains(':') {
+            return Err(format!("{relative} is not a path inside the download."));
+        }
+        path.push(segment);
+    }
+    if path == root {
+        return Err(format!("{relative} names no file."));
+    }
+    Ok(path)
 }
 
 /// Where the 7z archive begins inside a file that may be carrying it.
@@ -497,6 +531,64 @@ mod tests {
         println!("Component installed at {}", binaries.display());
     }
 
+    /// Lists what a downloaded archive holds, for working out `binaryDirectory`
+    /// and `rename` when pinning a new tool. Uses the installer's own extractor,
+    /// so what it prints is what the app would see.
+    ///
+    /// `TOOLHAVEN_PROBE=C:\path\to\archive.7z cargo test -- --ignored --nocapture probes_an_archive`
+    #[test]
+    #[ignore = "reads an archive named by TOOLHAVEN_PROBE"]
+    fn probes_an_archive() {
+        let Some(source) = std::env::var_os("TOOLHAVEN_PROBE") else {
+            println!("set TOOLHAVEN_PROBE to an archive path");
+            return;
+        };
+        let bytes = std::fs::read(&source).expect("the archive should be readable");
+        let destination = std::env::temp_dir().join("toolhaven-probe");
+        let _ = std::fs::remove_dir_all(&destination);
+        let offset = seven_zip_offset(&bytes).unwrap_or(0);
+        sevenz_rust2::decompress(std::io::Cursor::new(&bytes[offset..]), &destination)
+            .expect("the archive should unpack");
+        for entry in walkdir(&destination, 2) {
+            println!("  {entry}");
+        }
+    }
+
+    #[cfg(test)]
+    fn walkdir(root: &std::path::Path, depth: usize) -> Vec<String> {
+        let mut found = Vec::new();
+        let Ok(entries) = std::fs::read_dir(root) else { return found };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let name = path.strip_prefix(root).unwrap_or(&path).display().to_string();
+            if path.is_dir() {
+                found.push(format!("{name}/"));
+                if depth > 1 {
+                    found.extend(walkdir(&path, depth - 1).into_iter().map(|child| format!("{name}/{child}")));
+                }
+            } else {
+                found.push(name);
+            }
+        }
+        found.sort();
+        found.truncate(30);
+        found
+    }
+
+    #[test]
+    fn refuses_a_rename_that_would_write_outside_the_download() {
+        let root = std::path::Path::new("C:\\store\\abc");
+        assert!(safe_join(root, "../escape.exe").is_err());
+        assert!(safe_join(root, "sub/../../escape.exe").is_err());
+        assert!(safe_join(root, "D:\\elsewhere.exe").is_err());
+        assert!(safe_join(root, "").is_err());
+
+        assert_eq!(
+            safe_join(root, "exiftool-13.59_64/exiftool(-k).exe").unwrap(),
+            root.join("exiftool-13.59_64").join("exiftool(-k).exe")
+        );
+    }
+
     #[test]
     fn finds_the_archive_inside_a_self_extracting_executable() {
         let signature = [0x37u8, 0x7A, 0xBC, 0xAF, 0x27, 0x1C];
@@ -515,8 +607,25 @@ mod tests {
     }
 
     #[test]
-    fn refuses_to_install_a_tool_without_a_pinned_artifact() {
-        let error = install("7zip", &|_| {}).unwrap_err();
-        assert!(error.contains("no pinned artifact"), "{error}");
+    fn leaves_nothing_for_the_user_to_install_by_hand() {
+        // Four tools used to sit outside the automatic channel because of how
+        // they were packaged. None does now, and the promise on the site --
+        // that you never install anything by hand -- holds only while this
+        // passes.
+        let manual: Vec<&str> = manifest()
+            .tools
+            .iter()
+            .filter(|tool| tool.status != "bundled" && tool.status != "downloadable")
+            .map(|tool| tool.id.as_str())
+            .collect();
+
+        assert_eq!(manual, Vec::<&str>::new());
+    }
+
+    #[test]
+    fn refuses_a_tool_that_is_not_in_the_catalog_at_all() {
+        let error = install("definitely-not-a-tool", &|_| {}).unwrap_err();
+        assert!(error.contains("outside the catalog"), "{error}");
     }
 }
+

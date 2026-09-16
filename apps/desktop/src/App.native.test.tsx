@@ -143,7 +143,9 @@ it('records a failed background operation instead of dropping it', async () => {
 
 it('sends a job id so the host can address progress to one queue entry', async () => {
   const { operation } = await startDownload();
-  expect(operation.jobId()).toMatch(/^yt-dlp-download-video-\d+$/);
+  // The id carries the clock as well as a counter, so a history restored
+  // from the last run can never collide with a job started in this one.
+  expect(operation.jobId()).toMatch(/^yt-dlp-download-video-[a-z0-9]+-\d+$/);
 });
 
 it('accepts a file dropped on the window instead of only the picker button', async () => {
@@ -226,13 +228,17 @@ it('installs a component from inside the app and shows its progress', async () =
   expect(await screen.findByRole('button', { name: /open qpdf/i })).toBeVisible();
 });
 
-it('keeps a component that cannot be pinned out of the install flow', async () => {
+it('installs 7-Zip from inside the app, which it could not do before', async () => {
+  // It was the last of four tools whose packaging kept it out of the automatic
+  // channel. Its installer demands elevation, so what is pinned is the
+  // standalone build inside a 7z archive the app now unpacks itself.
   vi.mocked(invoke).mockResolvedValue([]);
   const user = userEvent.setup();
   render(<App />);
 
   await user.click(await screen.findByRole('button', { name: /get 7-zip/i }));
 
-  expect(screen.queryByRole('button', { name: 'Download and install' })).not.toBeInTheDocument();
-  expect(invoke).not.toHaveBeenCalledWith('install_component', expect.anything());
+  const dialog = await screen.findByRole('dialog', { name: /install 7-zip/i });
+  expect(within(dialog).getByRole('button', { name: 'Download and install' })).toBeEnabled();
+  expect(within(dialog).getAllByText(/1.6 MB/).length).toBeGreaterThan(0);
 });

@@ -4244,7 +4244,7 @@ checksum = "7d56353a2a665ad0f41a421187180aab746c8c325620617ad883a99a1cbe66d2"
 
 [[package]]
 name = "toolhaven"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "hound",
  "log",
@@ -4259,6 +4259,7 @@ dependencies = [
  "tauri-plugin-opener",
  "ureq",
  "wasapi",
+ "windows 0.61.3",
  "zip",
 ]
 
