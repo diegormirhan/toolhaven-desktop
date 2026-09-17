@@ -1,17 +1,17 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { UpdateBanner } from "./UpdateBanner";
+import { UpdateCard } from "./UpdateCard";
 
-function show(state: Parameters<typeof UpdateBanner>[0]["state"]) {
-  return render(<UpdateBanner state={state} onRestart={vi.fn()} onDismiss={vi.fn()} />);
+function show(state: Parameters<typeof UpdateCard>[0]["state"]) {
+  return render(<UpdateCard state={state} onRestart={vi.fn()} onDismiss={vi.fn()} />);
 }
 
-describe("UpdateBanner", () => {
+describe("UpdateCard", () => {
   it("says nothing while a check is only answering a button in Settings", () => {
     const { container, rerender } = show({ phase: "checking" });
     expect(container).toBeEmptyDOMElement();
 
-    rerender(<UpdateBanner state={{ phase: "current" }} onRestart={vi.fn()} onDismiss={vi.fn()} />);
+    rerender(<UpdateCard state={{ phase: "current" }} onRestart={vi.fn()} onDismiss={vi.fn()} />);
     expect(container).toBeEmptyDOMElement();
   });
 

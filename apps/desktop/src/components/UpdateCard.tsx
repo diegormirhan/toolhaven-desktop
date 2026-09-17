@@ -4,10 +4,11 @@ import type { UpdateState } from "../hooks/useUpdate";
 /**
  * Says what the update is doing, and nothing when it is doing nothing.
  *
- * It sits at the bottom rather than the top: an app that greets you with a bar
- * pushing the catalog down has made its housekeeping your first problem.
+ * It arrives from above and stops just under the top bar, over the catalog
+ * rather than pushing it down: the news is worth noticing once, and the window
+ * underneath it is not rearranged to carry it.
  */
-export function UpdateBanner({
+export function UpdateCard({
   state,
   onRestart,
   onDismiss,
@@ -29,7 +30,7 @@ export function UpdateBanner({
       : null;
 
   return (
-    <aside className={`update-banner update-banner--${state.phase}`} role="status">
+    <aside className={`update-card update-card--${state.phase}`} role="status">
       {state.phase === "downloading" && (
         <>
           <Download size={16} aria-hidden="true" />
@@ -58,7 +59,7 @@ export function UpdateBanner({
         </>
       )}
       {state.phase !== "downloading" && (
-        <button className="icon-button update-banner__close" type="button" onClick={onDismiss} aria-label="Dismiss">
+        <button className="icon-button update-card__close" type="button" onClick={onDismiss} aria-label="Dismiss">
           <X size={16} />
         </button>
       )}

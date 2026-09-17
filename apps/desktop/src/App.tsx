@@ -23,7 +23,7 @@ import { InstallDialog } from "./components/InstallDialog";
 import { ThemeSwitch } from "./components/ThemeSwitch";
 import { ToolPanel, type RunOperationInput } from "./components/ToolPanel";
 import { ImageSearchPanel } from "./components/ImageSearchPanel";
-import { UpdateBanner } from "./components/UpdateBanner";
+import { UpdateCard } from "./components/UpdateCard";
 import { useUpdate, type UpdateState } from "./hooks/useUpdate";
 import { MusicPanel } from "./components/MusicPanel";
 import { ToolSection } from "./components/ToolSection";
@@ -422,7 +422,7 @@ export function App() {
           onClose={() => setPendingTool(null)}
         />
       )}
-      <UpdateBanner state={update.state} onRestart={update.restart} onDismiss={update.dismiss} />
+      <UpdateCard state={update.state} onRestart={update.restart} onDismiss={update.dismiss} />
       {selectedTool && (
         <>
           <div
@@ -677,6 +677,27 @@ function SettingsView({
 
       <div className="settings-card">
         <div className="settings-card__copy">
+          <h2>Version</h2>
+          <p>
+            The app looks for a newer release each time it opens and downloads it on its own;
+            this asks now instead of waiting. {updateMessage(updateState)}
+          </p>
+        </div>
+        <div className="settings-card__control">
+          <span className="settings-card__path">{version ? `ToolHaven ${version}` : "—"}</span>
+          <button
+            className="button button--light"
+            type="button"
+            onClick={() => void onCheckForUpdates()}
+            disabled={updateState.phase === "checking" || updateState.phase === "downloading"}
+          >
+            {updateState.phase === "checking" ? "Checking…" : "Check now"}
+          </button>
+        </div>
+      </div>
+
+      <div className="settings-card">
+        <div className="settings-card__copy">
           <h2>Theme</h2>
           <p>“System” follows the Windows preference. Your choice is saved on this machine.</p>
         </div>
@@ -786,27 +807,6 @@ function SettingsView({
             ]}
             onChange={onConflictPolicyChange}
           />
-        </div>
-      </div>
-
-      <div className="settings-card">
-        <div className="settings-card__copy">
-          <h2>Version</h2>
-          <p>
-            The app looks for a newer release each time it opens and downloads it on its own;
-            this asks now instead of waiting. {updateMessage(updateState)}
-          </p>
-        </div>
-        <div className="settings-card__control">
-          <span className="settings-card__path">{version ? `ToolHaven ${version}` : "—"}</span>
-          <button
-            className="button button--light"
-            type="button"
-            onClick={() => void onCheckForUpdates()}
-            disabled={updateState.phase === "checking" || updateState.phase === "downloading"}
-          >
-            {updateState.phase === "checking" ? "Checking…" : "Check now"}
-          </button>
         </div>
       </div>
 
