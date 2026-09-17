@@ -365,8 +365,12 @@ environment, or the build fails rather than shipping something no client will
 accept:
 
 ```bash
-TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.toolhaven/updater.key)" npm run tauri:build
+TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.toolhaven/updater.key)" TAURI_SIGNING_PRIVATE_KEY_PASSWORD="" npm run tauri:build
 ```
+
+The password variable is not optional even when the key has no password: without
+it the build stops at a prompt no script can answer, finishes the bundles, and
+silently produces no signature at all.
 
 ## Staying up to date
 
