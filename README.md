@@ -7,6 +7,7 @@ out of scans — on Windows, without typing a command.**
 
 A desktop app for FFmpeg, yt-dlp, ImageMagick, Tesseract and 22 more
 open-source tools, delivered so you never install a single one of them by hand.
+In English or Brazilian Portuguese.
 
 [![Release](https://img.shields.io/github/v/tag/diegormirhan/toolhaven-desktop?label=release&color=88afff)](https://github.com/diegormirhan/toolhaven-desktop/tags)
 [![License](https://img.shields.io/badge/license-MIT-88afff)](LICENSE)
@@ -15,10 +16,10 @@ open-source tools, delivered so you never install a single one of them by hand.
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](apps/desktop/src/)
 
 [![Windows](https://img.shields.io/badge/Windows-x64-0078D4?logo=windows&logoColor=white)](#running-it)
-[![No AI](https://img.shields.io/badge/AI-none-555)](#what-it-refuses-to-do)
+[![Local](https://img.shields.io/badge/models-on%20your%20machine-88afff)](#what-it-refuses-to-do)
 [![No cloud](https://img.shields.io/badge/cloud-none-555)](#what-it-refuses-to-do)
 [![No shell](https://img.shields.io/badge/arbitrary%20shell-never-555)](#the-boundary-that-shapes-everything)
-[![Installer](https://img.shields.io/badge/installer-15.6%20MB-88afff)](#how-the-tools-get-there)
+[![Installer](https://img.shields.io/badge/installer-16.3%20MB-88afff)](#how-the-tools-get-there)
 [![Setup](https://img.shields.io/badge/setup-one%20command-88afff)](#running-it)
 
 [The problem](#the-problem-it-takes-seriously) ·
@@ -27,7 +28,8 @@ open-source tools, delivered so you never install a single one of them by hand.
 [Tools](#the-catalog) ·
 [Jobs](#jobs-that-outlive-the-panel) ·
 [Run it](#running-it) ·
-[Limits](#known-limitations)
+[Languages](#languages) ·
+[Limits](LIMITATIONS.md)
 
 </div>
 
@@ -38,12 +40,14 @@ one of those is a solved problem with an excellent open-source tool behind it. T
 work. It is finding the tool, installing it, putting it on PATH, and learning a different set of
 flags for each one.
 
-ToolHaven puts twenty-two of them behind one window, one visual grammar, and one queue. Nine ship
-inside the 15.6 MB installer. Nine more the app downloads, verifies and installs on its own, in the
-background, with a progress bar. **You never open a browser, never run a package manager, never
+ToolHaven puts twenty-six of them behind one window, one visual grammar, and one queue. Nine ship
+inside the 16.3 MB installer. Seventeen more the app downloads, verifies and installs on its own, in
+the background, with a progress bar. **You never open a browser, never run a package manager, never
 touch PATH.**
 
-Everything runs on your machine. No account, no cloud, no telemetry, no AI.
+Everything runs on your machine. No account, no cloud, no telemetry. Two operations use a model —
+reading text out of a scan, and enlarging a photograph — and both run here, on your own processor or
+graphics card, downloaded only if you ask for them.
 
 ![The catalog in the dark theme](docs/screenshots/catalog-dark.png)
 
@@ -98,7 +102,7 @@ jq 1.8.2 · yq 4.53.6 · ripgrep 15.2.0 · fd 10.5.0 · Miller 6.21.0
 tokei 12.1.2 · hexyl 0.17.0 · Dust 1.2.5 · Oxipng 10.2.1
 ```
 
-47 MB of executables, all MIT / Apache-2.0 / BSD-2 / Unlicense, compressing to a **15.6 MB
+47 MB of executables, all MIT / Apache-2.0 / BSD-2 / Unlicense, compressing to a **16.3 MB
 installer**. `7z l` on the NSIS output shows `tools\*.exe` sitting beside `toolhaven.exe`.
 
 ![The dev tools rail, where the bundled tools read Included](docs/screenshots/bundled-tools.png)
@@ -107,7 +111,7 @@ installer**. `7z l` on the NSIS output shows `tools\*.exe` sitting beside `toolh
 finishes; the `Get it` cards open a plan first. The card never moves between rails when its state
 changes — only its badge and its button do.*
 
-### Nine more the app installs itself
+### Seventeen more the app installs itself
 
 Click `Get it` and the app resolves the dependency graph, then downloads, verifies and activates
 every step. yt-dlp is the interesting case: it needs Deno for YouTube's JS challenges, and FFmpeg
@@ -193,7 +197,7 @@ Twenty-six cards, grouped by the result you want rather than by the project that
 
 Each card's artwork is a drawing of what the tool produces — stacked pages, a crop frame, a
 filmstrip resolving into a waveform — on one shared 200 × 100 grid, in the card's accent colour. A
-grid of twenty-seven reads as one set instead of twenty-seven unrelated icons.
+grid of twenty-six reads as one set instead of twenty-six unrelated icons.
 
 Two of those cards reach the internet, and both say so in the panel before they run. Reverse image
 search performs the upload a browser cannot do for a file on your disk, then hands the address to
@@ -207,18 +211,22 @@ colour. The switch offers System as well, and the choice is remembered per machi
 
 ### What it refuses to do
 
-Rejections are recorded with their reason in `docs/TOOL-MATRIX.md`, because a catalog is defined as
-much by what stays out:
+A catalog is defined as much by what stays out:
 
 | | Why not |
 |---|---|
 | **Ghostscript** | AGPL-3.0, with Artifex enforcing it against distribution alongside non-AGPL software. It would enter only if ToolHaven itself became AGPL. |
-| **Tesseract** | Apache-2.0, no licensing problem at all. Its engine is an LSTM neural net, and this product does not use AI. Rejected on product grounds, and it costs us OCR. |
-| **pngquant** | GPL-3.0 with a commercial licence offered explicitly for non-GPL use — the legal ambiguity `LICENSING.md` says to avoid. |
+| **pngquant** | GPL-3.0 with a commercial licence offered explicitly for non-GPL use — the kind of legal ambiguity this project stays out of. |
 | **hyperfine** | It runs arbitrary shell commands. See [the boundary](#the-boundary-that-shapes-everything). |
 
-Also out, and not coming back: cloud sync, accounts, telemetry, generative AI, "enhance with AI"
-upscaling, DRM removal.
+Also out, and not coming back: cloud sync, accounts, telemetry, anything that uploads a file you
+did not point at a service yourself, DRM removal.
+
+Tesseract was on this list once, rejected because its engine is a neural network and the rule at the
+time was "no AI". The rule was wrong: what matters is where the work happens and what leaves the
+machine, not which technique does it. Tesseract reads a scan on your processor and the upscaler
+enlarges a photograph on your graphics card; both are fetched only if you ask, and the picture never
+leaves. *Local* is the claim, not *no models*.
 
 ---
 
@@ -357,6 +365,7 @@ Adding a language is a file beside those two and an entry in `dictionaries`.
 The app checks for a new version when it opens, downloads it, and installs it.
 Settings names the running version and has a *Check now* button for asking
 between launches.
+
 What it will not do is restart itself: a window that disappears while a two-hour
 transcode is running has not been helpful. So the last step is a button, and the
 banner says the work is already done.
@@ -388,61 +397,13 @@ The password variable is not optional even when the key has no password: without
 it the build stops at a prompt no script can answer, finishes the bundles, and
 silently produces no signature at all.
 
-## Staying up to date
-
-The app checks for a new version when it opens, downloads it, and installs it.
-What it will not do is restart itself: a window that disappears while a two-hour
-transcode is running has not been helpful. So the last step is a button, and the
-banner says the work is already done.
-
-Every update is verified before it is allowed to run. The release is signed with
-a key whose public half is compiled into the binary, so a download that has been
-tampered with — or served by anything other than the real release — is refused
-rather than installed. The private half is not in this repository and never will
-be; losing it means no further updates can be signed, which is the trade for not
-being able to push one by compromising a web server.
-
-The check is one request to the release manifest. If there is no network, or the
-manifest is missing, the app carries on at the version it has and says nothing.
-
-```
-apps/desktop/src-tauri/tauri.conf.json   the endpoint and the public key
-scripts/release/build-update-manifest.mjs   writes the latest.json a release needs
-```
-
-Building a release that can be updated to needs the signing key in the
-environment, or the build fails rather than shipping something no client will
-accept:
-
-```bash
-TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.toolhaven/updater.key)" npm run tauri:build
-```
-
 ## Known limitations
 
-Stated because they are real, not because they are theoretical:
+Eight of them, written down rather than discovered: what 7-Zip cannot read,
+what the upscaler needs from your GPU, which half of the update path is still
+unproven, and the rest.
 
-- **7-Zip is the standalone build, so it does not read rar.** The full `7z.exe` ships only in an
-  installer that demands elevation, and no tool here is worth a UAC prompt. What ships reads and
-  writes 7z, zip, tar, gzip, bzip2 and xz, and the card claims exactly that.
-- **Enlarging with a model needs a Vulkan-capable GPU.** Neither published build has a working CPU
-  path, so a machine without a Vulkan driver cannot use that one operation.
-- **An operation can be stopped but not paused.** Stopping kills the process tree through a Job
-  Object, which is immediate and complete; there is no way to resume from where it was.
-- **Only half the update path has been exercised.** The check against the live endpoint is
-  verified — it fetches the manifest, verifies the signature and correctly finds nothing newer
-  when there is nothing newer. The download-and-install half waits on a release newer than the
-  one installed; Tauri refuses a non-HTTPS endpoint, so there is no local rehearsal for it.
-- **The bundled tokei is from January 2021.** Upstream stopped publishing Windows binaries; the
-  current tag has no artifacts at all. A five-year-old binary is bad, a permanently dead card is
-  worse, and building from source in CI is the actual fix.
-- **The interface is English only.** There is no i18n layer, so a second language is a rewrite of
-  every string rather than a config change.
-- **PDF text extraction only reads text.** A scanned page has no text to extract, and OCR is out
-  by the no-AI rule above.
-- **Only Windows x64.** ARM64 and the other platforms are not attempted, and the component store
-  pins Windows artifacts exclusively.
-- **Unsigned.** SmartScreen will warn on the installer until there is a certificate.
+→ **[LIMITATIONS.md](LIMITATIONS.md)**
 
 ---
 
@@ -454,6 +415,4 @@ Stated because they are real, not because they are theoretical:
 Own code is MIT. Every third-party executable keeps its own licence, recorded with version, origin,
 artifact URL and SHA-256 in `vendor/THIRD-PARTY-NOTICES.txt`, generated by the build.
 
-Deeper reading: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) ·
-[`docs/TOOL-MATRIX.md`](docs/TOOL-MATRIX.md) · [`docs/LICENSING.md`](docs/LICENSING.md) ·
-[`docs/SECURITY.md`](docs/SECURITY.md) · [`docs/decisions/`](docs/decisions/)
+Also here: [`LIMITATIONS.md`](LIMITATIONS.md) — what this release cannot do.
