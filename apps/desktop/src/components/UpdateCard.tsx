@@ -1,5 +1,6 @@
 import { AlertTriangle, Download, RefreshCw, X } from "lucide-react";
 import type { UpdateState } from "../hooks/useUpdate";
+import { useT } from "../i18n/language";
 
 /**
  * Says what the update is doing, and nothing when it is doing nothing.
@@ -17,6 +18,7 @@ export function UpdateCard({
   onRestart: () => void;
   onDismiss: () => void;
 }) {
+  const t = useT();
   // "checking" and "current" are answers to a button in Settings, and are
   // reported there; a banner for them would be an interruption saying nothing
   // happened.
@@ -35,7 +37,7 @@ export function UpdateCard({
         <>
           <Download size={16} aria-hidden="true" />
           <span>
-            Downloading version {state.version}
+            {t("Downloading version {version}", { version: state.version })}
             {percentage == null ? "…" : ` — ${percentage}%`}
           </span>
         </>
@@ -44,22 +46,23 @@ export function UpdateCard({
         <>
           <RefreshCw size={16} aria-hidden="true" />
           <span>
-            Version {state.version} is installed. Restart to use it — anything running
-            now will be lost.
+            {t("Version {version} is installed. Restart to use it — anything running now will be lost.", {
+              version: state.version,
+            })}
           </span>
           <button className="button button--primary button--small" type="button" onClick={onRestart}>
-            Restart
+            {t("Restart")}
           </button>
         </>
       )}
       {state.phase === "failed" && (
         <>
           <AlertTriangle size={16} aria-hidden="true" />
-          <span>The update could not be installed: {state.message}</span>
+          <span>{t("The update could not be installed: {message}", { message: state.message })}</span>
         </>
       )}
       {state.phase !== "downloading" && (
-        <button className="icon-button update-card__close" type="button" onClick={onDismiss} aria-label="Dismiss">
+        <button className="icon-button update-card__close" type="button" onClick={onDismiss} aria-label={t("Dismiss")}>
           <X size={16} />
         </button>
       )}

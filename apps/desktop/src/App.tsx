@@ -24,6 +24,7 @@ import { ThemeSwitch } from "./components/ThemeSwitch";
 import { ToolPanel, type RunOperationInput } from "./components/ToolPanel";
 import { ImageSearchPanel } from "./components/ImageSearchPanel";
 import { UpdateCard } from "./components/UpdateCard";
+import { LanguageProvider, useLanguage, useT, type Language, type Translate } from "./i18n/language";
 import { useUpdate, type UpdateState } from "./hooks/useUpdate";
 import { MusicPanel } from "./components/MusicPanel";
 import { ToolSection } from "./components/ToolSection";
@@ -62,6 +63,16 @@ const navigationItems: Array<{ id: NavigationId; label: string; icon: typeof Gri
 ];
 
 export function App() {
+  return (
+    <LanguageProvider>
+      <Shell />
+    </LanguageProvider>
+  );
+}
+
+function Shell() {
+  const t = useT();
+  const { language, setLanguage } = useLanguage();
   const catalogRows = useMemo(() => createCatalogRows(), []);
   const [activeNavigation, setActiveNavigation] = useState<NavigationId>("catalog");
   const [query, setQuery] = useState("");
@@ -228,11 +239,11 @@ export function App() {
           </span>
           <span>
             <strong>ToolHaven</strong>
-            <small>Local tools</small>
+            <small>{t("Local tools")}</small>
           </span>
         </div>
 
-        <nav aria-label="Main navigation">
+        <nav aria-label={t("Main navigation")}>
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const badge = item.id === "queue" ? runningCount : 0;
@@ -242,12 +253,16 @@ export function App() {
                 type="button"
                 className={activeNavigation === item.id ? "nav-item nav-item--active" : "nav-item"}
                 onClick={() => setActiveNavigation(item.id)}
-                aria-label={badge > 0 ? `${item.label}, ${badge} running` : item.label}
-                title={item.label}
+                aria-label={
+                  badge > 0
+                    ? t("{name}, {count} running", { name: t(item.label), count: badge })
+                    : t(item.label)
+                }
+                title={t(item.label)}
                 aria-current={activeNavigation === item.id ? "page" : undefined}
               >
                 <Icon size={18} aria-hidden="true" />
-                <span>{item.label}</span>
+                <span>{t(item.label)}</span>
                 {badge > 0 && (
                   <span className="nav-item__badge" aria-hidden="true">
                     {badge}
@@ -262,7 +277,7 @@ export function App() {
           <span className="status-light" aria-hidden="true" />
           <span>
             <strong>Windows x64</strong>
-            <small>Local execution enabled</small>
+            <small>{t("Local execution enabled")}</small>
           </span>
         </div>
       </aside>
@@ -278,8 +293,8 @@ export function App() {
             className="icon-button sidebar-toggle"
             onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
             aria-pressed={sidebarCollapsed}
-            aria-label={sidebarCollapsed ? "Show the sidebar" : "Hide the sidebar"}
-            title={sidebarCollapsed ? "Show the sidebar" : "Hide the sidebar"}
+            aria-label={t(sidebarCollapsed ? "Show the sidebar" : "Hide the sidebar")}
+            title={t(sidebarCollapsed ? "Show the sidebar" : "Hide the sidebar")}
           >
             {sidebarCollapsed ? <PanelLeftOpen size={18} aria-hidden="true" /> : <PanelLeftClose size={18} aria-hidden="true" />}
           </button>
@@ -290,8 +305,8 @@ export function App() {
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search an action, a format or a tool"
-              aria-label="Search tools"
+              placeholder={t("Search an action, a format or a tool")}
+              aria-label={t("Search tools")}
             />
             <kbd aria-hidden="true">Ctrl K</kbd>
           </div>
@@ -302,7 +317,7 @@ export function App() {
               type="button"
               onClick={() => setActiveNavigation("history")}
             >
-              <Clock3 size={16} aria-hidden="true" /> History · {runner.finishedJobs.length}
+              <Clock3 size={16} aria-hidden="true" /> {t("History")} · {runner.finishedJobs.length}
             </button>
           </div>
         </header>
@@ -311,10 +326,8 @@ export function App() {
           <div className="catalog-view">
             <section className="drop-workspace" aria-labelledby="workspace-title">
               <div className="drop-workspace__copy">
-                <h1 id="workspace-title">What do you want to do?</h1>
-                <p>
-                  Pick a tool below. You can also drop a file onto this window, or choose one first.
-                </p>
+                <h1 id="workspace-title">{t("What do you want to do?")}</h1>
+                <p>{t("Pick a tool below. You can also drop a file onto this window, or choose one first.")}</p>
               </div>
               <button
                 type="button"
@@ -322,7 +335,7 @@ export function App() {
                 data-dragging={fileDrop.isDraggingOver ? "true" : undefined}
                 onClick={async () => {
                   if (!isNativeHost()) {
-                    setFileMessage("Open ToolHaven on Windows to pick local files.");
+                    setFileMessage(t("Open ToolHaven on Windows to pick local files."));
                     return;
                   }
                   try {
@@ -340,10 +353,10 @@ export function App() {
                 <span>
                   <strong>
                     {fileDrop.isDraggingOver
-                      ? "Drop the file here"
-                      : (pendingFile?.split(/[\\/]/).pop() ?? "Drop a file, or choose one")}
+                      ? t("Drop the file here")
+                      : (pendingFile?.split(/[\\/]/).pop() ?? t("Drop a file, or choose one"))}
                   </strong>
-                  <small>{pendingFile ? "Now open a tool below" : "Processed on your own machine"}</small>
+                  <small>{t(pendingFile ? "Now open a tool below" : "Processed on your own machine")}</small>
                 </span>
               </button>
               {fileMessage && (
@@ -372,10 +385,10 @@ export function App() {
             ) : (
               <section className="empty-state">
                 <Search size={24} aria-hidden="true" />
-                <h2>No tool matches that</h2>
-                <p>Try an action like “convert”, an extension like “.pdf”, or the name of the tool.</p>
+                <h2>{t("No tool matches that")}</h2>
+                <p>{t("Try an action like “convert”, an extension like “.pdf”, or the name of the tool.")}</p>
                 <button className="button button--light" type="button" onClick={() => setQuery("")}>
-                  Clear search
+                  {t("Clear search")}
                 </button>
               </section>
             )}
@@ -392,6 +405,8 @@ export function App() {
             onConcurrencyChange={setConcurrency}
             conflictPolicy={conflictPolicy}
             onConflictPolicyChange={setConflictPolicy}
+            language={language}
+            onLanguageChange={setLanguage}
             version={update.version}
             updateState={update.state}
             onCheckForUpdates={update.checkNow}
@@ -505,18 +520,21 @@ function JobView({
   onCancel: (jobId: string) => void;
   onReturn: () => void;
 }) {
+  const t = useT();
   const isQueue = activeNavigation === "queue";
   const jobs = isQueue ? runningJobs : finishedJobs;
-  const title = isQueue ? "Operation queue" : "Result history";
-  const emptyTitle = isQueue ? "Nothing running" : "No results yet";
-  const emptyDescription = isQueue
-    ? "An operation started from a tool panel keeps running here after you close the panel, and can be stopped from here."
-    : "Everything this app has run, kept across restarts until you clear it.";
+  const title = t(isQueue ? "Operation queue" : "Result history");
+  const emptyTitle = t(isQueue ? "Nothing running" : "No results yet");
+  const emptyDescription = t(
+    isQueue
+      ? "An operation started from a tool panel keeps running here after you close the panel, and can be stopped from here."
+      : "Everything this app has run, kept across restarts until you clear it.",
+  );
   const lead = jobs.length
-    ? `${jobs.length} operation${jobs.length === 1 ? "" : "s"} in this section.`
-    : isQueue
-      ? "Nothing is running right now."
-      : "Nothing has finished yet.";
+    ? t(jobs.length === 1 ? "{count} operation in this section." : "{count} operations in this section.", {
+        count: jobs.length,
+      })
+    : t(isQueue ? "Nothing is running right now." : "Nothing has finished yet.");
 
   return (
     <section className="job-view">
@@ -526,7 +544,7 @@ function JobView({
         <p>{lead}</p>
         {!isQueue && jobs.length > 0 && (
           <button className="button button--quiet button--small" type="button" onClick={onClearHistory}>
-            Clear the history
+            {t("Clear the history")}
           </button>
         )}
       </div>
@@ -541,7 +559,7 @@ function JobView({
           <h2>{emptyTitle}</h2>
           <p>{emptyDescription}</p>
           <button className="button button--light" type="button" onClick={onReturn}>
-            Back to the tools
+            {t("Back to the tools")}
           </button>
         </div>
       )}
@@ -549,6 +567,7 @@ function JobView({
   );
 }
 
+/** Left in English here; each is put through the translator where it is shown. */
 const statusLabels: Record<ToolJob["status"], string> = {
   queued: "Waiting",
   running: "Running",
@@ -559,6 +578,7 @@ const statusLabels: Record<ToolJob["status"], string> = {
 };
 
 function JobRow({ job, onCancel }: { job: ToolJob; onCancel?: (jobId: string) => void }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   const percentage = job.progress == null ? null : Math.round(job.progress * 100);
   const optionsLabel = Object.entries(job.options)
@@ -589,7 +609,7 @@ function JobRow({ job, onCancel }: { job: ToolJob; onCancel?: (jobId: string) =>
           <span className="job-row__output">
             <code>{job.outputPath}</code>
             <button className="button button--quiet button--small" type="button" onClick={() => void copyOutputPath()}>
-              <Copy size={13} aria-hidden="true" /> {copied ? "Copied" : "Copy path"}
+              <Copy size={13} aria-hidden="true" /> {t(copied ? "Copied" : "Copy path")}
             </button>
           </span>
         )}
@@ -603,7 +623,7 @@ function JobRow({ job, onCancel }: { job: ToolJob; onCancel?: (jobId: string) =>
           {(job.status === "cancelled" || job.status === "queued") && (
             <CircleSlash size={13} aria-hidden="true" />
           )}
-          {statusLabels[job.status]}
+          {t(statusLabels[job.status])}
           {job.status === "running" && percentage != null ? ` ${percentage}%` : ""}
         </span>
         {onCancel && (job.status === "running" || job.status === "queued") && (
@@ -612,14 +632,14 @@ function JobRow({ job, onCancel }: { job: ToolJob; onCancel?: (jobId: string) =>
             type="button"
             onClick={() => onCancel(job.id)}
           >
-            <CircleSlash size={13} aria-hidden="true" /> Stop
+            <CircleSlash size={13} aria-hidden="true" /> {t("Stop")}
           </button>
         )}
         {job.status === "running" && (
           <div
             className={`progress-track${percentage == null ? " progress-track--indeterminate" : ""}`}
             role="progressbar"
-            aria-label={`Progress of ${job.operationLabel}`}
+            aria-label={t("Progress of {name}", { name: job.operationLabel })}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={percentage ?? undefined}
@@ -643,6 +663,8 @@ function SettingsView({
   onConcurrencyChange,
   conflictPolicy,
   onConflictPolicyChange,
+  language,
+  onLanguageChange,
   version,
   updateState,
   onCheckForUpdates,
@@ -660,6 +682,8 @@ function SettingsView({
   onConcurrencyChange: (value: number) => void;
   conflictPolicy: string;
   onConflictPolicyChange: (value: string) => void;
+  language: Language;
+  onLanguageChange: (language: Language) => void;
   version: string;
   updateState: UpdateState;
   onCheckForUpdates: () => Promise<void>;
@@ -667,18 +691,19 @@ function SettingsView({
   onClearHistory: () => void;
   onReturn: () => void;
 }) {
-  const answer = updateMessage(updateState);
+  const t = useT();
+  const answer = updateMessage(updateState, t);
 
   return (
     <section className="settings-view">
       <div className="job-view__header">
         <span className="placeholder-view__line" aria-hidden="true" />
-        <h1>Settings</h1>
+        <h1>{t("Settings")}</h1>
       </div>
 
       <div className="settings-card">
         <div className="settings-card__copy">
-          <h2>Version</h2>
+          <h2>{t("Version")}</h2>
           {answer && <p>{answer}</p>}
         </div>
         <div className="settings-card__control">
@@ -689,21 +714,38 @@ function SettingsView({
             onClick={() => void onCheckForUpdates()}
             disabled={updateState.phase === "checking" || updateState.phase === "downloading"}
           >
-            {updateState.phase === "checking" ? "Checking…" : "Check now"}
+            {t(updateState.phase === "checking" ? "Checking…" : "Check now")}
           </button>
         </div>
       </div>
 
       <div className="settings-card">
         <div className="settings-card__copy">
-          <h2>Theme</h2>
+          <h2>{t("Language")}</h2>
+        </div>
+        <div className="settings-card__control settings-card__control--wide">
+          <Select
+            label={t("Language")}
+            value={language}
+            choices={[
+              { value: "en", label: "English" },
+              { value: "pt", label: "Português (Brasil)" },
+            ]}
+            onChange={(value) => onLanguageChange(value === "pt" ? "pt" : "en")}
+          />
+        </div>
+      </div>
+
+      <div className="settings-card">
+        <div className="settings-card__copy">
+          <h2>{t("Theme")}</h2>
         </div>
         <ThemeSwitch preference={preference} onChange={onThemeChange} variant="labelled" />
       </div>
 
       <div className="settings-card">
         <div className="settings-card__copy">
-          <h2>Sidebar</h2>
+          <h2>{t("Sidebar")}</h2>
         </div>
         <button
           className="button button--light"
@@ -711,16 +753,16 @@ function SettingsView({
           onClick={() => onSidebarChange(!sidebarCollapsed)}
           aria-pressed={sidebarCollapsed}
         >
-          {sidebarCollapsed ? "Show it" : "Hide it"}
+          {t(sidebarCollapsed ? "Show it" : "Hide it")}
         </button>
       </div>
 
       <div className="settings-card">
         <div className="settings-card__copy">
-          <h2>Default destination</h2>
+          <h2>{t("Default destination")}</h2>
         </div>
         <div className="settings-card__control">
-          <span className="settings-card__path">{defaultFolder || "Not set"}</span>
+          <span className="settings-card__path">{defaultFolder || t("Not set")}</span>
           <button
             className="button button--light"
             type="button"
@@ -732,11 +774,11 @@ function SettingsView({
                 .catch(() => undefined);
             }}
           >
-            Choose
+            {t("Choose")}
           </button>
           {defaultFolder && (
             <button className="button button--light" type="button" onClick={() => onDefaultFolderChange("")}>
-              Clear
+              {t("Clear")}
             </button>
           )}
         </div>
@@ -744,11 +786,13 @@ function SettingsView({
 
       <div className="settings-card">
         <div className="settings-card__copy">
-          <h2>History</h2>
+          <h2>{t("History")}</h2>
           <p>
             {finishedCount > 0
-              ? `${finishedCount} finished operation${finishedCount === 1 ? "" : "s"}`
-              : "Nothing has finished yet"}
+              ? t(finishedCount === 1 ? "{count} finished operation" : "{count} finished operations", {
+                  count: finishedCount,
+                })
+              : t("Nothing has finished yet")}
           </p>
         </div>
         <button
@@ -757,18 +801,18 @@ function SettingsView({
           onClick={onClearHistory}
           disabled={finishedCount === 0}
         >
-          Clear
+          {t("Clear")}
         </button>
       </div>
 
       <div className="settings-card">
         <div className="settings-card__copy">
-          <h2>How many at once</h2>
-          <p>The rest wait their turn in the queue.</p>
+          <h2>{t("How many at once")}</h2>
+          <p>{t("Anything beyond this waits in the queue.")}</p>
         </div>
         <div className="settings-card__control">
           <NumberField
-            label="Operations at once"
+            label={t("Operations at once")}
             value={String(concurrency)}
             min={1}
             max={8}
@@ -779,15 +823,15 @@ function SettingsView({
 
       <div className="settings-card">
         <div className="settings-card__copy">
-          <h2>When the file already exists</h2>
+          <h2>{t("When the file already exists")}</h2>
         </div>
         <div className="settings-card__control settings-card__control--wide">
           <Select
-            label="When the file already exists"
+            label={t("When the file already exists")}
             value={conflictPolicy}
             choices={[
-              { value: "keep-both", label: "Keep both — number the new one" },
-              { value: "overwrite", label: "Overwrite the old one" },
+              { value: "keep-both", label: t("Keep both — number the new one") },
+              { value: "overwrite", label: t("Overwrite the old one") },
             ]}
             onChange={onConflictPolicyChange}
           />
@@ -796,32 +840,32 @@ function SettingsView({
 
       <div className="settings-card settings-card--pending">
         <div className="settings-card__copy">
-          <h2>Not available yet</h2>
+          <h2>{t("Not available yet")}</h2>
           <ul>
-            <li>Pausing an operation, rather than stopping it</li>
-            <li>Scheduling one for later</li>
+            <li>{t("Pausing an operation, rather than stopping it")}</li>
+            <li>{t("Scheduling one for later")}</li>
           </ul>
         </div>
       </div>
 
       <button className="button button--light" type="button" onClick={onReturn}>
-        Back to the tools
+        {t("Back to the tools")}
       </button>
     </section>
   );
 }
 
 /** What the last check found, in the one sentence the card has room for. */
-function updateMessage(state: UpdateState): string {
+function updateMessage(state: UpdateState, t: Translate): string {
   switch (state.phase) {
     case "current":
-      return "This is the newest version.";
+      return t("This is the newest version.");
     case "downloading":
-      return "A newer version is downloading.";
+      return t("A newer version is downloading.");
     case "ready":
-      return `Version ${state.version} is ready — restart to use it.`;
+      return t("Version {version} is ready — restart to use it.", { version: state.version });
     case "failed":
-      return `The last check failed: ${state.message}`;
+      return t("The last check failed: {message}", { message: state.message });
     default:
       return "";
   }

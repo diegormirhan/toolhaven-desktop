@@ -1,4 +1,5 @@
 import type { CatalogRow } from "../catalog/catalog";
+import { useT } from "../i18n/language";
 
 type CategoryFilterProps = {
   rows: CatalogRow[];
@@ -14,16 +15,17 @@ type CategoryFilterProps = {
  * rather than jumping, so the answer stays on screen.
  */
 export function CategoryFilter({ rows, active, onChange }: CategoryFilterProps) {
+  const t = useT();
   if (rows.length === 0) return null;
   return (
-    <div className="category-filter" role="group" aria-label="Filter by category">
+    <div className="category-filter" role="group" aria-label={t("Filter by category")}>
       <button
         type="button"
         className={`category-chip${active === null ? " is-active" : ""}`}
         aria-pressed={active === null}
         onClick={() => onChange(null)}
       >
-        Everything
+        {t("Everything")}
       </button>
       {rows.map((row) => (
         <button
@@ -33,7 +35,7 @@ export function CategoryFilter({ rows, active, onChange }: CategoryFilterProps) 
           aria-pressed={active === row.id}
           onClick={() => onChange(active === row.id ? null : row.id)}
         >
-          {row.title}
+          {t(row.title)}
           <span className="category-chip__count">{row.tools.length}</span>
         </button>
       ))}

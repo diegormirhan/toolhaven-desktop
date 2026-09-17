@@ -7,6 +7,7 @@ import { isNativeHost } from "../hooks/useOperationRunner";
 import { acceptsFile } from "../catalog/formats";
 import { FilePreview } from "./FilePreview";
 import { PanelShell } from "./PanelShell";
+import { useT } from "../i18n/language";
 import { Select } from "./Select";
 
 type Engine = { id: string; label: string; uploads: boolean };
@@ -44,6 +45,7 @@ export function ImageSearchPanel({
   onExited?: () => void;
   onDirtyChange?: (dirty: boolean) => void;
 }) {
+  const t = useT();
   const [engines, setEngines] = useState<Engine[]>(fallbackEngines);
   const [engineId, setEngineId] = useState("google");
   const [path, setPath] = useState(initialPath ?? "");
@@ -99,7 +101,7 @@ export function ImageSearchPanel({
   function search() {
     if (!canSearch || busy) return;
     if (!isNativeHost()) {
-      setError("Open the ToolHaven app to search. This page is the interface preview only.");
+      setError(t("Open the ToolHaven app to search. This page is the interface preview only."));
       return;
     }
     setBusy(true);
@@ -138,7 +140,7 @@ export function ImageSearchPanel({
       bodyClassName={path && !usingUrl ? "tool-panel__body--split" : ""}
     >
       {path && !usingUrl && (
-        <section className="tool-panel__workspace" aria-label="Picture preview">
+        <section className="tool-panel__workspace" aria-label={t("Picture preview")}>
           <FilePreview path={path} />
         </section>
       )}
@@ -151,30 +153,30 @@ export function ImageSearchPanel({
           <ExternalLink size={14} aria-hidden="true" />
           <span>
             This is the one tool here that leaves your machine. {engine?.uploads
-              ? "The picture is uploaded to the search engine, and the results open in your browser."
-              : "Only the address you paste is sent; the picture is never uploaded by this app."}
+              ? t("The picture is uploaded to the search engine, and the results open in your browser.")
+              : t("Only the address you paste is sent; the picture is never uploaded by this app.")}
           </span>
         </p>
 
         <label className="operation-select">
-          <span>Search with</span>
-          <Select label="Search with" value={engineId} choices={choices} onChange={setEngineId} />
+          <span>{t("Search with")}</span>
+          <Select label={t("Search with")} value={engineId} choices={choices} onChange={setEngineId} />
           <small>
             {path && !usingUrl
-              ? "A picture from this machine has to be uploaded, and Google Lens is the engine that accepts one."
-              : "Paste a link and any of these will take it."}
+              ? t("A picture from this machine has to be uploaded, and Google Lens is the engine that accepts one.")
+              : t("Paste a link and any of these will take it.")}
           </small>
         </label>
 
         <div className="tool-option">
           <span>
-            <strong>Picture on this machine</strong>
-            <small>{path ? fileNameOnly(path) : "No picture chosen."}</small>
+            <strong>{t("Picture on this machine")}</strong>
+            <small>{path ? fileNameOnly(path) : t("No picture chosen.")}</small>
           </span>
           <button
             className="icon-button"
             type="button"
-            aria-label="Choose a picture"
+            aria-label={t("Choose a picture")}
             onClick={() =>
               void open({ multiple: false })
                 .then((selected) => {
@@ -188,9 +190,9 @@ export function ImageSearchPanel({
         </div>
 
         <label className="source-url">
-          <span>Or the address of a picture online</span>
+          <span>{t("Or the address of a picture online")}</span>
           <input
-            aria-label="Picture address"
+            aria-label={t("Picture address")}
             type="url"
             placeholder="https://..."
             value={imageUrl}
@@ -208,14 +210,14 @@ export function ImageSearchPanel({
         {(error || opened) && (
           <p ref={resultRef} className={`panel-result${error ? " panel-result--error" : ""}`} role="status">
             {error ? <AlertTriangle size={15} aria-hidden="true" /> : <ExternalLink size={15} aria-hidden="true" />}
-            <span>{error || "Opened in your browser."}</span>
+            <span>{error || t("Opened in your browser.")}</span>
           </p>
         )}
 
         <div className="panel-actions">
           <button className="button button--primary" type="button" disabled={!canSearch || busy} onClick={search}>
             <Search size={16} aria-hidden="true" />
-            {busy ? "Searching…" : "Search"}
+            {t(busy ? "Searching…" : "Search")}
           </button>
         </div>
       </section>

@@ -620,29 +620,40 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 
 
 /* ── Number field ─────────────────────────────────────────────
-   Chromium's own spinners appear on hover, sit inside the box and are
-   a few pixels tall, so a numeric field reads as plain text until the
-   pointer finds them. These are always visible and worth hitting. */
-.number-field { position: relative; display: block; }
-.number-field input { width: 100%; padding-right: 30px; }
+   Chromium's own spinners appear on hover, sit inside the box and share
+   the height of a line of text between them, so a numeric field reads as
+   plain text until the pointer finds two targets nobody can hit. A step
+   at either end of the number is the whole control instead. */
+.number-field {
+  display: flex; align-items: stretch; gap: 2px;
+  inline-size: 100%; padding: 2px;
+  background: var(--control); border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+}
+.number-field:focus-within { border-color: var(--action); }
+.number-field input, .operation-options .number-field input {
+  min-inline-size: 0; flex: 1; min-block-size: 36px;
+  padding: 0; border: 0; background: transparent;
+  text-align: center; font-variant-numeric: tabular-nums;
+}
+.operation-options .number-field input:hover { background: transparent; }
+.number-field input:focus, .number-field input:focus-visible { outline: 0; box-shadow: none; }
+/* The native spinners would sit on top of the buttons that replace them. */
 .number-field input::-webkit-outer-spin-button,
 .number-field input::-webkit-inner-spin-button { appearance: none; margin: 0; }
-.number-field__steppers {
-  position: absolute; top: 1px; right: 1px; bottom: 1px;
-  display: grid; grid-template-rows: 1fr 1fr; width: 26px;
-  border-left: 1px solid var(--line);
-  border-radius: 0 var(--radius-control) var(--radius-control) 0;
-  overflow: hidden;
+.number-field__step--down { order: -1; }
+.number-field__step--up { order: 1; }
+.number-field__step {
+  display: grid; place-items: center; flex: 0 0 auto;
+  inline-size: 30px;
+  color: var(--text-secondary); background: transparent;
+  border: 0; border-radius: calc(var(--radius-control) - 3px);
+  cursor: pointer;
+  transition: color 160ms var(--ease-out), background 160ms var(--ease-out);
 }
-.number-field__steppers button {
-  display: grid; place-items: center;
-  color: var(--text-quiet); background: var(--control); border: 0;
-  cursor: pointer; transition: color 160ms var(--ease-out), background 160ms var(--ease-out);
-}
-.number-field__steppers button:hover:not(:disabled) { color: var(--text); background: var(--control-hover); }
-.number-field__steppers button:active:not(:disabled) { background: var(--surface-active); }
-.number-field__steppers button:disabled { opacity: 0.35; cursor: default; }
-.number-field__steppers button + button { border-top: 1px solid var(--line); }
+.number-field__step:hover:not(:disabled) { color: var(--text); background: var(--control-hover); }
+.number-field__step:active:not(:disabled) { background: var(--surface-active); }
+.number-field__step:disabled { opacity: 0.3; cursor: default; }
 
 .tool-panel__topbar { display: flex; align-items: center; justify-content: space-between; min-height: 58px; padding: 0 16px 0 22px; color: var(--text-quiet); font-size: 0.72rem; border-bottom: 1px solid var(--line); }
 .tool-panel__body { min-width: 0; min-height: 0; overflow: auto; padding: 30px 24px; overflow-wrap: anywhere; }
@@ -766,6 +777,8 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 
 /* ── Settings ─────────────────────────────────────────────────── */
 .settings-card__control { display: flex; align-items: center; gap: 10px; }
+/* Left to itself the field would take the whole side of the card. */
+.settings-card__control .number-field { inline-size: 124px; }
 .settings-card__path {
   max-width: 280px; overflow: hidden; color: var(--text-quiet);
   font-size: 0.72rem; text-overflow: ellipsis; white-space: nowrap;

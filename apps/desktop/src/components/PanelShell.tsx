@@ -1,5 +1,6 @@
 import { forwardRef, type ReactNode } from "react";
 import { X } from "lucide-react";
+import { useT } from "../i18n/language";
 
 /**
  * The modal frame every tool opens inside: the title bar, the close button, and
@@ -20,6 +21,7 @@ export const PanelShell = forwardRef<
     children: ReactNode;
   }
 >(function PanelShell({ title, wide = false, leaving = false, onClose, onExited, bodyClassName = "", children }, closeRef) {
+  const t = useT();
   return (
     <aside
       className={`tool-panel${wide ? " tool-panel--wide" : ""}`}
@@ -33,7 +35,7 @@ export const PanelShell = forwardRef<
     >
       <div className="tool-panel__topbar">
         <span>{title}</span>
-        <button ref={closeRef} className="icon-button" type="button" onClick={onClose} aria-label="Close tool">
+        <button ref={closeRef} className="icon-button" type="button" onClick={onClose} aria-label={t("Close tool")}>
           <X size={18} />
         </button>
       </div>

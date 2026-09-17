@@ -4,6 +4,7 @@ import {
 } from "../../../../scripts/component-installation/installation-state.mjs";
 import type { CatalogRow, CatalogTool } from "../catalog/catalog";
 import { ToolCard } from "./ToolCard";
+import { useT } from "../i18n/language";
 
 type ToolSectionProps = {
   row: CatalogRow;
@@ -28,13 +29,14 @@ type ToolSectionProps = {
 const builtIn: InstallationState = createInstallationState({ activeVersion: "built-in" });
 
 export function ToolSection({ row, installations, onOpen, onInstall }: ToolSectionProps) {
+  const t = useT();
   return (
     <section className="tool-section" id={`section-${row.id}`} aria-labelledby={`${row.id}-heading`}>
       <header className="tool-section__header">
-        <h2 id={`${row.id}-heading`}>{row.title}</h2>
-        <p>{row.description}</p>
+        <h2 id={`${row.id}-heading`}>{t(row.title)}</h2>
+        <p>{t(row.description)}</p>
         <span className="tool-section__count">
-          {row.tools.length} {row.tools.length === 1 ? "tool" : "tools"}
+          {t(row.tools.length === 1 ? "{count} tool" : "{count} tools", { count: row.tools.length })}
         </span>
       </header>
       <div className="tool-section__grid">

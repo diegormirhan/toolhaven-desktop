@@ -9,6 +9,7 @@ import { defaultCrop, type CropRect } from "./CropOverlay";
 import { Select } from "./Select";
 import { NumberField } from "./NumberField";
 import { acceptsFile, operationFormats } from "../catalog/formats";
+import { useT, type Translate } from "../i18n/language";
 
 export type RunOperationInput = {
   request: OperationRequest;
@@ -37,6 +38,7 @@ type ToolPanelProps = {
 type SelectedFile = { name: string; path: string };
 
 export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultFolder = "", leaving = false, onClose, onExited, onRun, onCancel, onDirtyChange }: ToolPanelProps) {
+  const t = useT();
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>(() =>
     initialPath && !["deno", ...urlTools, ...folderTools].includes(tool.id)
       ? [{ path: initialPath, name: fileNameOnly(initialPath) }]
@@ -188,14 +190,14 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
           className="icon-button"
           type="button"
           onClick={onClose}
-          aria-label="Close tool"
+          aria-label={t("Close tool")}
         >
           <X size={18} />
         </button>
       </div>
       <div className={`tool-panel__body${previewable ? " tool-panel__body--split" : ""}`}>
         {previewable && (
-          <section className="tool-panel__workspace" aria-label="File preview">
+          <section className="tool-panel__workspace" aria-label={t("File preview")}>
             <FilePreview
               path={selectedFiles[0]?.path}
               crop={crop}
@@ -213,18 +215,18 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
         )}
 
         <section className="tool-panel__controls">
-        <h2 id="tool-panel-title">{tool.title}</h2>
-        <p>{tool.description}</p>
+        <h2 id="tool-panel-title">{t(tool.title)}</h2>
+        <p>{t(tool.description)}</p>
 
         {tool.operations.length > 0 && (
           <label className="operation-select">
-            <span>Operation</span>
+            <span>{t("Operation")}</span>
             <Select
-              label="Operation"
+              label={t("Operation")}
               value={selectedOperationId}
               choices={tool.operations.map((operation) => ({
                 value: operation.id,
-                label: operation.label,
+                label: t(operation.label),
               }))}
               onChange={(next) => {
                 setSelectedOperationId(next);
@@ -233,7 +235,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
                 resetFeedback();
               }}
             />
-            <small>{selectedOperation?.description}</small>
+            <small>{selectedOperation ? t(selectedOperation.description) : ""}</small>
           </label>
         )}
 
@@ -288,9 +290,9 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
 
         {urlTools.includes(tool.id) && (
           <label className="source-url">
-            <span>Media URL</span>
+            <span>{t("Media URL")}</span>
             <input
-              aria-label="Media URL"
+              aria-label={t("Media URL")}
               type="url"
               placeholder="https://..."
               value={sourceUrl}
@@ -299,7 +301,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
                 resetFeedback();
               }}
             />
-            <small className="source-url__hint">{supportedSitesHint(tool.id)}</small>
+            <small className="source-url__hint">{supportedSitesHint(tool.id, t)}</small>
           </label>
         )}
 
@@ -308,21 +310,21 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
         {requiresOutput(tool.id, selectedOperationId) && (
           <div className="tool-option">
             <span>
-              <strong>Destination</strong>
+              <strong>{t("Destination")}</strong>
               <small>
                 {effectiveOutput ||
-                  "Choose the destination when you run it. The extension decides the format."}
+                  t("Choose the destination when you run it. The extension decides the format.")}
               </small>
               {!outputPath && automaticOutput && (
                 <small className="tool-option__note">
-                  Your default folder, from Settings. Pick another with the button.
+                  {t("Your default folder, from Settings. Pick another with the button.")}
                 </small>
               )}
             </span>
             <button
               className="icon-button"
               type="button"
-              aria-label="Choose destination"
+              aria-label={t("Choose destination")}
               onClick={() => void chooseNativeOutput().catch(handleFormError)}
             >
               <FolderOpen size={18} />
@@ -351,7 +353,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
               <div
                 className={`progress-track progress-track--operation${currentJob.progress == null ? " progress-track--indeterminate" : ""}`}
                 role="progressbar"
-                aria-label="Operation progress"
+                aria-label={t("Operation progress")}
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={currentJob.progress == null ? undefined : Math.round(currentJob.progress * 100)}
@@ -360,27 +362,27 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
                   style={{ inlineSize: currentJob.progress == null ? undefined : `${currentJob.progress * 100}%` }}
                 />
               </div>
-              <p className="tool-panel__hint">You can close this tool: the job keeps running in the Queue.</p>
+              <p className="tool-panel__hint">{t("You can close this tool: the job keeps running in the Queue.")}</p>
             </>
           ) : (
             <p>
               {currentJob?.status === "succeeded" ? (
                 <>
-                  <Check size={14} aria-hidden="true" /> Done, and recorded in the history.
+                  <Check size={14} aria-hidden="true" /> {t("Done, and recorded in the history.")}
                 </>
               ) : currentJob?.status === "failed" ? (
                 <>
-                  <AlertTriangle size={14} aria-hidden="true" /> The job failed. Your original file was left untouched.
+                  <AlertTriangle size={14} aria-hidden="true" /> {t("The job failed. Your original file was left untouched.")}
                 </>
               ) : (
-                canRun ? readyHint(tool.id, selectedOperationId) : idleHint(tool.id)
+                canRun ? readyHint(tool.id, selectedOperationId, t) : idleHint(tool.id, t)
               )}
             </p>
           )}
         </div>
         {isRunning && onCancel && currentJobId ? (
           <button className="button button--light" type="button" onClick={() => onCancel(currentJobId)}>
-            <CircleSlash size={16} aria-hidden="true" /> Stop
+            <CircleSlash size={16} aria-hidden="true" /> {t("Stop")}
           </button>
         ) : (
           <button
@@ -389,7 +391,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
             disabled={!canRun || isRunning}
             onClick={() => void startOperation()}
           >
-            <Play size={16} aria-hidden="true" /> {isRunning ? "Running" : "Run"}
+            <Play size={16} aria-hidden="true" /> {t(isRunning ? "Running" : "Run")}
           </button>
         )}
       </div>
@@ -400,13 +402,15 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
     const label = selectedFileNames.length
       ? selectedFileNames.join(", ")
       : folderTools.includes(tool.id)
-        ? "Choose the project folder"
+        ? t("Choose the project folder")
         : tool.id === "difftastic"
-          ? "Choose both files"
-          : "Choose files";
+          ? t("Choose both files")
+          : t("Choose files");
     const hint = selectedFileNames.length
-      ? `${selectedFileNames.length} file${selectedFileNames.length === 1 ? "" : "s"} selected`
-      : "or click to choose";
+      ? t(selectedFileNames.length === 1 ? "{count} file selected" : "{count} files selected", {
+          count: selectedFileNames.length,
+        })
+      : t("or click to choose");
 
     // The native host must receive real Windows paths, so it opens a system dialog.
     // A file input would only expose a bare file name to the WebView.
@@ -429,7 +433,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
         <input
           type="file"
           multiple
-          aria-label="Choose files"
+          aria-label={t("Choose files")}
           onChange={(event) => {
             setSelectedFiles(admitFiles(Array.from(event.target.files ?? []).map((file) => file.name)));
             resetFeedback();
@@ -507,7 +511,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
           sourceUrl: sourceUrl.trim() || null,
         },
         toolName: tool.title,
-        operationLabel: selectedOperation?.label ?? "Run operation",
+        operationLabel: t(selectedOperation?.label ?? "Run operation"),
         sourceLabel: sourceUrl.trim() || selectedFileNames.join(", ") || tool.integrationName,
       });
       if (jobId) setCurrentJobId(jobId);
@@ -519,14 +523,14 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
   async function pickOutputForOperation() {
     if (writesToDirectory(tool.id, selectedOperationId)) {
       const selected = await open({ directory: true, multiple: false });
-      if (typeof selected !== "string") throw new Error("Choose a destination folder to continue.");
+      if (typeof selected !== "string") throw new Error(t("Choose a destination folder to continue."));
       setOutputPath(selected);
       return selected;
     }
     const selected = await save({
       defaultPath: startingPath(),
     });
-    if (!selected) throw new Error("Choose an output file to continue.");
+    if (!selected) throw new Error(t("Choose an output file to continue."));
     setOutputPath(selected);
     return selected;
   }
@@ -537,7 +541,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
         ? error.message
         : typeof error === "string"
           ? error
-          : "The operation could not be started.",
+          : t("The operation could not be started."),
     );
   }
 }
@@ -546,20 +550,20 @@ function jobResultText(job: ToolJob): string {
   return job.outputPath ? `${job.message}\nOutput: ${job.outputPath}` : job.message;
 }
 
-function idleHint(toolId: string): string {
-  if (urlTools.includes(toolId)) return "Add a URL to enable the run.";
-  if (toolId === "deno") return "Reports the version installed on this Windows.";
-  if (toolId === "difftastic") return "Choose two files to compare.";
-  if (folderTools.includes(toolId)) return "Choose a folder to enable the run.";
-  return "Add files to enable the run.";
+function idleHint(toolId: string, t: Translate): string {
+  if (urlTools.includes(toolId)) return t("Add a URL to enable the run.");
+  if (toolId === "deno") return t("Reports the version installed on this Windows.");
+  if (toolId === "difftastic") return t("Choose two files to compare.");
+  if (folderTools.includes(toolId)) return t("Choose a folder to enable the run.");
+  return t("Add files to enable the run.");
 }
 
 /** Shown once the run is possible, so the footer stops asking for what is done. */
-function readyHint(toolId: string, operationId: string): string {
-  if (operationId === "crop") return "Drag the rectangle to choose what survives.";
-  if (operationId === "trim") return "Set the start and end, then run.";
-  if (urlTools.includes(toolId)) return "Ready. The download runs in the background.";
-  return "Ready to run.";
+function readyHint(toolId: string, operationId: string, t: Translate): string {
+  if (operationId === "crop") return t("Drag the rectangle to choose what survives.");
+  if (operationId === "trim") return t("Set the start and end, then run.");
+  if (urlTools.includes(toolId)) return t("Ready. The download runs in the background.");
+  return t("Ready to run.");
 }
 
 function OperationOptions({
@@ -575,37 +579,41 @@ function OperationOptions({
   onChange: (key: string, value: string) => void;
   onPickFile?: (key: string) => void;
 }) {
+  const t = useT();
   const fields = operationFields(toolId, operationId).filter(
     (field) => field.showWhen?.(values) ?? true,
   );
   if (fields.length === 0) return null;
   return (
-    <div className="operation-options" aria-label="Operation options">
+    <div className="operation-options" aria-label={t("Operation options")}>
       {fields.map((field) => {
         const value = values[field.key] ?? field.defaultValue ?? "";
         return (
           <label key={field.key}>
-            <span>{field.label}</span>
+            <span>{t(field.label)}</span>
             {field.type === "select" ? (
               <Select
-                label={field.label}
+                label={t(field.label)}
                 value={value}
-                choices={field.choices ?? []}
+                choices={(field.choices ?? []).map((choice) => ({
+                  value: choice.value,
+                  label: t(choice.label),
+                }))}
                 onChange={(next) => onChange(field.key, next)}
               />
             ) : field.type === "file" ? (
               <span className="operation-options__file">
                 <input
-                  aria-label={field.label}
+                  aria-label={t(field.label)}
                   type="text"
-                  placeholder={field.placeholder}
+                  placeholder={field.placeholder && t(field.placeholder)}
                   value={value}
                   onChange={(event) => onChange(field.key, event.target.value)}
                 />
                 <button
                   type="button"
                   className="icon-button"
-                  aria-label={`Choose ${field.label}`}
+                  aria-label={t("Choose {name}", { name: t(field.label) })}
                   onClick={() => onPickFile?.(field.key)}
                 >
                   <FilePlus2 size={16} />
@@ -613,7 +621,7 @@ function OperationOptions({
               </span>
             ) : field.type === "number" ? (
               <NumberField
-                label={field.label}
+                label={t(field.label)}
                 value={value}
                 placeholder={field.placeholder}
                 min={field.min}
@@ -623,14 +631,14 @@ function OperationOptions({
               />
             ) : (
               <input
-                aria-label={field.label}
+                aria-label={t(field.label)}
                 type={field.type}
-                placeholder={field.placeholder}
+                placeholder={field.placeholder && t(field.placeholder)}
                 value={value}
                 onChange={(event) => onChange(field.key, event.target.value)}
               />
             )}
-            {field.hint && <small className="operation-options__hint">{field.hint}</small>}
+            {field.hint && <small className="operation-options__hint">{t(field.hint)}</small>}
           </label>
         );
       })}
@@ -906,10 +914,10 @@ const readOnlyTools = [
 ];
 /** Where each downloader publishes the list of sites it handles. Naming the
  *  page beats embedding a list of eighteen hundred entries that goes stale. */
-function supportedSitesHint(toolId: string): string {
+function supportedSitesHint(toolId: string, t: Translate): string {
   return toolId === "gallery-dl"
-    ? "Hundreds of gallery and art sites. The full list is supportedsites.md in the gallery-dl repository."
-    : "Over a thousand video and audio sites. The full list is supportedsites.md in the yt-dlp repository.";
+    ? t("Hundreds of gallery and art sites. The full list is supportedsites.md in the gallery-dl repository.")
+    : t("Over a thousand video and audio sites. The full list is supportedsites.md in the yt-dlp repository.");
 }
 
 /** Tools driven by a URL rather than input files; mirrors URL_TOOLS in the host. */

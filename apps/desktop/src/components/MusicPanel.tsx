@@ -5,6 +5,7 @@ import { listen } from "@tauri-apps/api/event";
 import type { CatalogTool } from "../catalog/catalog";
 import { isNativeHost } from "../hooks/useOperationRunner";
 import { PanelShell } from "./PanelShell";
+import { useT } from "../i18n/language";
 import { Select } from "./Select";
 
 type AudioSource = { id: string; label: string; kind: "microphone" | "playback"; isDefault: boolean };
@@ -51,6 +52,7 @@ export function MusicPanel({
   onExited?: () => void;
   onDirtyChange?: (dirty: boolean) => void;
 }) {
+  const t = useT();
   const [sources, setSources] = useState<AudioSource[]>([]);
   const [kind, setKind] = useState<"playback" | "microphone">("playback");
   const [deviceId, setDeviceId] = useState("");
@@ -148,7 +150,7 @@ export function MusicPanel({
   function listenNow() {
     if (busy || !deviceId) return;
     if (!isNativeHost()) {
-      setError("Open the ToolHaven app to listen. This page is the interface preview only.");
+      setError(t("Open the ToolHaven app to listen. This page is the interface preview only."));
       return;
     }
     setBusy(true);
@@ -176,25 +178,26 @@ export function MusicPanel({
       onExited={onExited}
     >
       <section className="tool-panel__controls">
-        <h2 id="tool-panel-title">{tool.title}</h2>
-        <p>{tool.description}</p>
+        <h2 id="tool-panel-title">{t(tool.title)}</h2>
+        <p>{t(tool.description)}</p>
 
         <p className="notice notice--outbound">
           <ExternalLink size={14} aria-hidden="true" />
           <span>
-            The clip is fingerprinted on this machine and deleted straight after. Only the
-            fingerprint is sent — never the recording itself.
+            {t(
+              "The clip is fingerprinted on this machine and deleted straight after. Only the fingerprint is sent — never the recording itself.",
+            )}
           </span>
         </p>
 
         <label className="operation-select">
-          <span>Listen to</span>
+          <span>{t("Listen to")}</span>
           <Select
-            label="Listen to"
+            label={t("Listen to")}
             value={kind}
             choices={[
-              { value: "playback", label: "What this PC is playing" },
-              { value: "microphone", label: "The microphone" },
+              { value: "playback", label: t("What this PC is playing") },
+              { value: "microphone", label: t("The microphone") },
             ]}
             onChange={(next) => {
               setKind(next as "playback" | "microphone");
@@ -204,18 +207,18 @@ export function MusicPanel({
           />
           <small>
             {kind === "playback"
-              ? "Records the machine's own sound, without a cable or a virtual device."
+              ? t("Records the machine's own sound, without a cable or a virtual device.")
               : chosen
-                ? `Records the room through ${chosen.label}.`
-                : "Records the room."}
+                ? t("Records the room through {name}.", { name: chosen.label })
+                : t("Records the room.")}
           </small>
         </label>
 
         {kind === "playback" && playback.length > 1 && (
           <label className="operation-select">
-            <span>Sound source</span>
+            <span>{t("Sound source")}</span>
             <Select
-              label="Sound source"
+              label={t("Sound source")}
               value={deviceId}
               choices={playback.map((source) => ({ value: source.id, label: source.label }))}
               onChange={setDeviceId}
@@ -225,9 +228,9 @@ export function MusicPanel({
 
         {kind === "microphone" && microphones.length > 1 && (
           <label className="operation-select">
-            <span>Sound source</span>
+            <span>{t("Sound source")}</span>
             <Select
-              label="Sound source"
+              label={t("Sound source")}
               value={deviceId}
               choices={microphones.map((source) => ({ value: source.id, label: source.label }))}
               onChange={setDeviceId}
@@ -245,20 +248,22 @@ export function MusicPanel({
             disabled={!deviceId}
             aria-busy={busy}
             onClick={listenNow}
-            aria-label={busy ? "Listening" : "Listen and identify"}
+            aria-label={t(busy ? "Listening" : "Listen and identify")}
           >
             <span className="listen__ring" style={{ "--through": through } as React.CSSProperties} />
             {kind === "playback" ? <Speaker size={30} aria-hidden="true" /> : <Mic size={30} aria-hidden="true" />}
           </button>
           <Meter levels={levels} active={busy} />
           <p className="listen__caption" role="status" data-tried={tried}>
-            {busy
-              ? tried > 0
-                ? "Still listening…"
-                : "Listening…"
-              : deviceId
-                ? "Tap to identify what is playing."
-                : "No sound device found."}
+            {t(
+              busy
+                ? tried > 0
+                  ? "Still listening…"
+                  : "Listening…"
+                : deviceId
+                  ? "Tap to identify what is playing."
+                  : "No sound device found.",
+            )}
           </p>
         </div>
 
@@ -299,6 +304,7 @@ function Meter({ levels, active }: { levels: number[]; active: boolean }) {
 }
 
 function RecognitionCard({ result }: { result: Recognition }) {
+  const t = useT();
   if (!result.matched) {
     return (
       <p className="panel-result" role="status">
@@ -308,19 +314,19 @@ function RecognitionCard({ result }: { result: Recognition }) {
     );
   }
   const rows = [
-    ["Album", result.album],
-    ["Released", result.released],
-    ["Genre", result.genre],
-    ["Label", result.label],
+    [t("Album"), result.album],
+    [t("Released"), result.released],
+    [t("Genre"), result.genre],
+    [t("Label"), result.label],
   ].filter(([, value]) => value);
 
   return (
-    <article className="recognition" aria-label="What was recognised">
+    <article className="recognition" aria-label={t("What was recognised")}>
       {result.coverUrl && (
-        <img className="recognition__cover" src={result.coverUrl} alt={`Cover art for ${result.title}`} />
+        <img className="recognition__cover" src={result.coverUrl} alt={t("Cover art for {name}", { name: result.title })} />
       )}
       <div className="recognition__detail">
-        <h3>{result.title || "Untitled"}</h3>
+        <h3>{result.title || t("Untitled")}</h3>
         {result.artist && <p className="recognition__artist">{result.artist}</p>}
         {rows.length > 0 && (
           <dl className="recognition__rows">

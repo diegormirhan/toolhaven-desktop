@@ -3,6 +3,7 @@ import type { InstallationPlanStep } from "../../../../scripts/component-install
 import type { InstallationState } from "../../../../scripts/component-installation/installation-state.mjs";
 import type { CatalogTool } from "../catalog/catalog";
 import { downloadSize, formatBytes } from "../catalog/sizes";
+import { useT } from "../i18n/language";
 
 type InstallDialogProps = {
   tool: CatalogTool;
@@ -14,6 +15,7 @@ type InstallDialogProps = {
   onClose: () => void;
 };
 
+/** English here, translated where it is shown. */
 const phaseLabels: Record<InstallationState["phase"], string> = {
   idle: "Queued",
   resolving: "Preparing",
@@ -37,6 +39,7 @@ export function InstallDialog({
   const done = steps.every((step) => states[step.toolId]?.availability === "ready");
   // Stated before the download starts, not discovered halfway through it. One
   // of these components is over 200 MB, and that is the user's decision to make.
+  const t = useT();
   const total = steps.reduce((sum, step) => sum + (downloadSize(step.toolId) ?? 0), 0);
 
   return (
@@ -46,22 +49,29 @@ export function InstallDialog({
       onMouseDown={(event) => event.target === event.currentTarget && !busy && onClose()}
     >
       <section className="install-dialog" role="dialog" aria-modal="true" aria-labelledby="install-title">
-        <button className="icon-button install-dialog__close" type="button" onClick={onClose} aria-label="Close">
+        <button className="icon-button install-dialog__close" type="button" onClick={onClose} aria-label={t("Close")}>
           <X size={18} />
         </button>
         <div className="dialog-icon">
           <Download size={24} aria-hidden="true" />
         </div>
-        <h2 id="install-title">Install {tool.integrationName}</h2>
+        <h2 id="install-title">{t("Install {name}", { name: tool.integrationName })}</h2>
         <p className="install-dialog__lead">
           {canInstall
-            ? `ToolHaven downloads and installs everything below on its own${
-                total > 0 ? ` — ${formatBytes(total)} in total` : ""
-              }. You never leave the app, and you never install anything by hand.`
-            : "This component has no pinned artifact and hash yet, so the app cannot install it. It only works if this Windows already has it."}
+            ? total > 0
+              ? t(
+                  "ToolHaven downloads and installs everything below on its own — {size} in total. You never leave the app, and you never install anything by hand.",
+                  { size: formatBytes(total) },
+                )
+              : t(
+                  "ToolHaven downloads and installs everything below on its own. You never leave the app, and you never install anything by hand.",
+                )
+            : t(
+                "This component has no pinned artifact and hash yet, so the app cannot install it. It only works if this Windows already has it.",
+              )}
         </p>
 
-        <div className="plan-list" aria-label="Installation plan">
+        <div className="plan-list" aria-label={t("Installation plan")}>
           {steps.map((step, index) => {
             const state = states[step.toolId];
             const progress = state?.progress == null ? null : Math.round(state.progress * 100);
@@ -73,10 +83,10 @@ export function InstallDialog({
                   <strong>{labelsById[step.toolId] ?? step.toolId}</strong>
                   <small>
                     {ready
-                      ? "Ready"
+                      ? t("Ready")
                       : state && state.phase !== "idle"
-                        ? `${phaseLabels[state.phase]}${progress == null ? "…" : ` ${progress}%`}`
-                        : `${step.reason === "dependency" ? "Dependency" : "Requested tool"}${
+                        ? `${t(phaseLabels[state.phase])}${progress == null ? "…" : ` ${progress}%`}`
+                        : `${t(step.reason === "dependency" ? "Dependency" : "Requested tool")}${
                             downloadSize(step.toolId) ? ` · ${formatBytes(downloadSize(step.toolId)!)}` : ""
                           }`}
                   </small>
@@ -85,7 +95,7 @@ export function InstallDialog({
                   <div
                     className={`progress-track${state.progress == null ? " progress-track--indeterminate" : ""}`}
                     role="progressbar"
-                    aria-label={`Progress of ${labelsById[step.toolId] ?? step.toolId}`}
+                    aria-label={t("Progress of {name}", { name: labelsById[step.toolId] ?? step.toolId })}
                     aria-valuemin={0}
                     aria-valuemax={100}
                     aria-valuenow={progress ?? undefined}
@@ -106,19 +116,19 @@ export function InstallDialog({
 
         <div className="dialog-assurances">
           <span>
-            <ShieldCheck size={16} aria-hidden="true" /> SHA-256 checked before anything is activated
+            <ShieldCheck size={16} aria-hidden="true" /> {t("SHA-256 checked before anything is activated")}
           </span>
           <span>
-            <HardDrive size={16} aria-hidden="true" /> Installed per version, with no administrator rights
+            <HardDrive size={16} aria-hidden="true" /> {t("Installed per version, with no administrator rights")}
           </span>
         </div>
         <div className="dialog-actions">
           <button className="button button--quiet" type="button" onClick={onClose} disabled={busy}>
-            Close
+            {t("Close")}
           </button>
           {canInstall && !done && (
             <button className="button button--primary" type="button" onClick={onInstall} disabled={busy}>
-              {busy ? "Installing…" : failure ? "Try again" : "Download and install"}
+              {t(busy ? "Installing…" : failure ? "Try again" : "Download and install")}
             </button>
           )}
         </div>

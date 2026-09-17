@@ -1,5 +1,6 @@
 import { Monitor, Moon, Sun } from "lucide-react";
 import type { ThemePreference } from "../hooks/useTheme";
+import { useT } from "../i18n/language";
 
 type ThemeSwitchProps = {
   preference: ThemePreference;
@@ -14,11 +15,12 @@ const options: Array<{ id: ThemePreference; label: string; icon: typeof Sun }> =
 ];
 
 export function ThemeSwitch({ preference, onChange, variant = "compact" }: ThemeSwitchProps) {
+  const t = useT();
   return (
     <div
       className={`theme-switch theme-switch--${variant}`}
       role="radiogroup"
-      aria-label="Interface theme"
+      aria-label={t("Interface theme")}
     >
       {options.map((option) => {
         const Icon = option.icon;
@@ -29,13 +31,13 @@ export function ThemeSwitch({ preference, onChange, variant = "compact" }: Theme
             type="button"
             role="radio"
             aria-checked={selected}
-            aria-label={`${option.label} theme`}
-            title={option.label}
+            aria-label={t("{name} theme", { name: t(option.label) })}
+            title={t(option.label)}
             className={selected ? "theme-switch__option theme-switch__option--selected" : "theme-switch__option"}
             onClick={() => onChange(option.id)}
           >
             <Icon size={15} aria-hidden="true" />
-            {variant === "labelled" && <span>{option.label}</span>}
+            {variant === "labelled" && <span>{t(option.label)}</span>}
           </button>
         );
       })}

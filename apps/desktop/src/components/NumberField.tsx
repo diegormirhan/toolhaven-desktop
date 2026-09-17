@@ -1,12 +1,13 @@
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
 
 /**
- * A number input with the steppers the native one hides.
+ * A number input with a step either side of it.
  *
- * Chromium's own spinners only appear on hover, sit inside the field, and are
- * a few pixels tall — so a numeric field reads as a plain text box until the
- * pointer happens to land on it. These are always there and large enough to
- * hit, and the field still takes typing and arrow keys as it did.
+ * Chromium's own spinners only appear on hover, sit inside the field and are a
+ * few pixels tall — two stacked arrows sharing the height of one line of text,
+ * which is a target nobody can hit on purpose. These are full-height buttons
+ * at either end, so the field reads as something you can nudge, and typing and
+ * the arrow keys still work exactly as before.
  */
 export function NumberField({
   label,
@@ -43,6 +44,9 @@ export function NumberField({
   const atCeiling = max != null && Number.isFinite(current) && current >= max;
 
   return (
+    // The input comes first in the source although the minus sits to its left:
+    // a label wrapping this field labels its first form control, and that has
+    // to be the number rather than a button nobody needs to hear named.
     <span className="number-field">
       <input
         aria-label={label}
@@ -55,26 +59,26 @@ export function NumberField({
         step={step}
         onChange={(event) => onChange(event.target.value)}
       />
-      <span className="number-field__steppers">
-        <button
-          type="button"
-          tabIndex={-1}
-          aria-hidden="true"
-          disabled={atCeiling}
-          onClick={() => nudge(1)}
-        >
-          <ChevronUp size={13} />
-        </button>
-        <button
-          type="button"
-          tabIndex={-1}
-          aria-hidden="true"
-          disabled={atFloor}
-          onClick={() => nudge(-1)}
-        >
-          <ChevronDown size={13} />
-        </button>
-      </span>
+      <button
+        type="button"
+        className="number-field__step number-field__step--down"
+        tabIndex={-1}
+        aria-hidden="true"
+        disabled={atFloor}
+        onClick={() => nudge(-1)}
+      >
+        <Minus size={15} />
+      </button>
+      <button
+        type="button"
+        className="number-field__step number-field__step--up"
+        tabIndex={-1}
+        aria-hidden="true"
+        disabled={atCeiling}
+        onClick={() => nudge(1)}
+      >
+        <Plus size={15} />
+      </button>
     </span>
   );
 }

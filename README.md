@@ -336,6 +336,22 @@ the next change to the interface.
 
 ---
 
+## Languages
+
+English and Brazilian Portuguese, chosen in Settings and remembered on the
+machine. English is the default and needs no dictionary: translations are keyed
+by the English sentence itself, so the source keeps saying what it puts on
+screen, and a string nobody has translated yet shows in English rather than as
+a key.
+
+```
+apps/desktop/src/i18n/pt.ts            the interface
+apps/desktop/src/i18n/catalog-pt.ts    the tools, their operations and options
+tests/interface/translations.test.mjs  refuses a string the dictionary has never heard of
+```
+
+Adding a language is a file beside those two and an entry in `dictionaries`.
+
 ## Staying up to date
 
 The app checks for a new version when it opens, downloads it, and installs it.

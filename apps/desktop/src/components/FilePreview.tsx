@@ -3,6 +3,7 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { FileQuestion } from "lucide-react";
 import { isNativeHost } from "../hooks/useOperationRunner";
 import { CropOverlay, type CropRect } from "./CropOverlay";
+import { useT } from "../i18n/language";
 
 const imageExtensions = ["png", "jpg", "jpeg", "gif", "webp", "avif", "bmp", "ico", "svg"];
 /** What WebView2 can actually decode. MKV, AVI and MOV usually cannot. */
@@ -48,6 +49,7 @@ export function FilePreview({
   seekTo,
   onDuration,
 }: FilePreviewProps) {
+  const t = useT();
   const [source, setSource] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const [media, setMedia] = useState<HTMLImageElement | HTMLVideoElement | null>(null);
@@ -99,12 +101,12 @@ export function FilePreview({
         {failed || !source ? (
           <div className="file-preview__fallback">
             <FileQuestion size={22} aria-hidden="true" />
-            <span>{failed ? "This format cannot be shown here" : "Opening preview…"}</span>
+            <span>{t(failed ? "This format cannot be shown here" : "Opening preview…")}</span>
           </div>
         ) : kind === "image" ? (
           <img
             src={source}
-            alt={`Preview of ${name}`}
+            alt={t("Preview of {name}", { name })}
             ref={setMedia}
             onLoad={(event) =>
               reportNatural(event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)
