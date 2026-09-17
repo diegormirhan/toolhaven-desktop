@@ -19,8 +19,7 @@ apps/desktop/src-tauri/gen/
 /docs/decisions/*.md
 
 # Generated third-party binaries and build staging
-vendor/*
-!vendor/README.md
+vendor/
 apps/desktop/src-tauri/binaries/
 apps/desktop/src-tauri/resources/tools/
 
@@ -37,6 +36,10 @@ tmp/
 .env.*
 !.env.example
 .impeccable/config.local.json
+
+# Tooling that belongs to whoever is working here, not to the project
+.agents/
+.claude/
 
 # Editors / OS
 .idea/
