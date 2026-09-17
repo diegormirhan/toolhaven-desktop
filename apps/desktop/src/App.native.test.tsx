@@ -117,7 +117,12 @@ it('moves a finished background operation to the history with its output path', 
 
   const row = await screen.findByRole('article', { name: /download video/i });
   expect(within(row).getByText('Done')).toBeVisible();
-  expect(within(row).getByText('C:\\videos\\video.mp4')).toBeVisible();
+  // The path is not printed in the row — it is what the two buttons act on,
+  // and what their tooltip says.
+  expect(within(row).queryByText('C:\\videos\\video.mp4')).toBeNull();
+  const reveal = within(row).getByRole('button', { name: /show in folder/i });
+  expect(reveal).toHaveAttribute('title', 'C:\\videos\\video.mp4');
+  expect(within(row).getByRole('button', { name: /copy path/i })).toBeVisible();
 });
 
 it('records a failed background operation instead of dropping it', async () => {

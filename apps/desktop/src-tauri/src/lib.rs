@@ -24,6 +24,7 @@ pub fn run() {
             search_by_image,
             recognize_music,
             open_link,
+            reveal_path,
             cancel_operation
         ])
         .setup(|app| {
@@ -162,6 +163,44 @@ async fn search_by_image(request: ImageSearchRequest) -> Result<String, String> 
 
     open_externally(&url)?;
     Ok(url)
+}
+
+/// Opens the folder a finished file is in, with the file itself selected.
+///
+/// Not the file: opening the result of an operation would hand an arbitrary
+/// file to whatever program claims its extension, which is a decision for the
+/// person rather than for this app. Selecting it in Explorer shows them where
+/// the work landed and leaves what happens next to them.
+#[tauri::command]
+fn reveal_path(path: String) -> Result<(), String> {
+    let target = std::path::Path::new(&path);
+    if !target.exists() {
+        return Err("That file is no longer there.".into());
+    }
+    // Canonical first: Explorer will not select a path written with forward
+    // slashes, and it reports nothing when it fails to.
+    let full = std::fs::canonicalize(target)
+        .map_err(|error| format!("Could not find that file: {error}"))?;
+    let full = full.to_string_lossy().replace(r"\\?\", "");
+
+    #[cfg(windows)]
+    {
+        // `/select,` takes the rest as one path and must not be quoted here:
+        // Command passes arguments as a vector, not through a shell.
+        let status = std::process::Command::new("explorer.exe")
+            .arg(format!("/select,{full}"))
+            .status()
+            .map_err(|error| format!("Could not open the folder: {error}"))?;
+        // Explorer answers 1 even when it has opened the window, so the exit
+        // code is deliberately not treated as a failure.
+        let _ = status;
+        Ok(())
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = full;
+        Err("Showing a file in its folder is a Windows feature.".into())
+    }
 }
 
 /// Opens an address in the default browser, having first made sure it is one.
@@ -535,7 +574,7 @@ fn execute_operation_with_progress(
         operation_id: request.operation_id.clone(),
         phase: "starting".into(),
         progress: Some(0.0),
-        message: format!("Iniciando {executable}…"),
+        message: format!("Starting {executable}…"),
     });
     let output = if request.tool_id == "yt-dlp"
         && matches!(

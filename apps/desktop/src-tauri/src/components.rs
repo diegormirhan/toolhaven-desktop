@@ -343,16 +343,51 @@ fn run_silent_installer(artifact: &Artifact, bytes: &[u8], staging: &Path) -> Re
     {
         use std::os::windows::process::CommandExt;
         command.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+
+        // Some installers ask Windows for elevation in their manifest whatever
+        // they are about to write — Tesseract's does, and starting it failed
+        // outright with "the requested operation requires elevation", error
+        // 740, before a single argument was read. This is the documented
+        // compatibility switch that answers "run as the user who started me"
+        // instead of raising a prompt nobody can answer from here.
+        //
+        // It cannot grant anything: the process gets this app's own token, so
+        // an installer that genuinely needed administrator would now fail
+        // while writing rather than while starting. Ours is pointed at the
+        // component store under %LOCALAPPDATA%, which the user owns.
+        command.env("__COMPAT_LAYER", "RunAsInvoker");
     }
 
-    let status = command
-        .status()
-        .map_err(|error| format!("Could not start the installer: {error}"))?;
+    let outcome = command.status();
+    let code = match outcome {
+        Ok(status) if status.success() => Ok(()),
+        Ok(status) => Err(format!("The installer failed ({status}).")),
+        Err(error) => Err(format!("Could not start the installer: {error}")),
+    };
+
+    // Everything above runs with this app's own token and asks nobody for
+    // anything. If it did not work, the remaining explanation is an installer
+    // that truly cannot write what it needs to without administrator rights,
+    // and the only way to find out is to ask Windows — which puts the prompt
+    // in front of the person, where a decision like that belongs.
+    let code = match code {
+        Ok(()) => Ok(()),
+        Err(unelevated) => {
+            #[cfg(windows)]
+            {
+                elevated_install(&installer, artifact, staging).map_err(|elevated| {
+                    format!("{unelevated} Asking Windows for permission did not work either: {elevated}")
+                })
+            }
+            #[cfg(not(windows))]
+            {
+                Err(unelevated)
+            }
+        }
+    };
+
     let _ = std::fs::remove_file(&installer);
-
-    if !status.success() {
-        return Err(format!("The installer failed ({status})."));
-    }
+    code?;
     // An installer that "succeeds" without writing anything would otherwise
     // activate an empty directory and report the tool as ready.
     let wrote_something = std::fs::read_dir(staging)
@@ -361,6 +396,77 @@ fn run_silent_installer(artifact: &Artifact, bytes: &[u8], staging: &Path) -> Re
         .is_some();
     if !wrote_something {
         return Err("The installer produced no files.".into());
+    }
+    Ok(())
+}
+
+/// Runs the installer again, this time asking Windows for administrator rights.
+///
+/// `ShellExecuteEx` with the `runas` verb is what raises the consent dialog;
+/// there is no way to raise it from a process that is already running without
+/// starting another one. The person either agrees or does not, and a refusal
+/// arrives here as an ordinary error, which the card reports like any other
+/// failed install.
+#[cfg(windows)]
+fn elevated_install(installer: &Path, artifact: &Artifact, staging: &Path) -> Result<(), String> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows::core::PCWSTR;
+    use windows::Win32::Foundation::{CloseHandle, WAIT_OBJECT_0};
+    use windows::Win32::System::Threading::{GetExitCodeProcess, WaitForSingleObject, INFINITE};
+    use windows::Win32::UI::Shell::{
+        ShellExecuteExW, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW,
+    };
+    use windows::Win32::UI::WindowsAndMessaging::SW_HIDE;
+
+    fn wide(text: &str) -> Vec<u16> {
+        std::ffi::OsStr::new(text)
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect()
+    }
+
+    // The same line the unelevated attempt used, with /D last and unquoted.
+    let mut arguments = artifact.silent_install.join(" ");
+    if !arguments.is_empty() {
+        arguments.push(' ');
+    }
+    arguments.push_str(&format!("/D={}", staging.display()));
+
+    let file = wide(&installer.to_string_lossy());
+    let parameters = wide(&arguments);
+    let verb = wide("runas");
+
+    let mut info = SHELLEXECUTEINFOW {
+        cbSize: std::mem::size_of::<SHELLEXECUTEINFOW>() as u32,
+        fMask: SEE_MASK_NOCLOSEPROCESS,
+        lpVerb: PCWSTR(verb.as_ptr()),
+        lpFile: PCWSTR(file.as_ptr()),
+        lpParameters: PCWSTR(parameters.as_ptr()),
+        nShow: SW_HIDE.0,
+        ..Default::default()
+    };
+
+    unsafe {
+        ShellExecuteExW(&mut info).map_err(|error| {
+            // Cancelling the consent dialog arrives here, and is not a fault.
+            format!("{error}")
+        })?;
+
+        if info.hProcess.is_invalid() {
+            return Err("Windows started nothing.".into());
+        }
+        let waited = WaitForSingleObject(info.hProcess, INFINITE);
+        let mut status = 0u32;
+        let read = GetExitCodeProcess(info.hProcess, &mut status);
+        let _ = CloseHandle(info.hProcess);
+
+        if waited != WAIT_OBJECT_0 {
+            return Err("Waiting for the installer failed.".into());
+        }
+        read.map_err(|error| format!("Could not read how the installer ended: {error}"))?;
+        if status != 0 {
+            return Err(format!("The installer failed (exit code {status})."));
+        }
     }
     Ok(())
 }
@@ -557,6 +663,45 @@ mod tests {
         // Re-installing an artifact already in the store must be a no-op, not a re-download.
         install("difftastic", &|_| panic!("must not download twice")).unwrap();
         println!("Component installed at {}", binaries.display());
+    }
+
+    /// Runs a real installer into a temporary directory, with this app's own
+    /// token and nothing else.
+    ///
+    /// Tesseract's installer asks Windows for elevation in its manifest, so
+    /// starting it used to fail with error 740 before it read an argument —
+    /// which is what this proves is fixed. It writes 114 MB and takes a few
+    /// seconds; it is ignored because it needs a real installer on disk.
+    ///
+    /// `TOOLHAVEN_INSTALLER=C:\path\to\setup.exe cargo test -- --ignored --nocapture runs_an_installer_without_elevation`
+    #[test]
+    #[ignore = "runs the installer named by TOOLHAVEN_INSTALLER"]
+    fn runs_an_installer_without_elevation() {
+        let Some(source) = std::env::var_os("TOOLHAVEN_INSTALLER") else {
+            println!("set TOOLHAVEN_INSTALLER to an installer path");
+            return;
+        };
+        let bytes = std::fs::read(&source).expect("the installer should be readable");
+        let staging = std::env::temp_dir().join("toolhaven-install-test");
+        let _ = std::fs::remove_dir_all(&staging);
+        std::fs::create_dir_all(&staging).expect("the staging directory should be creatable");
+
+        let artifact = Artifact {
+            url: String::new(),
+            sha256: String::new(),
+            binary_directory: String::new(),
+            silent_install: vec!["/S".into()],
+            archive: String::new(),
+            rename: Default::default(),
+        };
+
+        run_silent_installer(&artifact, &bytes, &staging).expect("the installer should run");
+        let files = walkdir(&staging, 1);
+        assert!(!files.is_empty(), "the installer should have written something");
+        println!("{} entries, first few:", files.len());
+        for entry in files.iter().take(5) {
+            println!("  {entry}");
+        }
     }
 
     /// Lists what a downloaded archive holds, for working out `binaryDirectory`

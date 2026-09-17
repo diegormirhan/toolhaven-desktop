@@ -102,6 +102,45 @@ export const portuguese: Record<string, string> = {
   Light: "Claro",
   Dark: "Escuro",
 
+  // ── What the host says
+  // These come from the Rust side as finished sentences, so nothing in the
+  // interface mentions them and the unused-entry test skips this section.
+  // Anything not here is shown in English, which is what a tool's own error
+  // text does anyway.
+  "Show in folder": "Abrir na pasta",
+  "Starting {name}…": "Iniciando {name}…",
+  "Downloading media…": "Baixando a mídia…",
+  "Converting the audio…": "Convertendo o áudio…",
+  "Merging video and audio…": "Juntando vídeo e áudio…",
+  "Adjusting the container…": "Ajustando o contêiner…",
+  "Preparing the destination file…": "Preparando o arquivo de destino…",
+  "Download finished.": "Download concluído.",
+  "Operation finished.": "Operação concluída.",
+  "Image enlarged {factor}× with Lanczos3.": "Imagem ampliada em {factor}× com Lanczos3.",
+  "Stopped before it finished.": "Interrompida antes de terminar.",
+  "No match found.": "Nenhuma correspondência encontrada.",
+  "That file no longer exists.": "Esse arquivo não existe mais.",
+  "That file is no longer there.": "Esse arquivo não está mais lá.",
+  "Select a file or provide a URL.": "Escolha um arquivo ou informe uma URL.",
+  "That input path is not valid.": "Esse caminho de entrada não é válido.",
+  "That output path is not valid.": "Esse caminho de saída não é válido.",
+  "That destination already exists. Choose another name, or set Settings to overwrite.":
+    "Esse destino já existe. Escolha outro nome, ou configure para substituir nas Configurações.",
+  "That destination is a file. Choose a folder instead.": "Esse destino é um arquivo. Escolha uma pasta.",
+  "Choose an empty folder so extracting overwrites nothing.":
+    "Escolha uma pasta vazia para a extração não sobrescrever nada.",
+  "Choose both files that should be compared.": "Escolha os dois arquivos que devem ser comparados.",
+  "Choose one sign-in method: a browser or a cookie file, not both.":
+    "Escolha um jeito de entrar: um navegador ou um arquivo de cookies, não os dois.",
+  "That cookie file does not exist.": "Esse arquivo de cookies não existe.",
+  "Choose what to listen to first.": "Escolha primeiro o que ouvir.",
+  "Choose a picture, or paste the address of one.": "Escolha uma imagem, ou cole o endereço de uma.",
+  "That is not a web address. It has to start with http:// or https://.":
+    "Isso não é um endereço web. Precisa começar com http:// ou https://.",
+  "Showing a file in its folder is a Windows feature.":
+    "Mostrar um arquivo na pasta é um recurso do Windows.",
+  "That file could not be shown.": "Não foi possível mostrar esse arquivo.",
+
   // ── The tools, their options and what they say while they run
   "0 — fastest": "0 — mais rápido",
   "1": "1",

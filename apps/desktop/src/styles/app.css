@@ -378,17 +378,23 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .job-view__header h1 { margin: 0 0 10px; font-size: 2.35rem; line-height: 1.05; letter-spacing: -0.032em; }
 .job-view__header p { margin: 0 0 14px; color: var(--text-secondary); line-height: 1.55; text-wrap: pretty; }
 .job-list { display: grid; gap: 10px; }
-.job-row { display: flex; align-items: start; justify-content: space-between; gap: 24px; padding: 18px 20px; background: var(--surface-raised); border: 1px solid var(--line); border-radius: 12px; }
+.job-row { display: flex; align-items: start; justify-content: space-between; gap: 20px; padding: 16px 18px; background: var(--surface-raised); border: 1px solid var(--line); border-radius: 12px; }
 .job-row--failed { border-color: color-mix(in srgb, var(--error) 45%, var(--line)); }
 .job-row__identity { display: grid; min-width: 0; gap: 5px; }
 .job-row strong { font-size: 0.86rem; }
 .job-row span { overflow: hidden; color: var(--text-secondary); font-size: 0.72rem; text-overflow: ellipsis; }
-.job-row__identity > span:not(.job-row__output) { white-space: nowrap; }
+.job-row__identity > span:not(.job-row__actions) { white-space: nowrap; }
 .job-row__message { color: var(--text-quiet); }
 .job-row--failed .job-row__message { color: var(--error); }
-.job-row__output { display: flex; align-items: center; gap: 8px; margin-top: 4px; overflow: visible; white-space: normal; }
-.job-row__output code { overflow: hidden; color: var(--text-quiet); font-size: 0.68rem; text-overflow: ellipsis; white-space: nowrap; }
-.job-row__status { display: grid; flex: 0 0 180px; gap: 8px; justify-items: end; }
+/* ── What a job produced ──────────────────────────────────────
+   Not the path: one long monospace line made every row wide and told
+   nobody anything they could act on. The two things anybody does with a
+   result are buttons, and the path is on their tooltip. */
+.job-row__actions { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.job-row__actions .button { white-space: nowrap; }
+.job-row__message--error { color: var(--error); white-space: normal; }
+
+.job-row__status { display: grid; flex: 0 0 auto; min-width: 120px; gap: 8px; justify-items: end; }
 .job-row__status-label { display: inline-flex; align-items: center; gap: 5px; color: var(--text-quiet); font-size: 0.7rem; font-variant-numeric: tabular-nums; }
 .job-row--succeeded .job-row__status-label { color: var(--cool); }
 .job-row--failed .job-row__status-label { color: var(--error); }
@@ -400,7 +406,7 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .settings-card { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 12px; padding: 22px 24px; background: var(--surface-raised); border: 1px solid var(--line); border-radius: 14px; }
 .settings-card h2 { margin: 0; font-size: 1.02rem; letter-spacing: -0.012em; }
 .settings-card p { margin: 6px 0 0; max-width: 46ch; color: var(--text-secondary); font-size: 0.8rem; line-height: 1.5; text-wrap: pretty; }
-.settings-card ul { margin: 6px 0 0; padding-left: 18px; color: var(--text-secondary); font-size: 0.8rem; line-height: 1.7; }
+.settings-card__copy ul { margin: 6px 0 0; padding-left: 18px; color: var(--text-secondary); font-size: 0.8rem; line-height: 1.7; }
 .settings-card--pending { border-style: dashed; border-color: var(--line-strong); }
 .settings-view > .button { margin-top: 22px; }
 
@@ -417,7 +423,9 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .install-dialog__error { margin: 14px 0 0; padding: 11px 13px; color: var(--error); background: color-mix(in srgb, var(--error) 10%, transparent); border: 1px solid color-mix(in srgb, var(--error) 40%, var(--line)); border-radius: 10px; font-size: 0.76rem; line-height: 1.45; }
 .plan-step + .plan-step { border-top: 1px solid var(--line); }
 .plan-step__index { color: var(--text-quiet); font: 0.66rem/1 ui-monospace, "Cascadia Mono", monospace; }
-.plan-step > span:last-child { display: flex; flex-direction: column; gap: 2px; }
+/* Not `:last-child`: a step that is downloading has a progress bar after this,
+   and the name and its status ran together on one line. */
+.plan-step__copy { display: flex; flex-direction: column; gap: 2px; }
 .plan-step strong { font-size: 0.8rem; }
 .plan-step small { color: var(--text-quiet); font-size: 0.68rem; }
 .dialog-assurances { display: grid; gap: 8px; margin: 16px 0 20px; color: var(--text-secondary); font-size: 0.72rem; }
@@ -573,8 +581,12 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .select__trigger.is-open .select__chevron { transform: rotate(180deg); }
 
 .select__list {
-  position: absolute; z-index: 30; top: calc(100% + 6px); left: 0; right: 0;
-  max-height: 264px; overflow: auto; margin: 0; padding: 5px;
+  position: absolute; z-index: 30; top: calc(100% + 6px); left: 0;
+  /* At least as wide as the trigger, and wider if an option needs it: a
+     choice that wraps onto two lines and a sideways scrollbar are both the
+     same bug, which is a list narrower than the words in it. */
+  min-inline-size: 100%; inline-size: max-content; max-inline-size: min(420px, 90vw);
+  max-height: 264px; overflow-y: auto; overflow-x: hidden; margin: 0; padding: 5px;
   background: var(--surface-raised); border: 1px solid var(--line);
   border-radius: var(--radius-card); box-shadow: var(--shadow-overlay);
   list-style: none;
@@ -588,7 +600,9 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 }
 .select__option {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  padding: 9px 10px; border-radius: 9px;
+  /* 6 here plus the list's own 5 is the trigger's 11, so an option's text
+     starts exactly under the text of the value it replaces. */
+  padding: 9px 6px; border-radius: 9px;
   color: var(--text-secondary); font-size: 0.78rem; cursor: pointer;
 }
 .select__option.is-active { color: var(--text); background: var(--surface-hover); }

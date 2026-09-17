@@ -79,7 +79,7 @@ export function InstallDialog({
             return (
               <div className="plan-step" key={step.toolId}>
                 <span className="plan-step__index">{String(index + 1).padStart(2, "0")}</span>
-                <span>
+                <span className="plan-step__copy">
                   <strong>{labelsById[step.toolId] ?? step.toolId}</strong>
                   <small>
                     {ready

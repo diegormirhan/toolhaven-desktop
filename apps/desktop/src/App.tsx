@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import {
   AlertTriangle,
   Check,
@@ -13,6 +14,7 @@ import {
   Upload,
   PanelLeftClose,
   PanelLeftOpen,
+  FolderOpen,
 } from "lucide-react";
 import toolManifest from "../../../tooling/tools.json";
 import { NumberField } from "./components/NumberField";
@@ -580,11 +582,11 @@ const statusLabels: Record<ToolJob["status"], string> = {
 function JobRow({ job, onCancel }: { job: ToolJob; onCancel?: (jobId: string) => void }) {
   const t = useT();
   const [copied, setCopied] = useState(false);
+  const [revealError, setRevealError] = useState("");
   const percentage = job.progress == null ? null : Math.round(job.progress * 100);
   const optionsLabel = Object.entries(job.options)
     .map(([key, value]) => `${key}: ${value}`)
     .join(" · ");
-
   async function copyOutputPath() {
     if (!job.outputPath) return;
     try {
@@ -596,21 +598,51 @@ function JobRow({ job, onCancel }: { job: ToolJob; onCancel?: (jobId: string) =>
     }
   }
 
+  function revealOutput() {
+    setRevealError("");
+    void invoke("reveal_path", { path: job.outputPath }).catch((error) =>
+      setRevealError(describeError(error)),
+    );
+  }
+
   return (
-    <article className={`job-row job-row--${job.status}`} aria-label={`${job.operationLabel} — ${job.toolName}`}>
+    <article className={`job-row job-row--${job.status}`} aria-label={`${t(job.operationLabel)} — ${t(job.toolName)}`}>
       <div className="job-row__identity">
-        <strong>{job.operationLabel}</strong>
+        <strong>{t(job.operationLabel)}</strong>
         <span>
-          {job.toolName} · {job.sourceLabel}
+          {t(job.toolName)} · {job.sourceLabel}
           {optionsLabel ? ` · ${optionsLabel}` : ""}
         </span>
-        <span className="job-row__message">{job.message}</span>
+        <span className="job-row__message">{hostMessage(job.message, t)}</span>
         {job.outputPath && (
-          <span className="job-row__output">
-            <code>{job.outputPath}</code>
-            <button className="button button--quiet button--small" type="button" onClick={() => void copyOutputPath()}>
-              <Copy size={13} aria-hidden="true" /> {t(copied ? "Copied" : "Copy path")}
+          // The path itself is not shown: it is one long monospace line that
+          // pushed the row wide and told nobody anything they could act on.
+          // The two things anybody does with it are here instead, and the
+          // whole path is on the buttons for anyone who hovers.
+          <span className="job-row__actions">
+            <button
+              className="button button--quiet button--small"
+              type="button"
+              title={job.outputPath}
+              onClick={revealOutput}
+            >
+              <FolderOpen size={13} aria-hidden="true" /> {t("Show in folder")}
             </button>
+            <button
+              className="button button--quiet button--small"
+              type="button"
+              title={job.outputPath}
+              onClick={() => void copyOutputPath()}
+              aria-live="polite"
+            >
+              {copied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
+              {t(copied ? "Copied" : "Copy path")}
+            </button>
+          </span>
+        )}
+        {revealError && (
+          <span className="job-row__message job-row__message--error" role="alert">
+            {t(revealError)}
           </span>
         )}
       </div>
@@ -869,6 +901,31 @@ function updateMessage(state: UpdateState, t: Translate): string {
     default:
       return "";
   }
+}
+
+/**
+ * Translates what the host said about a job.
+ *
+ * The host speaks English, like the rest of the source, and most of what it
+ * says is a fixed sentence the dictionary holds. Two carry a value inside
+ * them, so they are matched rather than looked up; anything unrecognised is
+ * shown exactly as it arrived, which is right for a tool's own error text.
+ */
+function hostMessage(message: string, t: Translate): string {
+  const starting = /^Starting (.+)…$/.exec(message);
+  if (starting) return t("Starting {name}…", { name: starting[1]! });
+
+  const enlarged = /^Image enlarged (.+)× with Lanczos3\.$/.exec(message);
+  if (enlarged) return t("Image enlarged {factor}× with Lanczos3.", { factor: enlarged[1]! });
+
+  return t(message);
+}
+
+/** What an error from the host is, once it stops being unknown. */
+function describeError(error: unknown): string {
+  if (typeof error === "string") return error;
+  if (error instanceof Error) return error.message;
+  return "That file could not be shown.";
 }
 
 /** Reads a saved setting, tolerating a storage that refuses to answer. */

@@ -114,8 +114,16 @@ test("every string the interface can show has a Portuguese translation", () => {
 
 test("the dictionary has no translation for a string nobody shows", () => {
   const shown = collect();
+  // The host's own sentences arrive as finished text at runtime, so nothing in
+  // the interface names them and this check cannot see them. They live under
+  // their own heading in pt.ts and are exempt.
+  const hostSection = readFileSync(path.join(interfaceRoot, "i18n", "pt.ts"), "utf8")
+    .split("// ── What the host says")[1]
+    ?.split("// ──")[0] ?? "";
   // A stale entry is harmless on screen and misleading in the file: it reads
   // as a string the app still has.
-  const stale = [...dictionary()].filter((text) => !shown.has(text)).sort();
+  const stale = [...dictionary()]
+    .filter((text) => !shown.has(text) && !hostSection.includes(`"${text}"`))
+    .sort();
   assert.deepEqual(stale, []);
 });
