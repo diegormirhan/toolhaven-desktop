@@ -397,10 +397,10 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .job-empty h2 { margin: 0 0 8px; font-size: 1.2rem; }
 .job-empty p { margin: 0 0 20px; color: var(--text-secondary); line-height: 1.5; }
 
-.settings-card { display: flex; align-items: start; justify-content: space-between; gap: 24px; margin-bottom: 12px; padding: 22px 24px; background: var(--surface-raised); border: 1px solid var(--line); border-radius: 14px; }
-.settings-card h2 { margin: 0 0 6px; font-size: 1.02rem; letter-spacing: -0.012em; }
-.settings-card p { margin: 0; max-width: 46ch; color: var(--text-secondary); font-size: 0.8rem; line-height: 1.5; text-wrap: pretty; }
-.settings-card ul { margin: 0; padding-left: 18px; color: var(--text-secondary); font-size: 0.8rem; line-height: 1.7; }
+.settings-card { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 12px; padding: 22px 24px; background: var(--surface-raised); border: 1px solid var(--line); border-radius: 14px; }
+.settings-card h2 { margin: 0; font-size: 1.02rem; letter-spacing: -0.012em; }
+.settings-card p { margin: 6px 0 0; max-width: 46ch; color: var(--text-secondary); font-size: 0.8rem; line-height: 1.5; text-wrap: pretty; }
+.settings-card ul { margin: 6px 0 0; padding-left: 18px; color: var(--text-secondary); font-size: 0.8rem; line-height: 1.7; }
 .settings-card--pending { border-style: dashed; border-color: var(--line-strong); }
 .settings-view > .button { margin-top: 22px; }
 

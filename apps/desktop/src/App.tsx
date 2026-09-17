@@ -667,21 +667,19 @@ function SettingsView({
   onClearHistory: () => void;
   onReturn: () => void;
 }) {
+  const answer = updateMessage(updateState);
+
   return (
     <section className="settings-view">
       <div className="job-view__header">
         <span className="placeholder-view__line" aria-hidden="true" />
         <h1>Settings</h1>
-        <p>What this version can already configure lives here. The rest stays explicitly pending.</p>
       </div>
 
       <div className="settings-card">
         <div className="settings-card__copy">
           <h2>Version</h2>
-          <p>
-            The app looks for a newer release each time it opens and downloads it on its own;
-            this asks now instead of waiting. {updateMessage(updateState)}
-          </p>
+          {answer && <p>{answer}</p>}
         </div>
         <div className="settings-card__control">
           <span className="settings-card__path">{version ? `ToolHaven ${version}` : "—"}</span>
@@ -699,7 +697,6 @@ function SettingsView({
       <div className="settings-card">
         <div className="settings-card__copy">
           <h2>Theme</h2>
-          <p>“System” follows the Windows preference. Your choice is saved on this machine.</p>
         </div>
         <ThemeSwitch preference={preference} onChange={onThemeChange} variant="labelled" />
       </div>
@@ -707,7 +704,6 @@ function SettingsView({
       <div className="settings-card">
         <div className="settings-card__copy">
           <h2>Sidebar</h2>
-          <p>Hide the navigation rail to give the catalog the whole window. The button in the top bar does the same.</p>
         </div>
         <button
           className="button button--light"
@@ -722,10 +718,6 @@ function SettingsView({
       <div className="settings-card">
         <div className="settings-card__copy">
           <h2>Default destination</h2>
-          <p>
-            Where results are saved, without being asked each time. Each operation still names its
-            own file, and the folder button in a tool overrides this for that one run.
-          </p>
         </div>
         <div className="settings-card__control">
           <span className="settings-card__path">{defaultFolder || "Not set"}</span>
@@ -755,8 +747,8 @@ function SettingsView({
           <h2>History</h2>
           <p>
             {finishedCount > 0
-              ? `${finishedCount} finished operation${finishedCount === 1 ? "" : "s"}, kept across restarts. Running ones are left alone.`
-              : "Nothing has finished yet. What does is kept across restarts until you clear it."}
+              ? `${finishedCount} finished operation${finishedCount === 1 ? "" : "s"}`
+              : "Nothing has finished yet"}
           </p>
         </div>
         <button
@@ -772,11 +764,7 @@ function SettingsView({
       <div className="settings-card">
         <div className="settings-card__copy">
           <h2>How many at once</h2>
-          <p>
-            Beyond this, operations wait their turn and say so in the queue. Four simultaneous
-            transcodes finish later than four consecutive ones, and make the machine unusable
-            meanwhile.
-          </p>
+          <p>The rest wait their turn in the queue.</p>
         </div>
         <div className="settings-card__control">
           <NumberField
@@ -792,10 +780,6 @@ function SettingsView({
       <div className="settings-card">
         <div className="settings-card__copy">
           <h2>When the file already exists</h2>
-          <p>
-            Applies when a result lands on a name that is taken — which the default destination
-            makes likely, since it names files for you.
-          </p>
         </div>
         <div className="settings-card__control settings-card__control--wide">
           <Select
@@ -814,8 +798,8 @@ function SettingsView({
         <div className="settings-card__copy">
           <h2>Not available yet</h2>
           <ul>
-            <li>Pausing a running operation, rather than stopping it.</li>
-            <li>Scheduling an operation for later.</li>
+            <li>Pausing an operation, rather than stopping it</li>
+            <li>Scheduling one for later</li>
           </ul>
         </div>
       </div>
