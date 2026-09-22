@@ -10,6 +10,7 @@ import * as colors from "./colors";
 import * as misc from "./misc";
 import * as css from "./css";
 import * as network from "./network";
+import * as formatting from "./formatting";
 
 /**
  * The tools the app performs itself.
@@ -1241,6 +1242,58 @@ export const utilityGroups: UtilityGroup[] = [
           },
         ],
         run: (input, options) => network.dnsLookup(input, options),
+      },
+    ],
+  },
+  {
+    id: "code-formatting",
+    title: "Minify and format",
+    description: "CSS and HTML, compacted for shipping or spread out to read.",
+    keywords: [
+      "minify", "minifier", "format", "formatter", "beautify", "pretty print", "css",
+      "html", "compact", "indent",
+    ],
+    utilities: [
+      {
+        id: "css-minify",
+        label: "Minify CSS",
+        description: "Strip comments and whitespace.",
+        input: "text",
+        run: (input) => formatting.minifyCss(input),
+      },
+      {
+        id: "css-format",
+        label: "Format CSS",
+        description: "One declaration per line, indented by nesting.",
+        input: "text",
+        run: (input) => formatting.formatCss(input),
+      },
+      {
+        id: "html-minify",
+        label: "Minify HTML",
+        description: "Strip comments and whitespace between tags.",
+        input: "text",
+        run: (input) => formatting.minifyHtml(input),
+      },
+      {
+        id: "html-format",
+        label: "Format HTML",
+        description: "Indented by nesting, a child one level deeper than its parent.",
+        input: "text",
+        fields: [
+          {
+            key: "indent",
+            label: "Indent with",
+            type: "select",
+            defaultValue: "2",
+            choices: [
+              { value: "2", label: "2 spaces" },
+              { value: "4", label: "4 spaces" },
+              { value: "tabs", label: "Tabs" },
+            ],
+          },
+        ],
+        run: formatting.formatHtml,
       },
     ],
   },
