@@ -472,7 +472,7 @@ const rowDefinitions = [
     id: "utilities",
     title: "Quick tools",
     description: "Text, codes and test data — done here, with nothing to install.",
-    toolIds: ["text-tools", "codes-hashes", "test-data", "css-tools", "code-formatting"],
+    toolIds: ["text-tools", "codes-hashes", "test-data", "css-tools", "code-formatting", "qr-barcode"],
   },
   {
     id: "calculators",

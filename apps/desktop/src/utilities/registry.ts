@@ -11,6 +11,7 @@ import * as misc from "./misc";
 import * as css from "./css";
 import * as network from "./network";
 import * as formatting from "./formatting";
+import * as qr from "./qrbarcode";
 
 /**
  * The tools the app performs itself.
@@ -42,6 +43,15 @@ export type Utility = {
   description: string;
   /** What the big box at the top is for. Some utilities generate, and take none. */
   input: "text" | "none";
+  /**
+   * "text" (the default) shows what `run` returns in a read-only box, meant
+   * to be read or copied. "image" instead treats it as a `data:` URL and
+   * shows it in an `<img>` — the shape a QR code or a barcode's result
+   * actually is. Nothing here is ever HTML: an image source is loaded as a
+   * picture, never parsed as markup, whatever the SVG behind the data URL
+   * contains.
+   */
+  outputKind?: "text" | "image";
   inputLabel?: string;
   fields?: UtilityField[];
   // A few utilities (the hashes) reach for the platform's crypto API, which is
@@ -1294,6 +1304,94 @@ export const utilityGroups: UtilityGroup[] = [
           },
         ],
         run: formatting.formatHtml,
+      },
+    ],
+  },
+  {
+    id: "qr-barcode",
+    title: "QR codes and barcodes",
+    description: "A link, text or Wi-Fi details as a code, or a barcode from a value.",
+    keywords: [
+      "qr", "qr code", "barcode", "wifi", "wi-fi", "scan", "code128", "ean", "upc",
+      "generator",
+    ],
+    utilities: [
+      {
+        id: "qr-text",
+        label: "QR code",
+        description: "A link or any text, as a scannable code.",
+        input: "text",
+        inputLabel: "A link or some text",
+        outputKind: "image",
+        fields: [
+          {
+            key: "errorCorrection",
+            label: "Error correction",
+            type: "select",
+            defaultValue: "M",
+            choices: [
+              { value: "L", label: "Low" },
+              { value: "M", label: "Medium" },
+              { value: "Q", label: "Quartile" },
+              { value: "H", label: "High" },
+            ],
+            hint: "Higher survives more damage to the printed code, at a denser pattern.",
+          },
+          { key: "color", label: "Colour", type: "text", defaultValue: "#000000" },
+          { key: "background", label: "Background", type: "text", defaultValue: "#ffffff" },
+        ],
+        run: (input, options) => qr.generateQrImage(input, options),
+      },
+      {
+        id: "qr-wifi",
+        label: "Wi-Fi QR code",
+        description: "Scan to join, without typing the password.",
+        input: "none",
+        outputKind: "image",
+        fields: [
+          { key: "ssid", label: "Network name", type: "text" },
+          { key: "password", label: "Password", type: "text", showWhen: (v) => v.security !== "nopass" },
+          {
+            key: "security",
+            label: "Security",
+            type: "select",
+            defaultValue: "WPA",
+            choices: [
+              { value: "WPA", label: "WPA/WPA2" },
+              { value: "WEP", label: "WEP" },
+              { value: "nopass", label: "Open (no password)" },
+            ],
+          },
+          { key: "hidden", label: "Hidden network", type: "select", defaultValue: "no", choices: yesNo },
+        ],
+        run: qr.generateWifiQrImage,
+      },
+      {
+        id: "barcode",
+        label: "Barcode",
+        description: "CODE128, EAN, UPC and more, from a value.",
+        input: "text",
+        inputLabel: "The value to encode",
+        outputKind: "image",
+        fields: [
+          {
+            key: "format",
+            label: "Format",
+            type: "select",
+            defaultValue: "CODE128",
+            choices: qr.barcodeFormats.map((format) => ({ value: format, label: format })),
+          },
+          { key: "color", label: "Colour", type: "text", defaultValue: "#000000" },
+          { key: "background", label: "Background", type: "text", defaultValue: "#ffffff" },
+          {
+            key: "displayValue",
+            label: "Show the value under the bars",
+            type: "select",
+            defaultValue: "yes",
+            choices: yesNo,
+          },
+        ],
+        run: (input, options) => qr.generateBarcodeImage(input, options),
       },
     ],
   },

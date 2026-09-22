@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { Check, Copy, Eraser, ExternalLink } from "lucide-react";
+import { Check, Copy, Download, Eraser, ExternalLink } from "lucide-react";
 import type { CatalogTool } from "../catalog/catalog";
 import { utilityById, utilityGroup, type Utility } from "../utilities/registry";
 import { PanelShell } from "./PanelShell";
@@ -202,6 +202,10 @@ export function UtilityPanel({
               </div>
             ))}
           </dl>
+        ) : utility.outputKind === "image" && output ? (
+          <div className="utility-image-frame">
+            <img src={output} alt={t(utility.label)} />
+          </div>
         ) : (
           <label className="utility-field">
             <span>{t("Result")}</span>
@@ -219,23 +223,34 @@ export function UtilityPanel({
             <Eraser size={16} aria-hidden="true" /> {t("Clear")}
           </button>
         )}
-        <button
-          className="button button--primary"
-          type="button"
-          disabled={!result}
-          onClick={() => {
-            void navigator.clipboard
-              ?.writeText(result)
-              .then(() => {
-                setCopied(true);
-                window.setTimeout(() => setCopied(false), 2000);
-              })
-              .catch(() => undefined);
-          }}
-        >
-          {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
-          {t(copied ? "Copied" : "Copy the result")}
-        </button>
+        {utility.outputKind === "image" ? (
+          <button
+            className="button button--primary"
+            type="button"
+            disabled={!output}
+            onClick={() => downloadImage(output, `${utility.id}.svg`)}
+          >
+            <Download size={16} aria-hidden="true" /> {t("Save image")}
+          </button>
+        ) : (
+          <button
+            className="button button--primary"
+            type="button"
+            disabled={!result}
+            onClick={() => {
+              void navigator.clipboard
+                ?.writeText(result)
+                .then(() => {
+                  setCopied(true);
+                  window.setTimeout(() => setCopied(false), 2000);
+                })
+                .catch(() => undefined);
+            }}
+          >
+            {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+            {t(copied ? "Copied" : "Copy the result")}
+          </button>
+        )}
       </div>
     </PanelShell>
   );
@@ -248,6 +263,14 @@ function withDefaults(utility: Utility | undefined, options: Record<string, stri
     if (field.defaultValue != null) values[field.key] = field.defaultValue;
   }
   return { ...values, ...options };
+}
+
+/** A `data:` URL has no filename of its own, so this hands the browser one. */
+function downloadImage(dataUrl: string, filename: string) {
+  const link = document.createElement("a");
+  link.href = dataUrl;
+  link.download = filename;
+  link.click();
 }
 
 function describe(error: unknown): string {

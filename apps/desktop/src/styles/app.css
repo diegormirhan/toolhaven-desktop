@@ -708,6 +708,17 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
   97% { transform: translate(-1px, 0); }
 }
 
+/* ── QR codes and barcodes ────────────────────────────────────
+   An SVG loaded as an <img src>, never inlined — the browser treats a
+   picture loaded this way as a picture: no embedded script in an SVG
+   ever runs, whatever the source turns out to contain. */
+.utility-image-frame {
+  display: flex; align-items: center; justify-content: center;
+  min-block-size: 160px; margin: 0 0 var(--space-4); padding: 24px;
+  background: white; border: 1px solid var(--line); border-radius: var(--radius-control);
+}
+.utility-image-frame img { max-inline-size: 100%; max-block-size: 220px; }
+
 /* ── Number field ─────────────────────────────────────────────
    Chromium's own spinners appear on hover, sit inside the box and share
    the height of a line of text between them, so a numeric field reads as
