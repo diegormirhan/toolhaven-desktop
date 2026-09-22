@@ -46,6 +46,17 @@ export function UtilityPanel({
   const values = useMemo(() => withDefaults(utility, options), [utility, options]);
   const preview = useMemo(() => utility?.preview?.(values), [utility, values]);
 
+  // A "mode" field offering both "generate" and "validate" means the input
+  // box only matters for the second: generating one ignores whatever is
+  // typed, so showing an unused box beside it would just invite confusion.
+  const modeField = utility?.fields?.find((field) => field.key === "mode");
+  const hasGenerateMode = Boolean(
+    modeField?.choices?.some((choice) => choice.value === "generate") &&
+      modeField?.choices?.some((choice) => choice.value === "validate"),
+  );
+  const isGenerating = hasGenerateMode && (values.mode ?? modeField?.defaultValue) !== "validate";
+  const showRegenerate = isRandomized || isGenerating;
+
   // Most utilities answer synchronously, but the hashes reach for the
   // platform's crypto API, which does not. Everything is awaited the same
   // way, and a `current` flag drops a stale answer that resolves after the
@@ -101,6 +112,7 @@ export function UtilityPanel({
     <PanelShell
       ref={closeButtonRef}
       title={tool.integrationName}
+      wide={group.id === "dates-time"}
       leaving={leaving}
       onClose={onClose}
       onExited={onExited}
@@ -131,7 +143,7 @@ export function UtilityPanel({
           </p>
         )}
 
-        {utility.input === "text" && (
+        {utility.input === "text" && !isGenerating && (
           <label className="utility-field">
             <span>{t(utility.inputLabel ?? "Your text")}</span>
             <textarea
@@ -256,14 +268,14 @@ export function UtilityPanel({
         <div className="tool-panel__status" aria-live="polite">
           <p>{failure ? t("Nothing to copy while that is being fixed.") : t("It runs here, as you type.")}</p>
         </div>
-        {utility.input === "text" && (
+        {utility.input === "text" && !isGenerating && (
           <button className="button button--light" type="button" onClick={() => setInput("")} disabled={!input}>
             <Eraser size={16} aria-hidden="true" /> {t("Clear")}
           </button>
         )}
-        {isRandomized && (
+        {showRegenerate && (
           <button className="button button--light" type="button" onClick={() => setSeed((value) => value + 1)}>
-            <RefreshCw size={16} aria-hidden="true" /> {t("Regenerate")}
+            <RefreshCw size={16} aria-hidden="true" /> {t(isGenerating ? "Generate" : "Regenerate")}
           </button>
         )}
         {utility.outputKind === "image" ? (
