@@ -114,16 +114,21 @@ test("every string the interface can show has a Portuguese translation", () => {
 
 test("the dictionary has no translation for a string nobody shows", () => {
   const shown = collect();
-  // The host's own sentences arrive as finished text at runtime, so nothing in
-  // the interface names them and this check cannot see them. They live under
-  // their own heading in pt.ts and are exempt.
-  const hostSection = readFileSync(path.join(interfaceRoot, "i18n", "pt.ts"), "utf8")
-    .split("// ── What the host says")[1]
-    ?.split("// ──")[0] ?? "";
+  // Two kinds of string reach the screen without ever sitting beside a
+  // literal `t(...)` call this file's static scan can see: the host's own
+  // finished sentences, and a quick tool's fact names, built as the first
+  // element of a [name, value] tuple at runtime and only translated because
+  // UtilityPanel runs every one through t(name) when it renders. Both live
+  // under their own heading in pt.ts and are exempt here.
+  const ptSource = readFileSync(path.join(interfaceRoot, "i18n", "pt.ts"), "utf8");
+  const exemptHeadings = ["// ── What the host says", "// ── Fact names a quick tool returns at runtime"];
+  const exemptSections = exemptHeadings.map(
+    (heading) => ptSource.split(heading)[1]?.split("\n  // ── ")[0] ?? "",
+  );
   // A stale entry is harmless on screen and misleading in the file: it reads
   // as a string the app still has.
   const stale = [...dictionary()]
-    .filter((text) => !shown.has(text) && !hostSection.includes(`"${text}"`))
+    .filter((text) => !shown.has(text) && !exemptSections.some((section) => section.includes(`"${text}"`)))
     .sort();
   assert.deepEqual(stale, []);
 });

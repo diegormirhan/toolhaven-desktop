@@ -42,20 +42,43 @@ export function UtilityPanel({
 
   const values = useMemo(() => withDefaults(utility, options), [utility, options]);
 
-  const { output, facts, failure } = useMemo(() => {
-    if (!utility) return { output: "", facts: undefined, failure: "" };
-    try {
-      return {
-        output: utility.run(input, values),
-        facts: utility.facts?.(input, values),
-        failure: "",
-      };
-    } catch (error) {
-      // A pattern somebody is halfway through typing is not a crash; it is an
-      // invalid regular expression, and saying so is the right answer.
-      return { output: "", facts: undefined, failure: describe(error) };
+  // Most utilities answer synchronously, but the hashes reach for the
+  // platform's crypto API, which does not. Everything is awaited the same
+  // way, and a `current` flag drops a stale answer that resolves after the
+  // input has already moved on rather than letting it flash on screen.
+  const [state, setState] = useState<{ output: string; facts?: Array<[string, string]>; failure: string }>({
+    output: "",
+    failure: "",
+  });
+
+  useEffect(() => {
+    if (!utility) {
+      setState({ output: "", failure: "" });
+      return;
     }
-  }, [utility, input, values]);
+    let current = true;
+    void (async () => {
+      try {
+        const [output, facts] = await Promise.all([
+          utility.run(input, values, t),
+          utility.facts ? utility.facts(input, values, t) : Promise.resolve(undefined),
+        ]);
+        if (current) setState({ output, facts, failure: "" });
+      } catch (error) {
+        // A pattern somebody is halfway through typing is not a crash; it is
+        // an invalid regular expression, and saying so is the right answer.
+        if (current) setState({ output: "", facts: undefined, failure: describe(error) });
+      }
+    })();
+    return () => {
+      current = false;
+    };
+    // `t` is included so switching the language while a fact value like
+    // "Ethanol" or "3 weeks, 2 days" is on screen recomputes it immediately,
+    // instead of leaving the old language showing until the input changes.
+  }, [utility, input, values, t]);
+
+  const { output, facts, failure } = state;
 
   useEffect(() => {
     onDirtyChange?.(input.trim().length > 0);

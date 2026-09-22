@@ -471,8 +471,14 @@ const rowDefinitions = [
   {
     id: "utilities",
     title: "Quick tools",
-    description: "Text, lists and placeholders — done here, with nothing to install.",
-    toolIds: utilityGroups.map((group) => group.id),
+    description: "Text, codes and test data — done here, with nothing to install.",
+    toolIds: ["text-tools", "codes-hashes", "test-data"],
+  },
+  {
+    id: "calculators",
+    title: "Calculators",
+    description: "Dates, money, health and colour — worked out on the spot.",
+    toolIds: ["dates-time", "math-finance", "colors", "everyday"],
   },
   {
     id: "files",
