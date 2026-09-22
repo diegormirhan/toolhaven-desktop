@@ -115,3 +115,77 @@ export function generateUuidBatch(_input: string, options: Options): string {
   const count = Math.min(100, Math.max(1, Number(options.count ?? "1") || 1));
   return Array.from({ length: count }, () => crypto.randomUUID()).join("\n");
 }
+
+// ── Test card numbers ───────────────────────────────────────────────────
+
+/**
+ * A Luhn-valid card number for a payment gateway's own sandbox — the same
+ * thing Stripe, PayPal and every other processor publish under "test card
+ * numbers" in their docs. It has the right shape and passes the checksum
+ * every payment form checks client-side; it has no bank behind it and moves
+ * no money. A processor's test mode accepts it because the number is on the
+ * network's own published test list, not because this tool can forge one
+ * that works for real.
+ */
+// Prefixes come from the networks' own published BIN ranges, the same ones
+// every payment gateway's test-card documentation draws from. `prefix` is a
+// function rather than a fixed string because Mastercard and Amex each cover
+// more than one — computing it fresh per call, instead of once at import
+// time, is what makes every generated card vary instead of freezing on
+// whichever prefix module load happened to pick.
+const CARD_NETWORKS: Record<string, { prefix: () => string; length: number }> = {
+  visa: { prefix: () => "4", length: 16 },
+  mastercard: { prefix: () => "5" + String(1 + randomInteger(5)), length: 16 },
+  amex: { prefix: () => "3" + (randomInteger(2) === 0 ? "4" : "7"), length: 15 },
+  discover: { prefix: () => "6011", length: 16 },
+};
+
+function luhnCheckDigit(digits: number[]): number {
+  let sum = 0;
+  // The check digit is position 0 counting from the right of the *finished*
+  // number, so every existing digit is one position further out than it
+  // will be once the check digit is appended.
+  for (let index = 0; index < digits.length; index += 1) {
+    const fromRight = digits.length - index;
+    let value = digits[index]!;
+    if (fromRight % 2 === 1) {
+      value *= 2;
+      if (value > 9) value -= 9;
+    }
+    sum += value;
+  }
+  return (10 - (sum % 10)) % 10;
+}
+
+export function isValidCardNumber(text: string): boolean {
+  const all = digits(text);
+  if (all.length < 12 || all.length > 19) return false;
+  return luhnCheckDigit(all.slice(0, -1)) === all.at(-1);
+}
+
+export function generateTestCard(_input: string, options: Options): string {
+  const network = CARD_NETWORKS[options.network ?? "visa"] ?? CARD_NETWORKS.visa!;
+  const prefix = network.prefix();
+  const digitsNeeded = network.length - prefix.length - 1;
+  const body = prefix + Array.from({ length: digitsNeeded }, () => randomInteger(10)).join("");
+  const check = luhnCheckDigit([...body].map(Number));
+  const number = body + check;
+  return number.match(/.{1,4}/g)!.join(" ");
+}
+
+export function testCardFacts(
+  _input: string,
+  options: Options,
+  t: Translate = identity,
+): Array<[string, string]> {
+  const number = generateTestCard(_input, options);
+  const month = String(1 + randomInteger(12)).padStart(2, "0");
+  const year = new Date().getFullYear() + 1 + randomInteger(4);
+  const isAmex = number.replace(/\s/g, "").length === 15;
+  return [
+    ["Number", number],
+    ["Expiry", `${month}/${String(year).slice(-2)}`],
+    [isAmex ? "CID" : "CVV", String(randomInteger(isAmex ? 10000 : 1000)).padStart(isAmex ? 4 : 3, "0")],
+    ["Warning", t("Sandbox test card only — it charges nothing and belongs to no one.")],
+  ];
+}

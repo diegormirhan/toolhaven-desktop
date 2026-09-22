@@ -797,10 +797,11 @@ export const utilityGroups: UtilityGroup[] = [
   {
     id: "test-data",
     title: "Test data",
-    description: "CPF, CNPJ, CEP and UUIDs that pass the checks a real form runs.",
+    description: "CPF, CNPJ, CEP, card numbers and UUIDs — sandbox-only, never real.",
     keywords: [
       "cpf", "cnpj", "cep", "generator", "validate", "test data", "fake", "brazilian",
-      "document", "postal code",
+      "document", "postal code", "credit card", "card number", "sandbox", "payment",
+      "gateway", "luhn",
     ],
     utilities: [
       {
@@ -849,6 +850,28 @@ export const utilityGroups: UtilityGroup[] = [
         description: "A correctly formatted, made-up postal code.",
         input: "none",
         run: () => generators.generateCep(),
+      },
+      {
+        id: "test-card",
+        label: "Test card number",
+        description: "For a payment gateway's sandbox — it charges nothing.",
+        input: "none",
+        fields: [
+          {
+            key: "network",
+            label: "Network",
+            type: "select",
+            defaultValue: "visa",
+            choices: [
+              { value: "visa", label: "Visa" },
+              { value: "mastercard", label: "Mastercard" },
+              { value: "amex", label: "American Express" },
+              { value: "discover", label: "Discover" },
+            ],
+          },
+        ],
+        run: () => "",
+        facts: generators.testCardFacts,
       },
     ],
   },

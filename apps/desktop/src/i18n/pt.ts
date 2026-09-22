@@ -260,7 +260,6 @@ export const portuguese: Record<string, string> = {
   "Consumption (km/L)": "Consumo (km/L)",
   "Copy which one": "Copiar qual",
   "CPF": "CPF",
-  "CPF, CNPJ, CEP and UUIDs that pass the checks a real form runs.": "CPF, CNPJ, CEP e UUIDs que passam pelas verificações que um formulário de verdade faz.",
   "Currency": "Moeda",
   "Cycle length (days)": "Duração do ciclo (dias)",
   "Darker and lighter steps from one colour.": "Passos mais escuros e mais claros a partir de uma cor.",
@@ -399,6 +398,11 @@ export const portuguese: Record<string, string> = {
   // because UtilityPanel runs every fact name through t(name) when it
   // renders. Exempt from the unused-entry test the same way the host
   // section is.
+  "Number": "Número",
+  "Expiry": "Validade",
+  "CVV": "CVV",
+  "CID": "CID",
+  "Warning": "Aviso",
   "Spring": "Primavera",
   "Summer": "Verão",
   "Autumn": "Outono",
@@ -499,6 +503,16 @@ export const portuguese: Record<string, string> = {
   "{weeks} weeks": "{weeks} semanas",
   "{weeks} weeks, {days} days": "{weeks} semanas, {days} dias",
   "{years} years, {months} months, {days} days": "{years} anos, {months} meses, {days} dias",
+  // ── The test-card generator
+  "American Express": "American Express",
+  "CPF, CNPJ, CEP, card numbers and UUIDs — sandbox-only, never real.": "CPF, CNPJ, CEP, números de cartão e UUIDs — só para sandbox, nunca reais.",
+  "Discover": "Discover",
+  "For a payment gateway's sandbox — it charges nothing.": "Para o sandbox de um gateway de pagamento — não cobra nada.",
+  "Mastercard": "Mastercard",
+  "Network": "Bandeira",
+  "Sandbox test card only — it charges nothing and belongs to no one.": "Só cartão de teste de sandbox — não cobra nada e não pertence a ninguém.",
+  "Test card number": "Número de cartão de teste",
+  "Visa": "Visa",
   // ── The tools, their options and what they say while they run
   "0 — fastest": "0 — mais rápido",
   "1": "1",

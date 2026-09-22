@@ -5,10 +5,17 @@ import {
   generateCep,
   generateCnpj,
   generateCpf,
+  generateTestCard,
   generateUuidBatch,
+  isValidCardNumber,
   isValidCnpj,
   isValidCpf,
+  testCardFacts,
 } from "./generators";
+
+function fact(facts: Array<[string, string]>, name: string): string | undefined {
+  return facts.find(([entry]) => entry === name)?.[1];
+}
 
 describe("CPF", () => {
   it("recognises a well-known valid test number", () => {
@@ -78,5 +85,43 @@ describe("UUID batches", () => {
 
   it("stays inside a sane maximum", () => {
     expect(generateUuidBatch("", { count: "10000" }).split("\n")).toHaveLength(100);
+  });
+});
+
+describe("test card numbers", () => {
+  it("generates numbers that pass the Luhn check every card form runs", () => {
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      const number = generateTestCard("", { network: "visa" });
+      expect(isValidCardNumber(number.replace(/\s/g, ""))).toBe(true);
+    }
+  });
+
+  it("uses each network's own published prefix and length", () => {
+    const visa = generateTestCard("", { network: "visa" }).replace(/\s/g, "");
+    expect(visa).toMatch(/^4\d{15}$/);
+
+    const amex = generateTestCard("", { network: "amex" }).replace(/\s/g, "");
+    expect(amex).toMatch(/^3[47]\d{13}$/);
+
+    const mastercard = generateTestCard("", { network: "mastercard" }).replace(/\s/g, "");
+    expect(mastercard).toMatch(/^5[1-5]\d{14}$/);
+  });
+
+  it("rejects a tampered number", () => {
+    const number = generateTestCard("", { network: "visa" }).replace(/\s/g, "");
+    const tampered = number.slice(0, -1) + String((Number(number.at(-1)) + 1) % 10);
+    expect(isValidCardNumber(tampered)).toBe(false);
+  });
+
+  it("labels every generated card as a sandbox-only fake", () => {
+    const facts = testCardFacts("", { network: "visa" });
+    expect(fact(facts, "Warning")).toMatch(/sandbox|test/i);
+    expect(fact(facts, "Number")).toBeTruthy();
+    expect(fact(facts, "CVV")).toMatch(/^\d{3}$/);
+  });
+
+  it("uses CID instead of CVV for American Express, at four digits", () => {
+    const facts = testCardFacts("", { network: "amex" });
+    expect(fact(facts, "CID")).toMatch(/^\d{4}$/);
   });
 });
