@@ -52,7 +52,7 @@ describe("tool catalog", () => {
     // A tool in two categories, or in none, is a navigation bug.
     const placed = rows.flatMap((row) => row.tools.map((tool) => tool.id));
     expect(new Set(placed).size).toBe(placed.length);
-    expect(placed).toHaveLength(32);
+    expect(placed).toHaveLength(33);
 
     // No category should be big enough to need scrolling to take in.
     for (const row of rows) expect(row.tools.length).toBeLessThanOrEqual(6);

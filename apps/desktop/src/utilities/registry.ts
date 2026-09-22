@@ -1,12 +1,14 @@
 import * as text from "./text";
 import type { Options } from "./text";
 import type { Translate } from "../i18n/language";
+import type { Preview } from "./css";
 import * as codes from "./codes";
 import * as dates from "./dates";
 import * as math from "./math";
 import * as generators from "./generators";
 import * as colors from "./colors";
 import * as misc from "./misc";
+import * as css from "./css";
 
 /**
  * The tools the app performs itself.
@@ -59,6 +61,13 @@ export type Utility = {
     options: Options,
     t?: Translate,
   ) => Array<[string, string]> | Promise<Array<[string, string]>>;
+  /**
+   * A handful of CSS generators earn a live look, not just a copyable block.
+   * This is always a plain object of CSS properties applied through React's
+   * own `style` prop — never markup, so there is nothing here that gets
+   * parsed as HTML and nothing to sanitise.
+   */
+  preview?: (options: Options) => Preview;
 };
 
 export type UtilityGroup = {
@@ -919,6 +928,263 @@ export const utilityGroups: UtilityGroup[] = [
           { key: "steps", label: "Steps", type: "number", defaultValue: "5", min: 2, max: 10 },
         ],
         run: colors.colorMix,
+      },
+    ],
+  },
+  {
+    id: "css-tools",
+    title: "CSS generators",
+    description: "Copy the CSS, or just watch the preview change.",
+    keywords: [
+      "css", "loader", "spinner", "checkbox", "switch", "toggle", "clip path", "shape",
+      "pattern", "background", "cubic bezier", "easing", "timing function", "glassmorphism",
+      "blur", "glitch", "gradient", "triangle", "box shadow", "border radius", "generator",
+    ],
+    utilities: [
+      {
+        id: "border-radius",
+        label: "Border radius",
+        description: "Shape a box's corners individually.",
+        input: "none",
+        fields: [
+          { key: "tl", label: "Top left", type: "number", defaultValue: "16", min: 0, max: 200 },
+          { key: "tr", label: "Top right", type: "number", defaultValue: "16", min: 0, max: 200 },
+          { key: "br", label: "Bottom right", type: "number", defaultValue: "16", min: 0, max: 200 },
+          { key: "bl", label: "Bottom left", type: "number", defaultValue: "16", min: 0, max: 200 },
+        ],
+        run: css.borderRadiusCss,
+        preview: css.borderRadiusPreview,
+      },
+      {
+        id: "box-shadow",
+        label: "Box shadow",
+        description: "Offset, blur, spread and colour.",
+        input: "none",
+        fields: [
+          { key: "x", label: "Offset X", type: "number", defaultValue: "0", min: -100, max: 100 },
+          { key: "y", label: "Offset Y", type: "number", defaultValue: "8", min: -100, max: 100 },
+          { key: "blur", label: "Blur", type: "number", defaultValue: "24", min: 0, max: 200 },
+          { key: "spread", label: "Spread", type: "number", defaultValue: "0", min: -100, max: 100 },
+          { key: "color", label: "Colour", type: "text", defaultValue: "#000000" },
+          { key: "opacity", label: "Opacity (%)", type: "number", defaultValue: "25", min: 0, max: 100 },
+          { key: "inset", label: "Inset", type: "select", defaultValue: "no", choices: yesNo },
+        ],
+        run: css.boxShadowCss,
+        preview: css.boxShadowPreview,
+      },
+      {
+        id: "gradient",
+        label: "Gradient",
+        description: "Linear or radial, between two colours.",
+        input: "none",
+        fields: [
+          {
+            key: "shape",
+            label: "Shape",
+            type: "select",
+            defaultValue: "linear",
+            choices: [
+              { value: "linear", label: "Linear" },
+              { value: "radial", label: "Radial" },
+            ],
+          },
+          {
+            key: "angle",
+            label: "Angle",
+            type: "number",
+            defaultValue: "135",
+            min: 0,
+            max: 360,
+            showWhen: (v) => v.shape !== "radial",
+          },
+          { key: "from", label: "From", type: "text", defaultValue: "#6366f1" },
+          { key: "to", label: "To", type: "text", defaultValue: "#ec4899" },
+        ],
+        run: css.gradientCss,
+        preview: css.gradientPreview,
+      },
+      {
+        id: "glassmorphism",
+        label: "Glassmorphism",
+        description: "A frosted-glass panel: blur behind a translucent fill.",
+        input: "none",
+        fields: [
+          { key: "blur", label: "Blur", type: "number", defaultValue: "12", min: 0, max: 60 },
+          { key: "opacity", label: "Fill opacity (%)", type: "number", defaultValue: "18", min: 0, max: 100 },
+        ],
+        run: css.glassmorphismCss,
+        preview: css.glassmorphismPreview,
+      },
+      {
+        id: "clip-path",
+        label: "Clip path",
+        description: "Cut a box into a shape.",
+        input: "none",
+        fields: [
+          {
+            key: "shape",
+            label: "Shape",
+            type: "select",
+            defaultValue: "circle",
+            choices: [
+              { value: "circle", label: "Circle" },
+              { value: "triangle", label: "Triangle" },
+              { value: "trapezoid", label: "Trapezoid" },
+              { value: "pentagon", label: "Pentagon" },
+              { value: "hexagon", label: "Hexagon" },
+              { value: "star", label: "Star" },
+              { value: "arrow", label: "Arrow" },
+            ],
+          },
+        ],
+        run: css.clipPathCss,
+        preview: css.clipPathPreview,
+      },
+      {
+        id: "background-pattern",
+        label: "Background pattern",
+        description: "Dots, stripes or a grid, CSS-only.",
+        input: "none",
+        fields: [
+          {
+            key: "pattern",
+            label: "Pattern",
+            type: "select",
+            defaultValue: "dots",
+            choices: [
+              { value: "dots", label: "Dots" },
+              { value: "stripes", label: "Stripes" },
+              { value: "grid", label: "Grid" },
+            ],
+          },
+          { key: "color", label: "Colour", type: "text", defaultValue: "#6366f1" },
+          { key: "size", label: "Size", type: "number", defaultValue: "20", min: 4, max: 100 },
+        ],
+        run: css.backgroundPatternCss,
+        preview: css.backgroundPatternPreview,
+      },
+      {
+        id: "triangle",
+        label: "Triangle",
+        description: "The border trick, in whichever direction.",
+        input: "none",
+        fields: [
+          { key: "size", label: "Size", type: "number", defaultValue: "60", min: 10, max: 200 },
+          { key: "color", label: "Colour", type: "text", defaultValue: "#6366f1" },
+          {
+            key: "direction",
+            label: "Points",
+            type: "select",
+            defaultValue: "up",
+            choices: [
+              { value: "up", label: "Up" },
+              { value: "down", label: "Down" },
+              { value: "left", label: "Left" },
+              { value: "right", label: "Right" },
+            ],
+          },
+        ],
+        run: css.triangleCss,
+        preview: css.trianglePreview,
+      },
+      {
+        id: "loader",
+        label: "Loader",
+        description: "A spinner or a row of pulsing dots.",
+        input: "none",
+        fields: [
+          {
+            key: "style",
+            label: "Style",
+            type: "select",
+            defaultValue: "spin",
+            choices: [
+              { value: "spin", label: "Spinning ring" },
+              { value: "dots", label: "Pulsing dots" },
+            ],
+          },
+          { key: "color", label: "Colour", type: "text", defaultValue: "#6366f1" },
+          { key: "size", label: "Size", type: "number", defaultValue: "40", min: 10, max: 120 },
+        ],
+        run: css.loaderCss,
+        preview: css.loaderPreview,
+      },
+      {
+        id: "cubic-bezier",
+        label: "Cubic bezier",
+        description: "An easing curve, previewed as motion.",
+        input: "none",
+        fields: [
+          {
+            key: "preset",
+            label: "Preset",
+            type: "select",
+            defaultValue: "ease",
+            choices: [
+              { value: "ease", label: "Ease" },
+              { value: "ease-in", label: "Ease in" },
+              { value: "ease-out", label: "Ease out" },
+              { value: "ease-in-out", label: "Ease in-out" },
+              { value: "bounce", label: "Bounce" },
+              { value: "anticipate", label: "Anticipate" },
+              { value: "custom", label: "Custom" },
+            ],
+          },
+          { key: "x1", label: "X1", type: "number", defaultValue: "0.25", showWhen: (v) => v.preset === "custom" },
+          { key: "y1", label: "Y1", type: "number", defaultValue: "0.1", showWhen: (v) => v.preset === "custom" },
+          { key: "x2", label: "X2", type: "number", defaultValue: "0.25", showWhen: (v) => v.preset === "custom" },
+          { key: "y2", label: "Y2", type: "number", defaultValue: "1", showWhen: (v) => v.preset === "custom" },
+        ],
+        run: css.cubicBezierCss,
+        preview: css.cubicBezierPreview,
+      },
+      {
+        id: "text-glitch",
+        label: "Text glitch effect",
+        description: "A flickering RGB-split, for a heading.",
+        input: "none",
+        fields: [
+          { key: "text", label: "Text", type: "text", defaultValue: "GLITCH" },
+          { key: "color1", label: "Colour 1", type: "text", defaultValue: "#ff00c1" },
+          { key: "color2", label: "Colour 2", type: "text", defaultValue: "#00fff9" },
+        ],
+        run: css.textGlitchCss,
+        preview: css.textGlitchPreview,
+      },
+      {
+        id: "switch",
+        label: "Switch",
+        description: "A toggle track and thumb.",
+        input: "none",
+        fields: [
+          { key: "color", label: "Colour", type: "text", defaultValue: "#6366f1" },
+          { key: "size", label: "Size", type: "number", defaultValue: "24", min: 14, max: 60 },
+        ],
+        run: css.switchCss,
+        preview: css.switchPreview,
+      },
+      {
+        id: "checkbox",
+        label: "Checkbox",
+        description: "A styled box, square, rounded or circular.",
+        input: "none",
+        fields: [
+          { key: "color", label: "Colour", type: "text", defaultValue: "#6366f1" },
+          { key: "size", label: "Size", type: "number", defaultValue: "22", min: 12, max: 60 },
+          {
+            key: "shape",
+            label: "Shape",
+            type: "select",
+            defaultValue: "rounded",
+            choices: [
+              { value: "square", label: "Square" },
+              { value: "rounded", label: "Rounded" },
+              { value: "circle", label: "Circle" },
+            ],
+          },
+        ],
+        run: css.checkboxCss,
+        preview: css.checkboxPreview,
       },
     ],
   },

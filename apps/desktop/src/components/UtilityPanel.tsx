@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Check, Copy, Eraser } from "lucide-react";
 import type { CatalogTool } from "../catalog/catalog";
 import { utilityById, utilityGroup, type Utility } from "../utilities/registry";
@@ -41,6 +41,7 @@ export function UtilityPanel({
   );
 
   const values = useMemo(() => withDefaults(utility, options), [utility, options]);
+  const preview = useMemo(() => utility?.preview?.(values), [utility, values]);
 
   // Most utilities answer synchronously, but the hashes reach for the
   // platform's crypto API, which does not. Everything is awaited the same
@@ -170,6 +171,14 @@ export function UtilityPanel({
                   {field.hint && <small className="operation-options__hint">{t(field.hint)}</small>}
                 </label>
               ))}
+          </div>
+        )}
+
+        {preview && !failure && (
+          <div className="utility-preview-frame" aria-hidden="true">
+            <span className={`utility-preview utility-preview--${preview.kind}`} style={preview.style as CSSProperties}>
+              {preview.label}
+            </span>
           </div>
         )}
 
