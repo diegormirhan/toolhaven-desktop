@@ -37,6 +37,7 @@ export function UtilityPanel({
   const [touched, setTouched] = useState(false);
   const [seed, setSeed] = useState(0);
   const isRandomized = group?.id === "random-picks";
+  const [previewSurface, setPreviewSurface] = useState<"box" | "text" | "button" | "card">("box");
 
   const utility = useMemo(
     () => (group ? utilityById(group.id, utilityId) : undefined),
@@ -232,10 +233,43 @@ export function UtilityPanel({
         )}
 
         {preview && !failure && (
-          <div className="utility-preview-frame" aria-hidden="true">
-            <span className={`utility-preview utility-preview--${preview.kind}`} style={preview.style as CSSProperties}>
-              {preview.label}
-            </span>
+          <div className="utility-preview-section">
+            {preview.kind === "box" && (
+              <label className="utility-preview-surface">
+                <span>{t("Preview on")}</span>
+                <Select
+                  label={t("Preview on")}
+                  value={previewSurface}
+                  choices={[
+                    { value: "box", label: t("Box") },
+                    { value: "text", label: t("Text") },
+                    { value: "button", label: t("Button") },
+                    { value: "card", label: t("Card") },
+                  ]}
+                  onChange={(next) => setPreviewSurface(next as typeof previewSurface)}
+                />
+              </label>
+            )}
+            <div className="utility-preview-frame" aria-hidden="true">
+              {preview.kind !== "box" || previewSurface === "box" ? (
+                <span className={`utility-preview utility-preview--${preview.kind}`} style={preview.style as CSSProperties}>
+                  {preview.label}
+                </span>
+              ) : previewSurface === "text" ? (
+                <p className="utility-preview utility-preview--surface-text" style={preview.style as CSSProperties}>
+                  {t("The quick brown fox jumps over the lazy dog.")}
+                </p>
+              ) : previewSurface === "button" ? (
+                <button type="button" className="utility-preview utility-preview--surface-button" style={preview.style as CSSProperties}>
+                  {t("Sample button")}
+                </button>
+              ) : (
+                <div className="utility-preview utility-preview--surface-card" style={preview.style as CSSProperties}>
+                  <strong>{t("Card title")}</strong>
+                  <p>{t("Supporting text for the card.")}</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

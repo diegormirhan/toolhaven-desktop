@@ -695,13 +695,24 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
    static style (a spinner, a switch's thumb, the glitch text) get a
    small amount of dedicated CSS to draw the part an inline style
    cannot reach, such as a ::after pseudo-element. */
+.utility-preview-section { margin: 0 0 var(--space-4); }
+.utility-preview-surface { display: flex; align-items: center; gap: 8px; margin: 0 0 var(--space-3); }
+.utility-preview-surface span { color: var(--text-secondary); font-size: 0.7rem; }
 .utility-preview-frame {
   display: flex; align-items: center; justify-content: center;
-  min-block-size: 120px; margin: 0 0 var(--space-4); padding: 24px;
+  min-block-size: 120px; margin: 0; padding: 24px;
   background: var(--surface-sunken); border: 1px solid var(--line);
   border-radius: var(--radius-control);
 }
 .utility-preview { display: inline-block; }
+.utility-preview--surface-text { max-inline-size: 320px; margin: 0; font-size: 1rem; line-height: 1.5; color: var(--text); }
+.utility-preview--surface-button { font: inherit; cursor: default; padding: 10px 20px; border: none; color: white; }
+.utility-preview--surface-card {
+  display: block; inline-size: min(320px, 100%); padding: 16px;
+  background: var(--surface-raised); border: 1px solid var(--line);
+}
+.utility-preview--surface-card strong { display: block; margin-bottom: 6px; color: var(--text); }
+.utility-preview--surface-card p { margin: 0; color: var(--text-secondary); font-size: 0.85rem; }
 .utility-preview--switch { position: relative; }
 .utility-preview--switch::after {
   content: ""; position: absolute; top: 2px; right: 2px;

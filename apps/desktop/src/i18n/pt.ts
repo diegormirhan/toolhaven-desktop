@@ -934,4 +934,12 @@ export const portuguese: Record<string, string> = {
   "Winners": "Vencedores",
   // ── UI feedback round: single instance, tool counts, colour pickers, previews
   "Regenerate": "Gerar de novo",
+  "Preview on": "Pré-visualizar em",
+  "Box": "Caixa",
+  "Button": "Botão",
+  "Card": "Cartão",
+  "Sample button": "Botão de exemplo",
+  "Card title": "Título do cartão",
+  "Supporting text for the card.": "Texto de apoio do cartão.",
+  "The quick brown fox jumps over the lazy dog.": "Um pequeno jabuti xereta viu dez cegonhas felizes.",
 };
