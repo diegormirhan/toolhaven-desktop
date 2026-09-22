@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { Check, Copy, Download, Eraser, ExternalLink } from "lucide-react";
+import { Check, Copy, Download, Eraser, ExternalLink, RefreshCw } from "lucide-react";
 import type { CatalogTool } from "../catalog/catalog";
 import { utilityById, utilityGroup, type Utility } from "../utilities/registry";
 import { PanelShell } from "./PanelShell";
@@ -34,6 +34,9 @@ export function UtilityPanel({
   const [input, setInput] = useState("");
   const [options, setOptions] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState(false);
+  const [touched, setTouched] = useState(false);
+  const [seed, setSeed] = useState(0);
+  const isRandomized = group?.id === "random-picks";
 
   const utility = useMemo(
     () => (group ? utilityById(group.id, utilityId) : undefined),
@@ -77,9 +80,10 @@ export function UtilityPanel({
     // `t` is included so switching the language while a fact value like
     // "Ethanol" or "3 weeks, 2 days" is on screen recomputes it immediately,
     // instead of leaving the old language showing until the input changes.
-  }, [utility, input, values, t]);
+  }, [utility, input, values, t, seed]);
 
-  const { output, facts, failure } = state;
+  const { output, facts } = state;
+  const failure = touched ? state.failure : "";
 
   useEffect(() => {
     onDirtyChange?.(input.trim().length > 0);
@@ -114,6 +118,7 @@ export function UtilityPanel({
             onChange={(next) => {
               setUtilityId(next);
               setOptions({});
+              setTouched(false);
             }}
           />
           <small>{t(utility.description)}</small>
@@ -134,7 +139,10 @@ export function UtilityPanel({
               value={input}
               spellCheck={false}
               placeholder={t("Type or paste here")}
-              onChange={(event) => setInput(event.target.value)}
+              onChange={(event) => {
+                setInput(event.target.value);
+                setTouched(true);
+              }}
             />
           </label>
         )}
@@ -154,7 +162,10 @@ export function UtilityPanel({
                         value: choice.value,
                         label: t(choice.label),
                       }))}
-                      onChange={(next) => setOptions((current) => ({ ...current, [field.key]: next }))}
+                      onChange={(next) => {
+                        setOptions((current) => ({ ...current, [field.key]: next }));
+                        setTouched(true);
+                      }}
                     />
                   ) : field.type === "number" ? (
                     <NumberField
@@ -162,7 +173,10 @@ export function UtilityPanel({
                       value={values[field.key] ?? ""}
                       min={field.min}
                       max={field.max}
-                      onChange={(next) => setOptions((current) => ({ ...current, [field.key]: next }))}
+                      onChange={(next) => {
+                        setOptions((current) => ({ ...current, [field.key]: next }));
+                        setTouched(true);
+                      }}
                     />
                   ) : (
                     <input
@@ -170,9 +184,10 @@ export function UtilityPanel({
                       type="text"
                       value={values[field.key] ?? ""}
                       placeholder={field.placeholder && t(field.placeholder)}
-                      onChange={(event) =>
-                        setOptions((current) => ({ ...current, [field.key]: event.target.value }))
-                      }
+                      onChange={(event) => {
+                        setOptions((current) => ({ ...current, [field.key]: event.target.value }));
+                        setTouched(true);
+                      }}
                     />
                   )}
                   {field.hint && <small className="operation-options__hint">{t(field.hint)}</small>}
@@ -221,6 +236,11 @@ export function UtilityPanel({
         {utility.input === "text" && (
           <button className="button button--light" type="button" onClick={() => setInput("")} disabled={!input}>
             <Eraser size={16} aria-hidden="true" /> {t("Clear")}
+          </button>
+        )}
+        {isRandomized && (
+          <button className="button button--light" type="button" onClick={() => setSeed((value) => value + 1)}>
+            <RefreshCw size={16} aria-hidden="true" /> {t("Regenerate")}
           </button>
         )}
         {utility.outputKind === "image" ? (

@@ -932,4 +932,6 @@ export const portuguese: Record<string, string> = {
   "Target": "Meta",
   "WhatsApp link": "Link do WhatsApp",
   "Winners": "Vencedores",
+  // ── UI feedback round: single instance, tool counts, colour pickers, previews
+  "Regenerate": "Gerar de novo",
 };

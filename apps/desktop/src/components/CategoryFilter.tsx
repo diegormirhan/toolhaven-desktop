@@ -17,6 +17,7 @@ type CategoryFilterProps = {
 export function CategoryFilter({ rows, active, onChange }: CategoryFilterProps) {
   const t = useT();
   if (rows.length === 0) return null;
+  const totalTools = rows.reduce((sum, row) => sum + row.tools.length, 0);
   return (
     <div className="category-filter" role="group" aria-label={t("Filter by category")}>
       <button
@@ -26,6 +27,7 @@ export function CategoryFilter({ rows, active, onChange }: CategoryFilterProps) 
         onClick={() => onChange(null)}
       >
         {t("Everything")}
+        <span className="category-chip__count">{totalTools}</span>
       </button>
       {rows.map((row) => (
         <button
