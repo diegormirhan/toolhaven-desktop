@@ -719,6 +719,101 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 }
 .utility-image-frame img { max-inline-size: 100%; max-block-size: 220px; }
 
+/* ── Chat mockup ──────────────────────────────────────────────
+   A form on the left, a phone-shaped preview on the right, and a
+   warning that is part of the exported picture rather than only of
+   the window around it — a screenshot travels on its own, and has to
+   say on its own that it is not real. */
+.mockup-panel__body {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  gap: 0; padding: 0;
+}
+.mockup-panel__form { min-width: 0; overflow: auto; padding: 30px 26px; }
+.mockup-panel__preview {
+  display: grid; align-content: center; justify-items: center; gap: var(--space-4);
+  min-width: 0; padding: 24px; background: var(--ground); border-left: 1px solid var(--line);
+}
+
+.notice--warning { border-color: color-mix(in srgb, var(--amber) 45%, var(--line)); }
+.notice--warning svg { color: var(--amber); }
+
+.mockup-field { display: grid; gap: 7px; margin: var(--space-4) 0; }
+.mockup-field > span { color: var(--text-secondary); font-size: 0.76rem; }
+.mockup-field input {
+  min-height: 38px; padding: 0 11px; color: var(--text); background: var(--surface-sunken);
+  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+}
+
+.mockup-messages { display: grid; gap: 8px; margin: var(--space-2) 0; }
+.mockup-message-row { display: grid; grid-template-columns: auto minmax(0, 1fr) 72px auto; align-items: center; gap: 6px; }
+.mockup-sender {
+  padding: 6px 10px; font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
+  color: var(--text-secondary); background: var(--surface-sunken); border: 1px solid var(--line-strong);
+  border-radius: 999px; cursor: pointer;
+}
+.mockup-sender--me { color: var(--on-action); background: var(--action); border-color: var(--action); }
+.mockup-message-text, .mockup-message-time {
+  min-height: 34px; padding: 0 9px; color: var(--text); background: var(--surface-sunken);
+  border: 1px solid var(--line); border-radius: var(--radius-control); font-size: 0.78rem;
+}
+.mockup-message-time { text-align: center; font-variant-numeric: tabular-nums; }
+
+/* The phone itself: one shell, three skins selected by a data attribute
+   rather than three components, since the only real difference between
+   WhatsApp, iMessage and Instagram DM is colour and a header style. */
+.mockup-phone {
+  display: flex; flex-direction: column;
+  inline-size: 300px; block-size: 460px; overflow: hidden;
+  background: white; border-radius: 22px; box-shadow: var(--shadow-lifted);
+}
+.mockup-phone__header {
+  display: flex; align-items: center; gap: 10px; padding: 14px 16px;
+  color: white; font-size: 0.86rem; font-weight: 600;
+}
+.mockup-avatar {
+  display: grid; place-items: center; flex: 0 0 auto;
+  inline-size: 32px; block-size: 32px; border-radius: 50%;
+  color: white; font-size: 0.7rem; font-weight: 700;
+}
+.mockup-phone__messages {
+  flex: 1; display: flex; flex-direction: column; gap: 8px;
+  padding: 14px; overflow: hidden;
+}
+.mockup-bubble {
+  display: flex; flex-direction: column; gap: 2px;
+  max-inline-size: 78%; padding: 8px 11px; border-radius: 14px; font-size: 0.78rem;
+}
+.mockup-bubble__text { overflow-wrap: anywhere; white-space: pre-wrap; }
+.mockup-bubble__time { align-self: flex-end; font-size: 0.6rem; opacity: 0.65; }
+.mockup-phone__watermark {
+  padding: 6px 10px; color: rgba(0, 0, 0, 0.55); background: rgba(255, 255, 255, 0.85);
+  font-size: 0.6rem; text-align: center; letter-spacing: 0.02em;
+}
+
+.mockup-phone--whatsapp { background: #e5ddd5; }
+.mockup-phone--whatsapp .mockup-phone__header { background: #075e54; }
+.mockup-phone--whatsapp .mockup-bubble--them { align-self: flex-start; color: #111; background: white; }
+.mockup-phone--whatsapp .mockup-bubble--me { align-self: flex-end; color: #111; background: #dcf8c6; }
+
+.mockup-phone--imessage { background: white; }
+.mockup-phone--imessage .mockup-phone__header { color: #111; background: #f5f5f5; border-bottom: 1px solid var(--line); }
+.mockup-phone--imessage .mockup-bubble--them { align-self: flex-start; color: #111; background: #e9e9eb; }
+.mockup-phone--imessage .mockup-bubble--me { align-self: flex-end; color: white; background: #0b93f6; }
+
+.mockup-phone--instagram-dm { background: #000; }
+.mockup-phone--instagram-dm .mockup-phone__header { background: #000; border-bottom: 1px solid #262626; }
+.mockup-phone--instagram-dm .mockup-bubble--them { align-self: flex-start; color: white; background: #262626; }
+.mockup-phone--instagram-dm .mockup-bubble--me {
+  align-self: flex-end; color: white;
+  background: linear-gradient(45deg, #833ab4, #fd1d1d, #fcb045);
+}
+.mockup-phone--instagram-dm .mockup-phone__watermark { color: rgba(255, 255, 255, 0.65); background: rgba(0, 0, 0, 0.55); }
+
+@media (max-width: 900px) {
+  .mockup-panel__body { grid-template-columns: 1fr; }
+  .mockup-panel__preview { border-left: 0; border-top: 1px solid var(--line); }
+}
+
 /* ── Number field ─────────────────────────────────────────────
    Chromium's own spinners appear on hover, sit inside the box and share
    the height of a line of text between them, so a numeric field reads as

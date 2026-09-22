@@ -31,13 +31,29 @@ test("leaves a way out of the blur for anyone who asked for less transparency", 
 
 test("never hardcodes a colour below the token blocks", () => {
   // The token blocks own every literal colour; a hex further down means the
-  // light theme has a rule that does not follow it.
+  // light theme has a rule that does not follow it. The one deliberate
+  // exception is the chat mockup: a WhatsApp bubble has to be WhatsApp
+  // green whichever theme the app itself is in, the same way a flag does
+  // not recolour for dark mode. That exemption has to track which rule a
+  // line is *inside*, not just whether the selector's own text sits on the
+  // same line — a multi-line rule's declarations do not repeat it.
   const body = stylesheet.slice(stylesheet.indexOf("* { box-sizing: border-box; }"));
-  const literals = body
-    .split("\n")
-    .map((line, index) => [index, line])
-    .filter(([, line]) => /#[0-9a-f]{3,8}\b/i.test(line) && !line.trim().startsWith("/*"))
-    .map(([, line]) => line.trim());
+  let insideMockupPhone = false;
+  let depth = 0;
+  const literals = [];
+  for (const raw of body.split("\n")) {
+    const line = raw.trim();
+    if (!insideMockupPhone && line.includes(".mockup-phone") && line.includes("{")) {
+      insideMockupPhone = true;
+      depth = 0;
+    }
+    if (insideMockupPhone) {
+      depth += (line.match(/\{/g) ?? []).length - (line.match(/\}/g) ?? []).length;
+      if (depth <= 0) insideMockupPhone = false;
+      continue;
+    }
+    if (/#[0-9a-f]{3,8}\b/i.test(line) && !line.startsWith("/*")) literals.push(line);
+  }
 
   assert.deepEqual(literals, []);
 });

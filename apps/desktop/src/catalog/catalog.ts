@@ -136,6 +136,22 @@ const presentationById: Record<string, ToolPresentation> = {
     ],
     builtIn: { integrationName: "Reverse image search", capabilities: ["image.reverse_search"] },
   },
+  "chat-mockup": {
+    id: "chat-mockup",
+    title: "Chat mockup",
+    description: "A made-up WhatsApp, iMessage or Instagram DM conversation, for a mockup or a test.",
+    category: "utilities",
+    accent: "action",
+    size: "standard",
+    operations: [
+      { id: "build", label: "Build", description: "Type messages, then save the chat as a picture." },
+    ],
+    keywords: [
+      "chat", "mockup", "fake", "whatsapp", "imessage", "instagram", "dm", "message",
+      "conversation", "screenshot", "test", "design", "generator",
+    ],
+    builtIn: { integrationName: "Chat mockup", capabilities: [] },
+  },
   imagemagick: {
     id: "imagemagick",
     title: "Image formats",
@@ -485,6 +501,12 @@ const rowDefinitions = [
     title: "Files and disk",
     description: "Archives, byte-level inspection, and where the space went.",
     toolIds: ["7zip", "dust", "tokei", "hexyl"],
+  },
+  {
+    id: "mockups",
+    title: "Mockups",
+    description: "Made up on purpose — for a design or a test, never a real account.",
+    toolIds: ["chat-mockup"],
   },
 ] as const;
 
