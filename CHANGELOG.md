@@ -1,0 +1,98 @@
+# Changelog
+
+All notable changes to ToolHaven. Versions follow [semantic versioning](https://semver.org/).
+
+## 3.2.1 (2026-09-22)
+
+### Added
+
+- **About ninety built-in quick tools** that run inside the app with nothing to install, in twelve groups:
+  - Work on text: change case, reverse, upside down, remove duplicates, sort, shuffle, find and replace, tidy spacing, prefix and suffix, number lines, counts, slugs, lorem ipsum, bionic reading and letter styles.
+  - Codes and hashes: Base64, URL encoding, HTML entities, binary, Morse, hashes, JWT decoder, UUIDs, passwords, Roman numerals, number bases, numbers written out and timestamps.
+  - Test data: CPF, CNPJ, CEP, sandbox card numbers and UUIDs, for test environments only.
+  - CSS generators: border radius, box shadow, gradient, glassmorphism, clip path, background patterns, triangle, loader, cubic bezier, text glitch, switch and checkbox, with a live preview.
+  - Minify and format for CSS and HTML, with file upload.
+  - QR codes, Wi-Fi QR codes and barcodes, saved as images.
+  - Dates and time, math and finance, colour tools, everyday calculators, network lookups and random picks (dice, roulette, Mega-Sena, raffle, random numbers and words).
+- **Chat mockup**: build a WhatsApp, iMessage or Instagram DM conversation and save it as an image.
+- **Post mockup**: build a tweet or an Instagram post and save it as an image. The tweet has an optional verified badge, views and time.
+- Two new catalog rows, **Calculators** and **Mockups**.
+- Hovering a card lists the tools inside it.
+- A colour picker on every colour field.
+- CSS previews can be shown on a box, text, a button or a card.
+- A **Regenerate** button for random tools, and a **Generate** button for CPF and CNPJ.
+
+### Changed
+
+- Inside a group, the tool list is now a row of buttons at the top of the panel instead of a dropdown.
+- The **Everything** filter shows the total number of tools.
+- Dates and time opens in a wider panel.
+- The WhatsApp mockup uses the dark theme, and the tweet mockup matches the real X layout.
+- The Deno card was removed. Deno is still installed automatically as a yt-dlp dependency.
+
+### Fixed
+
+- Opening the app a second time opened a second window. It now brings the existing window to the front.
+- Tools showed an error before anything had been typed.
+- The tweet preview was cut off at the left edge of the panel.
+
+## 3.1.0 (2026-09-16)
+
+### Added
+
+- **Show in folder** on every finished job, next to **Copy path**.
+
+### Fixed
+
+- Tesseract failed to install because its installer asked for elevation.
+- Dropdowns were narrower than their options.
+- A downloading tool showed its name and status on the same line.
+- Job rows were partly in English when the app was set to Portuguese.
+
+## 3.0.0 (2026-09-16)
+
+### Added
+
+- Brazilian Portuguese, chosen in Settings. Every tool, option, hint, error and queue entry is translated.
+- The version and a **Check now** button at the top of Settings.
+- New versions are announced in a banner at the top of the page.
+
+### Changed
+
+- Number fields have full-height minus and plus buttons.
+- Shorter descriptions in Settings.
+
+### Fixed
+
+- Updating closed the app before the download finished.
+
+## 2.1.1
+
+### Fixed
+
+- Updating closed the app before the download finished. First version the app can install by itself.
+
+## 2.1.0
+
+### Added
+
+- Automatic updates, verified by signature.
+- 7-Zip, MKVToolNix, ImageMagick and ExifTool download inside the app.
+- Stop a running job from the queue or its panel.
+- The queue and history survive a restart.
+- Music recognition from speakers or a microphone.
+- Reverse image search with Google Lens, Yandex, Bing or TinEye.
+- Photo upscaling with a model (Nomos8kSC).
+- OCR with Tesseract, to text or a searchable PDF.
+- Settings for parallel jobs and for existing files.
+- Download sizes shown before installing.
+
+## 2.0.0
+
+### Added
+
+- Music recognition, reverse image search, photo upscaling with Real-ESRGAN, 7-Zip archive support and download sizes.
+
+## 1.0.0
+
+- First release: 22 open-source tools in one interface, a background queue, light and dark themes, and drag and drop.
