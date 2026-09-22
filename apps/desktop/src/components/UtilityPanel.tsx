@@ -1,0 +1,218 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, Copy, Eraser } from "lucide-react";
+import type { CatalogTool } from "../catalog/catalog";
+import { utilityById, utilityGroup, type Utility } from "../utilities/registry";
+import { PanelShell } from "./PanelShell";
+import { Select } from "./Select";
+import { NumberField } from "./NumberField";
+import { useT } from "../i18n/language";
+
+/**
+ * The panel for tools the app performs itself.
+ *
+ * There is no file, no destination and no queue here: the work is a pure
+ * function of what you typed, so the result appears as you type rather than
+ * behind a Run button. A button implies a wait, and there is none.
+ */
+export function UtilityPanel({
+  tool,
+  leaving = false,
+  onClose,
+  onExited,
+  onDirtyChange,
+}: {
+  tool: CatalogTool;
+  leaving?: boolean;
+  onClose: () => void;
+  onExited?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
+}) {
+  const t = useT();
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const group = utilityGroup(tool.id);
+  const [utilityId, setUtilityId] = useState(group?.utilities[0]?.id ?? "");
+  const [input, setInput] = useState("");
+  const [options, setOptions] = useState<Record<string, string>>({});
+  const [copied, setCopied] = useState(false);
+
+  const utility = useMemo(
+    () => (group ? utilityById(group.id, utilityId) : undefined),
+    [group, utilityId],
+  );
+
+  const values = useMemo(() => withDefaults(utility, options), [utility, options]);
+
+  const { output, facts, failure } = useMemo(() => {
+    if (!utility) return { output: "", facts: undefined, failure: "" };
+    try {
+      return {
+        output: utility.run(input, values),
+        facts: utility.facts?.(input, values),
+        failure: "",
+      };
+    } catch (error) {
+      // A pattern somebody is halfway through typing is not a crash; it is an
+      // invalid regular expression, and saying so is the right answer.
+      return { output: "", facts: undefined, failure: describe(error) };
+    }
+  }, [utility, input, values]);
+
+  useEffect(() => {
+    onDirtyChange?.(input.trim().length > 0);
+  }, [input, onDirtyChange]);
+
+  useEffect(() => {
+    setCopied(false);
+  }, [output]);
+
+  if (!group || !utility) return null;
+
+  const result = facts ? facts.map(([name, value]) => `${name}: ${value}`).join("\n") : output;
+
+  return (
+    <PanelShell
+      ref={closeButtonRef}
+      title={tool.integrationName}
+      leaving={leaving}
+      onClose={onClose}
+      onExited={onExited}
+    >
+      <section className="tool-panel__controls">
+        <h2 id="tool-panel-title">{t(tool.title)}</h2>
+        <p>{t(tool.description)}</p>
+
+        <label className="operation-select">
+          <span>{t("Tool")}</span>
+          <Select
+            label={t("Tool")}
+            value={utilityId}
+            choices={group.utilities.map((entry) => ({ value: entry.id, label: t(entry.label) }))}
+            onChange={(next) => {
+              setUtilityId(next);
+              setOptions({});
+            }}
+          />
+          <small>{t(utility.description)}</small>
+        </label>
+
+        {utility.input === "text" && (
+          <label className="utility-field">
+            <span>{t(utility.inputLabel ?? "Your text")}</span>
+            <textarea
+              className="utility-input"
+              value={input}
+              spellCheck={false}
+              placeholder={t("Type or paste here")}
+              onChange={(event) => setInput(event.target.value)}
+            />
+          </label>
+        )}
+
+        {utility.fields && utility.fields.length > 0 && (
+          <div className="operation-options" aria-label={t("Options")}>
+            {utility.fields
+              .filter((field) => field.showWhen?.(values) ?? true)
+              .map((field) => (
+                <label key={field.key}>
+                  <span>{t(field.label)}</span>
+                  {field.type === "select" ? (
+                    <Select
+                      label={t(field.label)}
+                      value={values[field.key] ?? ""}
+                      choices={(field.choices ?? []).map((choice) => ({
+                        value: choice.value,
+                        label: t(choice.label),
+                      }))}
+                      onChange={(next) => setOptions((current) => ({ ...current, [field.key]: next }))}
+                    />
+                  ) : field.type === "number" ? (
+                    <NumberField
+                      label={t(field.label)}
+                      value={values[field.key] ?? ""}
+                      min={field.min}
+                      max={field.max}
+                      onChange={(next) => setOptions((current) => ({ ...current, [field.key]: next }))}
+                    />
+                  ) : (
+                    <input
+                      aria-label={t(field.label)}
+                      type="text"
+                      value={values[field.key] ?? ""}
+                      placeholder={field.placeholder && t(field.placeholder)}
+                      onChange={(event) =>
+                        setOptions((current) => ({ ...current, [field.key]: event.target.value }))
+                      }
+                    />
+                  )}
+                  {field.hint && <small className="operation-options__hint">{t(field.hint)}</small>}
+                </label>
+              ))}
+          </div>
+        )}
+
+        {failure ? (
+          <p className="run-message run-message--error" role="alert">
+            {failure}
+          </p>
+        ) : facts ? (
+          <dl className="utility-facts">
+            {facts.map(([name, value]) => (
+              <div key={name}>
+                <dt>{t(name)}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <label className="utility-field">
+            <span>{t("Result")}</span>
+            <textarea className="utility-input utility-input--result" value={output} readOnly spellCheck={false} />
+          </label>
+        )}
+      </section>
+
+      <div className="tool-panel__footer">
+        <div className="tool-panel__status" aria-live="polite">
+          <p>{failure ? t("Nothing to copy while that is being fixed.") : t("It runs here, as you type.")}</p>
+        </div>
+        {utility.input === "text" && (
+          <button className="button button--light" type="button" onClick={() => setInput("")} disabled={!input}>
+            <Eraser size={16} aria-hidden="true" /> {t("Clear")}
+          </button>
+        )}
+        <button
+          className="button button--primary"
+          type="button"
+          disabled={!result}
+          onClick={() => {
+            void navigator.clipboard
+              ?.writeText(result)
+              .then(() => {
+                setCopied(true);
+                window.setTimeout(() => setCopied(false), 2000);
+              })
+              .catch(() => undefined);
+          }}
+        >
+          {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+          {t(copied ? "Copied" : "Copy the result")}
+        </button>
+      </div>
+    </PanelShell>
+  );
+}
+
+/** The options a utility was given, over the defaults it declares. */
+function withDefaults(utility: Utility | undefined, options: Record<string, string>) {
+  const values: Record<string, string> = {};
+  for (const field of utility?.fields ?? []) {
+    if (field.defaultValue != null) values[field.key] = field.defaultValue;
+  }
+  return { ...values, ...options };
+}
+
+function describe(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  return "That could not be worked out.";
+}

@@ -633,6 +633,39 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .confirm-card p { margin: 0 0 20px; color: var(--text-secondary); font-size: 0.8rem; line-height: 1.5; }
 
 
+/* ── The tools the app does itself ────────────────────────────
+   No file, no destination, no queue: a box to type in, a box with the
+   answer, and the options between them. The result box is read-only and
+   deliberately looks it — it is an answer, not a second draft. */
+.utility-field { display: grid; gap: 7px; margin-bottom: var(--space-4); }
+.utility-field > span { color: var(--text-secondary); font-size: 0.76rem; }
+.utility-input {
+  inline-size: 100%; min-block-size: 132px; resize: vertical;
+  padding: 11px 12px;
+  color: var(--text); background: var(--surface-sunken);
+  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+  font: 0.78rem/1.55 ui-monospace, "Cascadia Mono", monospace;
+  overflow-wrap: anywhere;
+}
+.utility-input:focus-visible { border-color: var(--action); }
+.utility-input--result { background: var(--surface-hover); color: var(--text-secondary); }
+
+.utility-facts {
+  display: grid; gap: 1px; margin: 0 0 var(--space-4);
+  background: var(--line); border: 1px solid var(--line); border-radius: var(--radius-control);
+  overflow: hidden;
+}
+.utility-facts > div {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4);
+  padding: 9px 12px; background: var(--surface-raised);
+}
+.utility-facts dt { color: var(--text-secondary); font-size: 0.74rem; }
+.utility-facts dd {
+  margin: 0; color: var(--text);
+  font: 0.82rem/1 ui-monospace, "Cascadia Mono", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── Number field ─────────────────────────────────────────────
    Chromium's own spinners appear on hover, sit inside the box and share
    the height of a line of text between them, so a numeric field reads as

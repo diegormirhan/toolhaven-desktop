@@ -1,4 +1,5 @@
 import toolManifest from "../../../../tooling/tools.json";
+import { utilityGroups } from "../utilities/registry";
 import type { InstallationState } from "../../../../scripts/component-installation/installation-state.mjs";
 
 export type ToolAccent = "action" | "cool" | "amber" | "neutral";
@@ -41,7 +42,29 @@ type ToolPresentation = Omit<
   builtIn?: { integrationName: string; capabilities: string[] };
 };
 
+const utilityPresentations: Record<string, ToolPresentation> = Object.fromEntries(
+  utilityGroups.map((group) => [
+    group.id,
+    {
+      id: group.id,
+      title: group.title,
+      description: group.description,
+      category: "utilities",
+      accent: "action" as const,
+      size: "standard" as const,
+      operations: group.utilities.map((utility) => ({
+        id: utility.id,
+        label: utility.label,
+        description: utility.description,
+      })),
+      keywords: group.keywords,
+      builtIn: { integrationName: "ToolHaven", capabilities: [] },
+    },
+  ]),
+);
+
 const presentationById: Record<string, ToolPresentation> = {
+  ...utilityPresentations,
   qpdf: {
     id: "qpdf",
     title: "Organise PDFs",
@@ -444,6 +467,12 @@ const rowDefinitions = [
     title: "Text and data",
     description: "Query, reshape, search and compare structured text.",
     toolIds: ["jq", "yq", "miller", "ripgrep", "fd", "difftastic"],
+  },
+  {
+    id: "utilities",
+    title: "Quick tools",
+    description: "Text, lists and placeholders — done here, with nothing to install.",
+    toolIds: utilityGroups.map((group) => group.id),
   },
   {
     id: "files",

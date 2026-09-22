@@ -7,6 +7,8 @@
  * was whatever extension the user happened to type into the save dialog.
  */
 
+import { utilityGroupIds } from "../utilities/registry";
+
 export type FormatFamily = "image" | "video" | "audio" | "pdf" | "document" | "archive" | "data" | "any";
 
 /** Extensions per family, lowercase and without the dot. */
@@ -22,6 +24,10 @@ export const familyExtensions: Record<Exclude<FormatFamily, "any">, string[]> = 
 
 /** Families each tool will accept as input. "any" means it does not care. */
 export const toolAccepts: Record<string, FormatFamily[]> = {
+  // The quick tools work on what you type, so a file dropped on the window has
+  // nothing to do with them; "any" keeps them out of the drag-and-drop path
+  // rather than letting them claim a file they cannot read.
+  ...Object.fromEntries(utilityGroupIds.map((id) => [id, ["any"] as FormatFamily[]])),
   ffmpeg: ["video", "audio"],
   ffprobe: ["video", "audio"],
   mkvtoolnix: ["video"],

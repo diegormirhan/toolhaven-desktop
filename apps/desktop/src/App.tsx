@@ -25,8 +25,10 @@ import { InstallDialog } from "./components/InstallDialog";
 import { ThemeSwitch } from "./components/ThemeSwitch";
 import { ToolPanel, type RunOperationInput } from "./components/ToolPanel";
 import { ImageSearchPanel } from "./components/ImageSearchPanel";
+import { UtilityPanel } from "./components/UtilityPanel";
 import { UpdateCard } from "./components/UpdateCard";
 import { LanguageProvider, useLanguage, useT, type Language, type Translate } from "./i18n/language";
+import { utilityGroupIds } from "./utilities/registry";
 import { useUpdate, type UpdateState } from "./hooks/useUpdate";
 import { MusicPanel } from "./components/MusicPanel";
 import { ToolSection } from "./components/ToolSection";
@@ -465,7 +467,16 @@ function Shell() {
             </div>
           )}
 
-          {selectedTool.id === "image-search" ? (
+          {utilityGroupIds.includes(selectedTool.id) ? (
+            <UtilityPanel
+              key={selectedTool.id}
+              tool={selectedTool}
+              leaving={panelLeaving}
+              onDirtyChange={setPanelDirty}
+              onClose={closeTool}
+              onExited={finishClosingTool}
+            />
+          ) : selectedTool.id === "image-search" ? (
             <ImageSearchPanel
               key={selectedTool.id}
               tool={selectedTool}
