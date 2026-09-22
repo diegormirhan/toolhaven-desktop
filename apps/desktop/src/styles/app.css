@@ -330,6 +330,28 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 }
 .tool-card:hover .tool-artwork svg { transform: scale(1.045); }
 .artwork-rail { transition: width 300ms var(--ease-out); }
+
+/* What is inside this group, revealed on hover instead of requiring the
+   panel to open just to see the list. Sits over the artwork, which is the
+   part of the card that otherwise does nothing while the pointer is on it. */
+.tool-card__inside {
+  position: absolute; inset: 0 0 auto 0; height: 132px; z-index: 1;
+  display: flex; align-items: center; padding: var(--space-3);
+  background: color-mix(in srgb, var(--surface-raised) 96%, var(--card-accent));
+  opacity: 0; pointer-events: none;
+  transition: opacity 200ms var(--ease-out);
+}
+.tool-card:hover .tool-card__inside, .tool-card:has(:focus-visible) .tool-card__inside {
+  opacity: 1;
+}
+.tool-card__inside ul {
+  display: flex; flex-wrap: wrap; gap: 5px 6px; margin: 0; padding: 0; list-style: none;
+  overflow: hidden; max-height: 100%;
+}
+.tool-card__inside li {
+  font-size: 0.68rem; color: var(--text-secondary); background: var(--surface-sunken);
+  border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; line-height: 1.3;
+}
 .tool-card:hover .artwork-rail { width: 3px; }
 .aw-line { stroke: currentColor; fill: none; }
 .aw-soft { stroke: color-mix(in srgb, currentColor 40%, transparent); fill: none; }

@@ -4,6 +4,7 @@ import type { InstallationState } from "../../../../scripts/component-installati
 import type { CatalogTool } from "../catalog/catalog";
 import { ToolArtwork } from "./ToolArtwork";
 import { useT } from "../i18n/language";
+import { utilityGroup } from "../utilities/registry";
 
 type ToolCardProps = {
   tool: CatalogTool;
@@ -30,6 +31,7 @@ export function ToolCard({ tool, installation, onOpen, onInstall, index = 0 }: T
   const progress = Math.round((installation.progress ?? 0) * 100);
   const readyLabel =
     t(installation.activeVersion === "bundled" ? "Included" : "Ready");
+  const group = utilityGroup(tool.id);
 
   return (
     <article
@@ -38,6 +40,15 @@ export function ToolCard({ tool, installation, onOpen, onInstall, index = 0 }: T
       style={{ "--card-delay": `${Math.min(index, 5) * 45}ms` } as CSSProperties}
     >
       <ToolArtwork toolId={tool.id} label={tool.integrationName} />
+      {group && group.utilities.length > 1 && (
+        <div className="tool-card__inside">
+          <ul>
+            {group.utilities.map((utility) => (
+              <li key={utility.id}>{t(utility.label)}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <span className={`availability availability--${isReady ? "ready" : "available"}`}>
         {isReady ? <Check size={12} aria-hidden="true" /> : <Download size={12} aria-hidden="true" />}
         {isReady ? readyLabel : t(tool.downloadLabel ?? "Not installed")}
