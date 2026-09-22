@@ -281,7 +281,6 @@ export const portuguese: Record<string, string> = {
   "Records the room through {name}.": "Grava o ambiente pelo {name}.",
   "Records the room.": "Grava o ambiente.",
   "Released": "Lançamento",
-  "Reports the version installed on this Windows.": "Informa a versão instalada neste Windows.",
   "Requested tool": "Ferramenta pedida",
   "Resolution (DPI)": "Resolução (DPI)",
   "Restart": "Reiniciar",

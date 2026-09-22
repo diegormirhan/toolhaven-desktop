@@ -251,14 +251,6 @@ const glyphByToolId: Record<string, ReactNode> = {
       <path className="aw-soft" d="M106 50h24M118 38v24" strokeLinecap="round" />
     </>
   ),
-  deno: (
-    <>
-      <rect className="aw-soft" x="42" y="20" width="116" height="60" rx="9" />
-      <path className="aw-line" d="M60 38l11 12-11 12" strokeLinecap="round" strokeLinejoin="round" />
-      <path className="aw-line" d="M80 62h26" strokeLinecap="round" />
-      <path className="aw-soft" d="M118 38h24" strokeLinecap="round" />
-    </>
-  ),
 };
 
 const fallbackGlyph = (

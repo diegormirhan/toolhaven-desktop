@@ -33,11 +33,11 @@ function catalogTool(toolId: string) {
 function job(overrides: Partial<ToolJob>): ToolJob {
   return {
     id: jobId,
-    toolId: 'deno',
-    toolName: 'Download runtime',
-    operationId: 'runtime',
-    operationLabel: 'Show installed version',
-    sourceLabel: 'Deno',
+    toolId: 'yt-dlp',
+    toolName: 'Download media',
+    operationId: 'download-video',
+    operationLabel: 'Download video',
+    sourceLabel: 'https://example.com/video',
     status: 'running',
     progress: 0,
     message: 'Preparing the operation…',
@@ -49,14 +49,21 @@ function job(overrides: Partial<ToolJob>): ToolJob {
 }
 
 it('hands the runner the request envelope expected by the native command', async () => {
+  vi.mocked(save).mockResolvedValue('C:\\videos\\video.mp4');
   const onRun = vi.fn(() => jobId);
-  render(<ToolPanel tool={catalogTool('deno')} onClose={vi.fn()} onRun={onRun} />);
+  render(<ToolPanel tool={catalogTool('yt-dlp')} onClose={vi.fn()} onRun={onRun} />);
 
+  await userEvent.type(screen.getByLabelText('Media URL'), 'https://example.com/video');
   await userEvent.click(screen.getByRole('button', { name: 'Run' }));
 
   expect(onRun).toHaveBeenCalledWith(expect.objectContaining({
-    request: { toolId: 'deno', operationId: 'runtime', inputPaths: [], outputPath: null, options: {}, sourceUrl: null },
-    operationLabel: 'Show installed version',
+    request: expect.objectContaining({
+      toolId: 'yt-dlp',
+      operationId: 'download-video',
+      inputPaths: [],
+      sourceUrl: 'https://example.com/video',
+    }),
+    operationLabel: 'Download video',
   }));
 });
 
@@ -75,12 +82,14 @@ it('mirrors the live progress the queue reports for its own job', async () => {
 });
 
 it('reports a failed job as an error instead of a silent success', async () => {
-  const failed = job({ status: 'failed', message: 'deno.exe not found' });
-  render(<ToolPanel tool={catalogTool('deno')} jobs={[failed]} onClose={vi.fn()} onRun={() => jobId} />);
+  vi.mocked(save).mockResolvedValue('C:\\videos\\video.mp4');
+  const failed = job({ status: 'failed', message: 'yt-dlp.exe not found' });
+  render(<ToolPanel tool={catalogTool('yt-dlp')} jobs={[failed]} onClose={vi.fn()} onRun={() => jobId} />);
 
+  await userEvent.type(screen.getByLabelText('Media URL'), 'https://example.com/video');
   await userEvent.click(screen.getByRole('button', { name: 'Run' }));
 
-  expect(await screen.findByRole('alert')).toHaveTextContent('deno.exe not found');
+  expect(await screen.findByRole('alert')).toHaveTextContent('yt-dlp.exe not found');
   expect(screen.getByText(/the job failed/i)).toBeVisible();
 });
 

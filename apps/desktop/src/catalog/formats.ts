@@ -47,7 +47,6 @@ export const toolAccepts: Record<string, FormatFamily[]> = {
   fd: ["any"],
   tokei: ["any"],
   dust: ["any"],
-  deno: ["any"],
   "yt-dlp": ["any"],
   "gallery-dl": ["any"],
 };

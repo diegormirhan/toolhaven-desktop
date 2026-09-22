@@ -40,7 +40,7 @@ type SelectedFile = { name: string; path: string };
 export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultFolder = "", leaving = false, onClose, onExited, onRun, onCancel, onDirtyChange }: ToolPanelProps) {
   const t = useT();
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>(() =>
-    initialPath && !["deno", ...urlTools, ...folderTools].includes(tool.id)
+    initialPath && ![...urlTools, ...folderTools].includes(tool.id)
       ? [{ path: initialPath, name: fileNameOnly(initialPath) }]
       : [],
   );
@@ -79,8 +79,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
   const needsTwoFiles = tool.id === "difftastic";
   const canRun =
     (needsTwoFiles ? selectedFiles.length >= 2 : selectedFiles.length > 0) ||
-    (urlTools.includes(tool.id) && sourceUrl.trim().length > 0) ||
-    (tool.id === "deno" && selectedOperationId === "runtime");
+    (urlTools.includes(tool.id) && sourceUrl.trim().length > 0);
   // The crop rectangle is not separate state: it is the same four options the
   // fields write, read back. Two sources would drift the moment one is edited.
   const cropsVisually =
@@ -164,7 +163,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
 
   // A file dropped on the window belongs to the tool the user already has open.
   useEffect(() => {
-    if (!droppedPaths?.length || tool.id === "deno" || urlTools.includes(tool.id)) return;
+    if (!droppedPaths?.length || urlTools.includes(tool.id)) return;
     // Clearing first: admitFiles reports why a file was refused, and doing
     // this after would wipe the only explanation the user gets.
     setFormError("");
@@ -305,7 +304,7 @@ export function ToolPanel({ tool, initialPath, droppedPaths, jobs = [], defaultF
           </label>
         )}
 
-        {tool.id !== "deno" && !urlTools.includes(tool.id) && <FileField />}
+        {!urlTools.includes(tool.id) && <FileField />}
 
         {requiresOutput(tool.id, selectedOperationId) && (
           <div className="tool-option">
@@ -552,7 +551,6 @@ function jobResultText(job: ToolJob): string {
 
 function idleHint(toolId: string, t: Translate): string {
   if (urlTools.includes(toolId)) return t("Add a URL to enable the run.");
-  if (toolId === "deno") return t("Reports the version installed on this Windows.");
   if (toolId === "difftastic") return t("Choose two files to compare.");
   if (folderTools.includes(toolId)) return t("Choose a folder to enable the run.");
   return t("Add files to enable the run.");
@@ -909,7 +907,7 @@ function fileNameOnly(path: string): string {
 }
 
 const readOnlyTools = [
-  "ffprobe", "deno", "jq", "yq", "ripgrep", "fd",
+  "ffprobe", "jq", "yq", "ripgrep", "fd",
   "miller", "hexyl", "tokei", "difftastic", "dust",
 ];
 /** Where each downloader publishes the list of sites it handles. Naming the

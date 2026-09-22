@@ -6,8 +6,8 @@ dist/
 target/
 apps/desktop/src-tauri/gen/
 
-# Local release artifacts staged for GitHub Releases
-/release-*/
+# Local release artifacts staged for GitHub Releases, one folder per version
+/Releases/
 
 # Internal project documentation: kept on disk and in local git history,
 # but no longer tracked going forward, so it stops publishing to the

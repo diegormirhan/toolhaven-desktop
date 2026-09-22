@@ -60,7 +60,7 @@ afterEach(() => {
 function pendingOperation() {
   let settle: ((value: { stdout: string; outputPath: string | null }) => void) | undefined;
   vi.mocked(invoke).mockImplementation((command: string) => {
-    if (command === 'detect_available_tools') return Promise.resolve(['yt-dlp', 'deno', 'ffmpeg', 'ffprobe']);
+    if (command === 'detect_available_tools') return Promise.resolve(['yt-dlp', 'ffmpeg', 'ffprobe']);
     return new Promise(resolve => {
       settle = resolve as (value: { stdout: string; outputPath: string | null }) => void;
     });
@@ -127,7 +127,7 @@ it('moves a finished background operation to the history with its output path', 
 
 it('records a failed background operation instead of dropping it', async () => {
   vi.mocked(invoke).mockImplementation((command: string) => {
-    if (command === 'detect_available_tools') return Promise.resolve(['yt-dlp', 'deno']);
+    if (command === 'detect_available_tools') return Promise.resolve(['yt-dlp']);
     return Promise.reject('yt-dlp.exe failed (exit code: 1)');
   });
   const user = userEvent.setup();

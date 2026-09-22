@@ -409,19 +409,6 @@ const presentationById: Record<string, ToolPresentation> = {
     keywords: ["markdown", "docx", "html", "epub", "document"],
     downloadLabel: "In-app download",
   },
-  deno: {
-    id: "deno",
-    title: "Download runtime",
-    description: "An isolated component the download integrations rely on.",
-    category: "developer",
-    accent: "neutral",
-    size: "compact",
-    operations: [
-      { id: "runtime", label: "Show installed version", description: "Report the Deno version available on this Windows." },
-    ],
-    keywords: ["deno", "runtime", "javascript"],
-    downloadLabel: "Component",
-  },
 };
 
 /// Six outcome-shaped groups rather than three broad ones. Three rails meant a
@@ -438,7 +425,7 @@ const rowDefinitions = [
     id: "downloads",
     title: "Downloads",
     description: "Save video, audio and image galleries from a link.",
-    toolIds: ["yt-dlp", "gallery-dl", "deno"],
+    toolIds: ["yt-dlp", "gallery-dl"],
   },
   {
     id: "images",

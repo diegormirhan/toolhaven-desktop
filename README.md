@@ -383,6 +383,7 @@ manifest is missing, the app carries on at the version it has and says nothing.
 ```
 apps/desktop/src-tauri/tauri.conf.json   the endpoint and the public key
 scripts/release/build-update-manifest.mjs   writes the latest.json a release needs
+Releases/<version>/                         where a version's artifacts are staged
 ```
 
 Building a release that can be updated to needs the signing key in the

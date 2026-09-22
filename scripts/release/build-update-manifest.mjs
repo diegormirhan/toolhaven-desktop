@@ -6,7 +6,10 @@
  * public key compiled into the binary. This builds that document from the
  * artifacts `tauri build` just signed.
  *
- *   node scripts/release/build-update-manifest.mjs release-2.1.0
+ *   node scripts/release/build-update-manifest.mjs
+ *
+ * With no argument it writes into `Releases/<version>`, which is where every
+ * version's artifacts are staged. A path can still be given to override it.
  *
  * The result belongs in the GitHub release beside the installers, because the
  * endpoint points at `/releases/latest/download/latest.json`.
@@ -16,13 +19,13 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const root = fileURLToPath(new URL("../..", import.meta.url));
-const directory = path.resolve(root, process.argv[2] ?? "");
-if (!process.argv[2] || !existsSync(directory)) {
-  console.error("Usage: node scripts/release/build-update-manifest.mjs <release directory>");
+const { version } = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8"));
+const directory = path.resolve(root, process.argv[2] ?? path.join("Releases", version));
+if (!existsSync(directory)) {
+  console.error(`No such release directory: ${directory}`);
+  console.error("Usage: node scripts/release/build-update-manifest.mjs [release directory]");
   process.exit(1);
 }
-
-const { version } = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8"));
 const installer = `ToolHaven_${version}_x64-setup.exe`;
 const signaturePath = path.join(directory, `${installer}.sig`);
 
