@@ -1,356 +1,104 @@
 <div align="center">
 
+<img src="apps/desktop/src-tauri/icons/128x128.png" alt="" width="96" height="96">
+
 # ToolHaven
 
-**Convert video, download from YouTube, edit PDFs, upscale photos and read text
-out of scans — on Windows, without typing a command.**
-
-A desktop app for FFmpeg, yt-dlp, ImageMagick, Tesseract and 22 more
-open-source tools, delivered so you never install a single one of them by hand.
-In English or Brazilian Portuguese.
-
-[![Release](https://img.shields.io/github/v/tag/diegormirhan/toolhaven-desktop?label=release&color=88afff)](https://github.com/diegormirhan/toolhaven-desktop/tags)
-[![License](https://img.shields.io/badge/license-MIT-88afff)](LICENSE)
+[![Release](https://img.shields.io/github/v/tag/diegormirhan/toolhaven-desktop?label=release&color=88afff)](https://github.com/diegormirhan/toolhaven-desktop/releases)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Windows](https://img.shields.io/badge/Windows-x64-0078D4?logo=windows&logoColor=white)](#install)
 [![Tauri](https://img.shields.io/badge/Tauri-2-24C8DB?logo=tauri&logoColor=white)](apps/desktop/src-tauri/)
-[![Rust](https://img.shields.io/badge/Rust-host-CE422B?logo=rust&logoColor=white)](apps/desktop/src-tauri/src/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](apps/desktop/src/)
 
-[![Windows](https://img.shields.io/badge/Windows-x64-0078D4?logo=windows&logoColor=white)](#running-it)
-[![Local](https://img.shields.io/badge/models-on%20your%20machine-88afff)](#what-it-refuses-to-do)
-[![No cloud](https://img.shields.io/badge/cloud-none-555)](#what-it-refuses-to-do)
-[![No shell](https://img.shields.io/badge/arbitrary%20shell-never-555)](#the-boundary-that-shapes-everything)
-[![Installer](https://img.shields.io/badge/installer-16.3%20MB-88afff)](#how-the-tools-get-there)
-[![Setup](https://img.shields.io/badge/setup-one%20command-88afff)](#running-it)
-
-[The problem](#the-problem-it-takes-seriously) ·
-[Delivery](#how-the-tools-get-there) ·
-[The boundary](#the-boundary-that-shapes-everything) ·
-[Tools](#the-catalog) ·
-[Jobs](#jobs-that-outlive-the-panel) ·
-[Run it](#running-it) ·
-[Languages](#languages) ·
-[Limits](LIMITATIONS.md)
+> Convert video, download from YouTube, edit PDFs, enlarge photos and read text out of scans — on Windows, without typing a command.
 
 </div>
 
----
+![The ToolHaven catalog in its dark theme](docs/screenshots/catalog-dark.png)
 
-Converting a video, flattening a PDF, stripping EXIF off a photo, turning a CSV into JSON — every
-one of those is a solved problem with an excellent open-source tool behind it. The cost is never the
-work. It is finding the tool, installing it, putting it on PATH, and learning a different set of
-flags for each one.
+Twenty-five open-source tools — FFmpeg, yt-dlp, qpdf, ImageMagick, Tesseract and the rest — behind one window, one visual grammar and one queue. Nine of them travel inside the 16.3 MB installer; the others are downloaded, verified and installed by the app itself, in the background, with the size on screen before the download starts.
 
-ToolHaven puts twenty-six of them behind one window, one visual grammar, and one queue. Nine ship
-inside the 16.3 MB installer. Seventeen more the app downloads, verifies and installs on its own, in
-the background, with a progress bar. **You never open a browser, never run a package manager, never
-touch PATH.**
+**You never open a browser, never run a package manager, never touch PATH.** Everything runs on your own machine, in English or Brazilian Portuguese.
 
-Everything runs on your machine. No account, no cloud, no telemetry. Two operations use a model —
-reading text out of a scan, and enlarging a photograph — and both run here, on your own processor or
-graphics card, downloaded only if you ask for them.
+## Features
 
-![The catalog in the dark theme](docs/screenshots/catalog-dark.png)
+- **Nothing to install by hand.** Every tool is pinned to an exact URL, version and SHA-256. A download that does not match its digest is refused, and nothing ever asks for administrator rights.
+- **Twenty-five tools, grouped by what you want to end up with** — a smaller video, a merged PDF, a cropped photo, the text out of a scan — rather than by the project that does the work.
+- **A queue that outlives the panel.** Start an operation, close the tool, and it keeps running. Stopping kills the whole process tree; the history survives a restart.
+- **It updates itself**, verified against a signature compiled into the binary, and never takes the window away mid-job: the last step is a button.
+- **English and Brazilian Portuguese**, switched in Settings. Every string is translated — the tools, their options, the errors and the queue.
+- **No account, no cloud, no telemetry.** Two operations use a model — reading a scan and enlarging a photograph — and both run here, on your own processor or graphics card.
 
-*The catalog is the product. Every card carries the same four things: what you get, which project
-does the work, how it arrives, and one action. The badge is the delivery channel — `Included`
-shipped in the installer, `In-app download` the app fetches itself, `With dependencies` means it
-drags three more along.*
+## Install
 
----
+Download the installer from the [latest release](https://github.com/diegormirhan/toolhaven-desktop/releases/latest) and run it. Windows 10 or 11, 64-bit.
 
-## The problem it takes seriously
+| File | What it is |
+| --- | --- |
+| `ToolHaven_<version>_x64-setup.exe` | Installer — recommended |
+| `ToolHaven_<version>_x64_en-US.msi` | MSI, for managed deployment |
+| `ToolHaven_<version>_x64-portable.zip` | Portable — unzip and run |
 
-A desktop utility that wraps CLI tools has two failure modes, and most of them pick one.
-
-**It bundles everything**, and the installer is a gigabyte. FFmpeg alone is 140 MB, Pandoc 40, Deno
-93. Ship them all and every user downloads every tool they will never open, and every patch to any
-one of them means downloading all of it again.
-
-**Or it bundles nothing**, and the first thing a "just works" app tells you is to go install
-something else. That is the failure ToolHaven started with: for most of its history it only
-*detected* tools already on the machine, so on a clean Windows every card said `Not installed` and
-nothing ran.
-
-The answer is not a compromise between the two — it is that **the delivery channel belongs in the
-manifest, per tool**, and the app implements both:
-
-| | Ships how | Chosen because | Count |
-|---|---|---|---|
-| `bundled` | Inside the installer | Single executable, permissive licence, small | 9 |
-| `downloadable` | The app fetches it, verified | Large, or copyleft, or both | 9 |
-| `planned` | Not distributed yet | No pinnable versioned artifact exists | 4 |
-
-Nothing copyleft went into the installer. That is the conservative position `docs/LICENSING.md`
-argues for, and it costs nothing here: the GPL tools are the large ones anyway, so they were headed
-for the download channel regardless.
-
----
-
-## How the tools get there
-
-### Nine arrive in the installer
-
-`tooling/tools.json` pins an exact URL, version and **SHA-256** for every bundled tool. At build
-time `scripts/tools/stage-embedded-tools.mjs` downloads each artifact, checks the digest, extracts
-the executable and stages it where the Tauri bundler picks it up.
-
-A hash mismatch **aborts the build**. That is the point: an artifact that does not match the pinned
-digest is not the artifact anyone reviewed.
-
-```
-jq 1.8.2 · yq 4.53.6 · ripgrep 15.2.0 · fd 10.5.0 · Miller 6.21.0
-tokei 12.1.2 · hexyl 0.17.0 · Dust 1.2.5 · Oxipng 10.2.1
-```
-
-47 MB of executables, all MIT / Apache-2.0 / BSD-2 / Unlicense, compressing to a **16.3 MB
-installer**. `7z l` on the NSIS output shows `tools\*.exe` sitting beside `toolhaven.exe`.
-
-![The dev tools rail, where the bundled tools read Included](docs/screenshots/bundled-tools.png)
-
-*Two delivery channels, one visual grammar. The `Included` cards work the second the installer
-finishes; the `Get it` cards open a plan first. The card never moves between rails when its state
-changes — only its badge and its button do.*
-
-### Seventeen more the app installs itself
-
-Click `Get it` and the app resolves the dependency graph, then downloads, verifies and activates
-every step. yt-dlp is the interesting case: it needs Deno for YouTube's JS challenges, and FFmpeg
-plus ffprobe to merge what it downloads.
-
-![The install plan for yt-dlp, with its three dependencies](docs/screenshots/install-dialog.png)
-
-*Four downloads for one click, ordered so dependencies land first. The app is telling you what it is
-about to do before it does it — and what it guarantees while doing it.*
-
-The component store has four properties worth naming:
-
-- **Keyed by digest, not by tool.** FFmpeg and ffprobe come from the same 140 MB archive, so they
-  are downloaded once and share one directory.
-- **Staged, then activated by rename.** The staging directory is a sibling of the target, so the
-  activation is an atomic rename on the same volume. A failure mid-install can never leave a
-  half-extracted component live.
-- **No elevation, ever.** Components land under `%LOCALAPPDATA%`, never in Program Files.
-- **Zip entries are validated.** `enclosed_name` rejects absolute paths and `..`, so a hostile
-  archive cannot write outside the store.
-
-### Resolution order
-
-```
-1 · <install dir>/tools/       the version we pinned, verified and tested
-2 · the component store         what the app downloaded and verified
-3 · PATH                        whatever this machine happens to have
-```
-
-The order matters more than it looks. Git for Windows ships an `pdftotext.exe` that belongs to
-**Xpdf, not Poppler** — a different project with different licensing — and it usually wins on PATH.
-So Poppler is probed through `pdftoppm.exe`, which Xpdf does not ship, and every Poppler command
-resolves from that installation's own directory. There is a test for it.
-
-Same class of trap: `convert.exe` on Windows is Microsoft's filesystem converter. ImageMagick is
-only ever invoked as `magick.exe`. Also tested.
-
----
-
-## The boundary that shapes everything
-
-**The interface cannot run a command.** It sends a typed operation — `{ toolId, operationId, inputPaths, options }` —
-and a Rust adapter turns validated values into a known executable plus an argument array. No string
-is ever concatenated into a command line.
-
-```rust
-("ffmpeg", "extract-audio") => Ok(vec![
-    "-n".into(), "-nostdin".into(),
-    "-i".into(), input,
-    "-map".into(), "0:a:0".into(), "-vn".into(),
-    output,
-]),
-```
-
-That single decision explains most of the rest of the design:
-
-- **Every capability costs a contract.** Forty operations exist because forty argv shapes were
-  written and tested, not because forty flags were exposed.
-- **Options are validated as values, not as text.** An upscale factor must be a number greater
-  than 1; a DPI must land between 1 and 2400; an oxipng level must be 0–6 or `max`. Those checks
-  live in a pure function with no filesystem access, so they are testable on their own — which
-  caught the first version of them passing for the wrong reason.
-- **Originals are never overwritten.** An existing destination is refused before the process starts.
-  ExifTool writes through `-o` into a new file, never `-overwrite_original`.
-- **hyperfine was rejected over it.** Permissive licence, genuinely useful, and it benchmarks
-  *arbitrary shell commands you supply*. Integrating it would mean shipping the exact thing this
-  boundary exists to prevent.
-
----
+> [!NOTE]
+> The installer is not code-signed yet, so SmartScreen warns on first run. SHA-256 checksums are published with every release, and the portable build does not update itself.
 
 ## The catalog
 
-Twenty-six cards, grouped by the result you want rather than by the project that provides it.
-
-| | Tools | What you get |
-|---|---|---|
-| **Video and audio** | FFmpeg · ffprobe · SongRec · MKVToolNix | transcode, compress, trim, GIFs, contact sheets, inspect codecs, remux to MKV, and name the music that is playing |
-| **Downloads** | yt-dlp · gallery-dl · Deno | video and audio from a link, image galleries, and the runtime they lean on |
-| **Images** | libvips · Nomos8kSC · reverse image search · ImageMagick · Oxipng · ExifTool | resize, crop, convert, enlarge two to four times with a model, find where a picture came from, optimise PNG, read and strip metadata |
-| **PDFs and documents** | qpdf · Poppler · Tesseract · Pandoc | merge, split, rotate, protect, extract text, rasterise a page, OCR into a searchable PDF, convert between document formats |
+| Category | Tools | What you get |
+| --- | --- | --- |
+| **Video and audio** | FFmpeg · ffprobe · SongRec · MKVToolNix | transcode, compress, trim, GIFs, contact sheets, inspect codecs, remux to MKV, name the music that is playing |
+| **Downloads** | yt-dlp · gallery-dl | video and audio from a link, and image galleries |
+| **Images** | libvips · Nomos8kSC · reverse image search · ImageMagick · Oxipng · ExifTool | resize, crop, convert, enlarge with a model, find where a picture came from, optimise PNG, read and strip metadata |
+| **PDFs and documents** | qpdf · Poppler · Tesseract · Pandoc | merge, split, rotate, protect, extract text, rasterise a page, OCR into a searchable PDF, convert between formats |
 | **Text and data** | jq · yq · Miller · ripgrep · fd · Difftastic | JSON and YAML, CSV to JSON, search, find, structural diff |
 | **Files and disk** | 7-Zip · Dust · tokei · hexyl | archives, where the space went, count code, hex preview |
 
-Each card's artwork is a drawing of what the tool produces — stacked pages, a crop frame, a
-filmstrip resolving into a waveform — on one shared 200 × 100 grid, in the card's accent colour. A
-grid of twenty-six reads as one set instead of twenty-six unrelated icons.
+![The install plan for yt-dlp, with its three dependencies](docs/screenshots/install-dialog.png)
 
-Two of those cards reach the internet, and both say so in the panel before they run. Reverse image
-search performs the upload a browser cannot do for a file on your disk, then hands the address to
-your browser; music recognition fingerprints the clip locally and sends only the fingerprint. Every
-other operation is a local process on a file that never moves.
-
-![The catalog in the light theme](docs/screenshots/catalog-light.png)
-
-*Light and dark are the same tokens with different values; no rule below the token block names a
-colour. The switch offers System as well, and the choice is remembered per machine.*
-
-### What it refuses to do
-
-A catalog is defined as much by what stays out:
-
-| | Why not |
-|---|---|
-| **Ghostscript** | AGPL-3.0, with Artifex enforcing it against distribution alongside non-AGPL software. It would enter only if ToolHaven itself became AGPL. |
-| **pngquant** | GPL-3.0 with a commercial licence offered explicitly for non-GPL use — the kind of legal ambiguity this project stays out of. |
-| **hyperfine** | It runs arbitrary shell commands. See [the boundary](#the-boundary-that-shapes-everything). |
-
-Also out, and not coming back: cloud sync, accounts, telemetry, anything that uploads a file you
-did not point at a service yourself, DRM removal.
-
-Tesseract was on this list once, rejected because its engine is a neural network and the rule at the
-time was "no AI". The rule was wrong: what matters is where the work happens and what leaves the
-machine, not which technique does it. Tesseract reads a scan on your processor and the upscaler
-enlarges a photograph on your graphics card; both are fetched only if you ask, and the picture never
-leaves. *Local* is the claim, not *no models*.
-
----
-
-## Jobs that outlive the panel
-
-Start an operation, close the tool, and it keeps running. That sounds obvious and it is the thing
-the app got wrong for longest: execution used to live inside the panel component, so closing the
-panel took the progress, the result and the record with it.
-
-Execution now belongs to an application-level queue. The host stamps a **job id** on every progress
-event, so progress addresses one queue entry rather than a `tool + operation` pair — which matters
-the moment two conversions of the same kind run at once.
-
-Two bugs that only instrumentation would have found:
-
-- **The progress bar never moved on downloads.** The host was parsing yt-dlp's *stderr*; yt-dlp
-  writes `[download] … %` to *stdout*. Reading the wrong stream produced a bar frozen at 0% from
-  start to finish.
-- **Downloads re-encoded when they had no reason to.** `--recode-video mp4` re-encoded files that
-  were already mp4. Format selection plus `--merge-output-format` now remuxes instead, which is both
-  faster and lossless.
-
-A job starts with **no percentage at all**, not 0%. Until a tool reports one, the bar is
-indeterminate and the label just says `Running`. The app does not invent a number it does not have.
-
----
-
-## Running it
-
-Needs Windows x64. One command does everything — checks the toolchain, installs the dependencies,
-downloads and verifies the nine pinned tools, runs every check, and builds the installer:
-
-```powershell
-.\setup.ps1
-```
-
-Every step checks whether its work is already done, so re-running it is safe and takes about a
-minute and a half. It finishes by printing where the installer landed.
+## How it works
 
 ```
-  3  Downloading and verifying the tools that ship in the installer
-     9 executables staged, 47.5 MB
-  4  Running the checks
-     Everything green
-  5  Building the Windows installer
-
-  Done
-     ToolHaven_0.1.0_x64-setup.exe  15.6 MB
-     took 01:44
+apps/desktop/src/          React 19 + TypeScript interface
+apps/desktop/src-tauri/    Rust host: adapters, component store, process supervision
+tooling/tools.json         every tool, pinned to a URL, a version and a SHA-256
+scripts/                   manifest validation, staging, release manifest
+tests/                     manifest, installation, execution and stylesheet rules
 ```
 
-**Nothing is installed on your machine unless you ask.** Missing prerequisites are reported with the
-exact command that fixes them; `-InstallPrerequisites` lets the script run those itself. Installing
-a compiler toolchain is the machine owner's decision, not a build script's.
+Three properties shape everything else:
 
-| Flag | Effect |
-|---|---|
-| `-InstallPrerequisites` | Install Node, Rust and the VS C++ build tools with winget if they are missing |
-| `-Start` | Open the app when the build finishes |
-| `-Dev` | Skip the release build and open the development window |
-| `-SkipTests` | Skip the domain, interface and host suites |
-| `-SkipBuild` | Set everything up without producing an installer |
+- **No arbitrary shell, ever.** An operation is a typed request — tool, operation, inputs, output, options — that a pure resolver turns into an executable name and an argument array. No string is ever handed to a shell, so a file named `; rm -rf` is a file name.
+- **The component store is keyed by digest, not by tool.** FFmpeg and ffprobe come from the same archive, so they are downloaded once. Installation stages into a sibling directory and activates with an atomic rename, under `%LOCALAPPDATA%` — never Program Files.
+- **Resolution order is pinned first.** `<install dir>/tools/`, then the component store, then PATH. Git for Windows ships an Xpdf `pdftotext.exe` that usually wins on PATH; Poppler is probed through a binary Xpdf does not ship. There is a test for it.
 
-Or drive the same steps by hand:
+## Build it yourself
 
-```powershell
+Node 24+, Rust (MSVC toolchain) and the Visual Studio C++ build tools.
+
+```bash
 npm install
-npm run tools:stage  # download and verify the bundled artifacts
-npm run tauri:build  # stages them again, then builds
-npm run dev          # interface only, in a browser
-npm run tauri:dev    # the real Windows app
-npm run screenshots  # regenerate the images in this README
+npm run tools:stage   # downloads and verifies the bundled tools
+npm run tauri:dev
 ```
-
-The build stages the bundled tools first, so the installer never leaves without them. The output is
-in `apps/desktop/src-tauri/target/release/bundle/` — `.msi` and `.exe`.
-
-The browser preview renders the whole interface but **refuses to execute anything** and says so — it
-has no native bridge, and pretending otherwise would be the dishonesty this project keeps arguing
-against.
-
----
-
-## Verifying it
 
 ```bash
-npm test                                                        # 22 domain + 53 interface
-cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml     # 19 host
-npm run validate:tools && npm run audit:capabilities             # manifest and capability audit
+npm test              # manifest, execution, interface and component tests
+npm run tauri:build   # the installer, the MSI and the portable build
 ```
 
-The interesting suite is the one that talks to real binaries:
+> [!IMPORTANT]
+> A release that clients can update to must be signed. Both variables are required, even when the key has no password — without the second, the build stops at a prompt no script can answer and then produces no signature at all.
+>
+> ```bash
+> TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.toolhaven/updater.key)" \
+> TAURI_SIGNING_PRIVATE_KEY_PASSWORD="" npm run tauri:build
+> ```
 
-```bash
-cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml -- --include-ignored --nocapture
-```
-
-It generates its own fixtures — a PDF built byte by byte, a video from FFmpeg's `lavfi`, a CSV, a
-local HTTP server to download from — and runs **every operation in the catalog** against the real
-tool. It prints `PASS tool/operation` per line, and when a tool is not installed it **names what it
-could not verify** rather than passing quietly:
-
-```
-PASS poppler/extract-text + rasterize
-PASS mkvtoolnix/remux + inspect
-Every catalog operation passed against a real binary.
-```
-
-A second opt-in test downloads a real component end to end — fetch, verify, extract, activate — and
-asserts that installing it again is a no-op rather than a second download.
-
-The screenshots in this file are generated by `scripts/screenshots.mjs`, which drives headless
-Chrome over the DevTools protocol. A screenshot nobody can regenerate quietly starts lying after
-the next change to the interface.
-
----
+Artifacts are staged in `Releases/<version>/`, and `npm run release:manifest` writes the `latest.json` a release needs.
 
 ## Languages
 
-English and Brazilian Portuguese, chosen in Settings and remembered on the
-machine. English is the default and needs no dictionary: translations are keyed
-by the English sentence itself, so the source keeps saying what it puts on
-screen, and a string nobody has translated yet shows in English rather than as
-a key.
+English and Brazilian Portuguese, chosen in Settings and remembered on the machine. Translations are keyed by the English sentence itself, so the source keeps saying what it puts on screen and an untranslated string shows in English rather than as a key.
 
 ```
 apps/desktop/src/i18n/pt.ts            the interface
@@ -358,62 +106,14 @@ apps/desktop/src/i18n/catalog-pt.ts    the tools, their operations and options
 tests/interface/translations.test.mjs  refuses a string the dictionary has never heard of
 ```
 
-Adding a language is a file beside those two and an entry in `dictionaries`.
-
-## Staying up to date
-
-The app checks for a new version when it opens, downloads it, and installs it.
-Settings names the running version and has a *Check now* button for asking
-between launches.
-
-What it will not do is restart itself: a window that disappears while a two-hour
-transcode is running has not been helpful. So the last step is a button, and the
-banner says the work is already done.
-
-Every update is verified before it is allowed to run. The release is signed with
-a key whose public half is compiled into the binary, so a download that has been
-tampered with — or served by anything other than the real release — is refused
-rather than installed. The private half is not in this repository and never will
-be; losing it means no further updates can be signed, which is the trade for not
-being able to push one by compromising a web server.
-
-The check is one request to the release manifest. If there is no network, or the
-manifest is missing, the app carries on at the version it has and says nothing.
-
-```
-apps/desktop/src-tauri/tauri.conf.json   the endpoint and the public key
-scripts/release/build-update-manifest.mjs   writes the latest.json a release needs
-Releases/<version>/                         where a version's artifacts are staged
-```
-
-Building a release that can be updated to needs the signing key in the
-environment, or the build fails rather than shipping something no client will
-accept:
-
-```bash
-TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.toolhaven/updater.key)" TAURI_SIGNING_PRIVATE_KEY_PASSWORD="" npm run tauri:build
-```
-
-The password variable is not optional even when the key has no password: without
-it the build stops at a prompt no script can answer, finishes the bundles, and
-silently produces no signature at all.
-
 ## Known limitations
 
-Eight of them, written down rather than discovered: what 7-Zip cannot read,
-what the upscaler needs from your GPU, which half of the update path is still
-unproven, and the rest.
+What this release cannot do is written down rather than discovered: what 7-Zip cannot read, what the upscaler needs from your GPU, which half of the update path is still unproven, and the rest.
 
 → **[LIMITATIONS.md](LIMITATIONS.md)**
 
----
-
 ## Stack
 
-`Tauri 2` · `Rust` (host, adapters, component store) · `React 19` · `TypeScript` · `Vite` ·
-`ureq` + `zip` + `sha2` for the installer · no runtime dependencies beyond the tools themselves
+`Tauri 2` · `Rust` (host, adapters, component store) · `React 19` · `TypeScript` · `Vite` · `ureq` + `zip` + `sha2` for the installer — and no runtime dependency beyond the tools themselves.
 
-Own code is MIT. Every third-party executable keeps its own licence, recorded with version, origin,
-artifact URL and SHA-256 in `vendor/THIRD-PARTY-NOTICES.txt`, generated by the build.
-
-Also here: [`LIMITATIONS.md`](LIMITATIONS.md) — what this release cannot do.
+Own code is MIT. Every third-party executable keeps its own licence, recorded with version, origin, artifact URL and SHA-256 in `vendor/THIRD-PARTY-NOTICES.txt`, generated by the build.
