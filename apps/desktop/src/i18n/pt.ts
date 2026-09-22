@@ -942,4 +942,5 @@ export const portuguese: Record<string, string> = {
   "Card title": "Título do cartão",
   "Supporting text for the card.": "Texto de apoio do cartão.",
   "The quick brown fox jumps over the lazy dog.": "Um pequeno jabuti xereta viu dez cegonhas felizes.",
+  "Upload a file": "Enviar um arquivo",
 };

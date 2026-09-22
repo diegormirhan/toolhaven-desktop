@@ -146,7 +146,28 @@ export function UtilityPanel({
 
         {utility.input === "text" && !isGenerating && (
           <label className="utility-field">
-            <span>{t(utility.inputLabel ?? "Your text")}</span>
+            <span className="utility-field__label-row">
+              {t(utility.inputLabel ?? "Your text")}
+              {utility.acceptFiles && (
+                <span className="utility-file-upload">
+                  <input
+                    type="file"
+                    accept={utility.acceptFiles.join(",")}
+                    aria-label={t("Upload a file")}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      event.target.value = "";
+                      if (!file) return;
+                      void file.text().then((text) => {
+                        setInput(text);
+                        setTouched(true);
+                      });
+                    }}
+                  />
+                  {t("Upload a file")}
+                </span>
+              )}
+            </span>
             <textarea
               className="utility-input"
               value={input}

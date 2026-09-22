@@ -661,6 +661,17 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
    deliberately looks it — it is an answer, not a second draft. */
 .utility-field { display: grid; gap: 7px; margin-bottom: var(--space-4); }
 .utility-field > span { color: var(--text-secondary); font-size: 0.76rem; }
+.utility-field__label-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.utility-file-upload {
+  position: relative; display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; color: var(--action); font-size: 0.72rem; font-weight: 600;
+  border: 1px solid var(--line-strong); border-radius: 999px; cursor: pointer;
+  transition: background 200ms var(--ease-out), border-color 200ms var(--ease-out);
+}
+.utility-file-upload:hover { background: var(--surface-hover); border-color: var(--action); }
+.utility-file-upload input[type="file"] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer;
+}
 .utility-input {
   inline-size: 100%; min-block-size: 132px; resize: vertical;
   padding: 11px 12px;

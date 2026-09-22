@@ -55,6 +55,8 @@ export type Utility = {
   outputKind?: "text" | "image";
   inputLabel?: string;
   fields?: UtilityField[];
+  /** File extensions this utility can read its input from, e.g. [".css"]. */
+  acceptFiles?: string[];
   // A few utilities (the hashes) reach for the platform's crypto API, which is
   // asynchronous. Every result is awaited the same way, whether it resolves
   // immediately or not, so the panel does not need to know which is which.
@@ -1298,6 +1300,7 @@ export const utilityGroups: UtilityGroup[] = [
         label: "Minify CSS",
         description: "Strip comments and whitespace.",
         input: "text",
+        acceptFiles: [".css"],
         run: (input) => formatting.minifyCss(input),
       },
       {
@@ -1305,6 +1308,7 @@ export const utilityGroups: UtilityGroup[] = [
         label: "Format CSS",
         description: "One declaration per line, indented by nesting.",
         input: "text",
+        acceptFiles: [".css"],
         run: (input) => formatting.formatCss(input),
       },
       {
@@ -1312,6 +1316,7 @@ export const utilityGroups: UtilityGroup[] = [
         label: "Minify HTML",
         description: "Strip comments and whitespace between tags.",
         input: "text",
+        acceptFiles: [".html", ".htm"],
         run: (input) => formatting.minifyHtml(input),
       },
       {
@@ -1319,6 +1324,7 @@ export const utilityGroups: UtilityGroup[] = [
         label: "Format HTML",
         description: "Indented by nesting, a child one level deeper than its parent.",
         input: "text",
+        acceptFiles: [".html", ".htm"],
         fields: [
           {
             key: "indent",
