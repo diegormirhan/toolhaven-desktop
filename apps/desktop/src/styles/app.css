@@ -917,6 +917,20 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .tool-panel__body { min-width: 0; min-height: 0; overflow: auto; padding: 30px 24px; overflow-wrap: anywhere; }
 .tool-panel__body h2 { margin: 0; font-size: 1.85rem; letter-spacing: -0.028em; }
 .tool-panel__body > p { margin: 9px 0 26px; color: var(--text-secondary); line-height: 1.55; text-wrap: pretty; }
+/* The panel's own menu: which tool in this group is open, always in view
+   above the tool's own controls, instead of a select buried inside them. */
+.tool-panel__menu {
+  display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px;
+  padding-bottom: 14px; border-bottom: 1px solid var(--line);
+}
+.tool-panel__menu-item {
+  padding: 7px 13px; color: var(--text-secondary); font-size: 0.78rem; font-weight: 600;
+  background: var(--surface-sunken); border: 1px solid var(--line-strong); border-radius: 999px;
+  cursor: pointer; transition: background 200ms var(--ease-out), border-color 200ms var(--ease-out), color 200ms var(--ease-out);
+}
+.tool-panel__menu-item:hover { background: var(--surface-hover); color: var(--text); }
+.tool-panel__menu-item.is-active { color: var(--action-contrast, white); background: var(--action); border-color: var(--action); }
+.tool-panel__menu-description { margin: 0 0 20px; color: var(--text-quiet); font-size: 0.78rem; line-height: 1.4; }
 .file-drop--compact { flex-direction: column; min-height: 170px; text-align: center; }
 .file-drop--compact strong { margin-top: 5px; }
 .operation-select, .source-url { display: grid; gap: 7px; margin: 0 0 16px; }

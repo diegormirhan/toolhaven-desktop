@@ -122,20 +122,25 @@ export function UtilityPanel({
         <h2 id="tool-panel-title">{t(tool.title)}</h2>
         <p>{t(tool.description)}</p>
 
-        <label className="operation-select">
-          <span>{t("Tool")}</span>
-          <Select
-            label={t("Tool")}
-            value={utilityId}
-            choices={group.utilities.map((entry) => ({ value: entry.id, label: t(entry.label) }))}
-            onChange={(next) => {
-              setUtilityId(next);
-              setOptions({});
-              setTouched(false);
-            }}
-          />
-          <small>{t(utility.description)}</small>
-        </label>
+        <div className="tool-panel__menu" role="tablist" aria-label={t("Tool")}>
+          {group.utilities.map((entry) => (
+            <button
+              key={entry.id}
+              type="button"
+              role="tab"
+              aria-selected={entry.id === utilityId}
+              className={`tool-panel__menu-item${entry.id === utilityId ? " is-active" : ""}`}
+              onClick={() => {
+                setUtilityId(entry.id);
+                setOptions({});
+                setTouched(false);
+              }}
+            >
+              {t(entry.label)}
+            </button>
+          ))}
+        </div>
+        <p className="tool-panel__menu-description">{t(utility.description)}</p>
 
         {utility.outbound && (
           <p className="notice notice--outbound">
