@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { Check, Copy, Eraser } from "lucide-react";
+import { Check, Copy, Eraser, ExternalLink } from "lucide-react";
 import type { CatalogTool } from "../catalog/catalog";
 import { utilityById, utilityGroup, type Utility } from "../utilities/registry";
 import { PanelShell } from "./PanelShell";
@@ -118,6 +118,13 @@ export function UtilityPanel({
           />
           <small>{t(utility.description)}</small>
         </label>
+
+        {utility.outbound && (
+          <p className="notice notice--outbound">
+            <ExternalLink size={14} aria-hidden="true" />
+            <span>{t(utility.outbound)}</span>
+          </p>
+        )}
 
         {utility.input === "text" && (
           <label className="utility-field">

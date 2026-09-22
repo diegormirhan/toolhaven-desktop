@@ -398,6 +398,15 @@ export const portuguese: Record<string, string> = {
   // because UtilityPanel runs every fact name through t(name) when it
   // renders. Exempt from the unused-entry test the same way the host
   // section is.
+  "IP address": "Endereço IP",
+  "City": "Cidade",
+  "Country": "País",
+  "Postal code": "CEP",
+  "Coordinates": "Coordenadas",
+  "Network operator": "Operadora de rede",
+  "Asks a public service (ipify) for the address it sees your connection coming from.": "Pergunta a um serviço público (ipify) qual endereço ele vê sua conexão vindo de.",
+  "Sends the address to a public geolocation service (ipapi.co) to look it up.": "Envia o endereço a um serviço público de geolocalização (ipapi.co) para consultá-lo.",
+  "Asks a public DNS resolver (Cloudflare) for the domain's published records.": "Pergunta a um resolvedor DNS público (Cloudflare) os registros publicados do domínio.",
   "Number": "Número",
   "Expiry": "Validade",
   "CVV": "CVV",
@@ -591,6 +600,16 @@ export const portuguese: Record<string, string> = {
   "X2": "X2",
   "Y1": "Y1",
   "Y2": "Y2",
+  // ── Network lookups
+  "DNS lookup": "Consulta DNS",
+  "Locate an IP": "Localizar um IP",
+  "My IP": "Meu IP",
+  "Network lookups": "Consultas de rede",
+  "Record type": "Tipo de registro",
+  "The records a domain publishes.": "Os registros que um domínio publica.",
+  "The rough location and network an address belongs to.": "A localização aproximada e a rede a que um endereço pertence.",
+  "Your IP, a domain's DNS records, and where an address is.": "Seu IP, os registros DNS de um domínio, e onde um endereço está.",
+  "Your public IP address, as the internet sees it.": "Seu endereço IP público, como a internet o vê.",
   // ── The tools, their options and what they say while they run
   "0 — fastest": "0 — mais rápido",
   "1": "1",

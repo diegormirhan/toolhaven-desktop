@@ -478,7 +478,7 @@ const rowDefinitions = [
     id: "calculators",
     title: "Calculators",
     description: "Dates, money, health and colour — worked out on the spot.",
-    toolIds: ["dates-time", "math-finance", "colors", "everyday"],
+    toolIds: ["dates-time", "math-finance", "colors", "everyday", "network"],
   },
   {
     id: "files",

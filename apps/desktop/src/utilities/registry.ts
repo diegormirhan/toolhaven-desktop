@@ -9,6 +9,7 @@ import * as generators from "./generators";
 import * as colors from "./colors";
 import * as misc from "./misc";
 import * as css from "./css";
+import * as network from "./network";
 
 /**
  * The tools the app performs itself.
@@ -68,6 +69,13 @@ export type Utility = {
    * parsed as HTML and nothing to sanitise.
    */
   preview?: (options: Options) => Preview;
+  /**
+   * The message for the same outbound-request notice reverse image search
+   * and music recognition already show — set only on the handful of tools
+   * here that actually leave the machine, so most utilities carry nothing
+   * and show nothing.
+   */
+  outbound?: string;
 };
 
 export type UtilityGroup = {
@@ -1185,6 +1193,54 @@ export const utilityGroups: UtilityGroup[] = [
         ],
         run: css.checkboxCss,
         preview: css.checkboxPreview,
+      },
+    ],
+  },
+  {
+    id: "network",
+    title: "Network lookups",
+    description: "Your IP, a domain's DNS records, and where an address is.",
+    keywords: [
+      "ip", "address", "dns", "lookup", "domain", "network", "my ip", "geolocation",
+      "location", "whois", "records", "a record", "mx record", "cname",
+    ],
+    utilities: [
+      {
+        id: "my-ip",
+        label: "My IP",
+        description: "Your public IP address, as the internet sees it.",
+        input: "none",
+        outbound: "Asks a public service (ipify) for the address it sees your connection coming from.",
+        run: () => "",
+        facts: () => network.myIpFacts(),
+      },
+      {
+        id: "ip-lookup",
+        label: "Locate an IP",
+        description: "The rough location and network an address belongs to.",
+        input: "text",
+        inputLabel: "An IP address, or leave empty for your own",
+        outbound: "Sends the address to a public geolocation service (ipapi.co) to look it up.",
+        run: () => "",
+        facts: (input) => network.ipLookupFacts(input),
+      },
+      {
+        id: "dns-lookup",
+        label: "DNS lookup",
+        description: "The records a domain publishes.",
+        input: "text",
+        inputLabel: "A domain, like example.com",
+        outbound: "Asks a public DNS resolver (Cloudflare) for the domain's published records.",
+        fields: [
+          {
+            key: "type",
+            label: "Record type",
+            type: "select",
+            defaultValue: "A",
+            choices: network.dnsRecordTypes.map((type) => ({ value: type, label: type })),
+          },
+        ],
+        run: (input, options) => network.dnsLookup(input, options),
       },
     ],
   },
