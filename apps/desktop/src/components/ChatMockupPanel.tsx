@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { AlertTriangle, Download, Plus, ShieldAlert, Trash2 } from "lucide-react";
 import { toPng } from "html-to-image";
+import { withTimeout } from "../utilities/mockup";
 import type { CatalogTool } from "../catalog/catalog";
 import {
   avatarColor,
@@ -81,7 +82,10 @@ export function ChatMockupPanel({
     setSaving(true);
     setError("");
     try {
-      const dataUrl = await toPng(previewRef.current, { pixelRatio: 2 });
+      const dataUrl = await withTimeout(
+        toPng(previewRef.current, { pixelRatio: 2, skipFonts: true }),
+        10_000,
+      );
       const link = document.createElement("a");
       link.href = dataUrl;
       link.download = `${platform}-mockup.png`;

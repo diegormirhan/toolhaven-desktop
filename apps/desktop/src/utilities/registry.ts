@@ -12,6 +12,7 @@ import * as css from "./css";
 import * as network from "./network";
 import * as formatting from "./formatting";
 import * as qr from "./qrbarcode";
+import * as random from "./random";
 
 /**
  * The tools the app performs itself.
@@ -376,6 +377,34 @@ export const utilityGroups: UtilityGroup[] = [
           },
         ],
         run: (_input, options) => text.loremIpsum(options),
+      },
+      {
+        id: "bionic",
+        label: "Bionic reading",
+        description: "Bolds the start of each word, to guide the eye.",
+        input: "text",
+        fields: [],
+        run: (input) => text.bionicReading(input),
+      },
+      {
+        id: "letter-style",
+        label: "Letter styles",
+        description: "Circled, full-width, or one letter per line.",
+        input: "text",
+        fields: [
+          {
+            key: "style",
+            label: "Style",
+            type: "select",
+            defaultValue: "circled",
+            choices: [
+              { value: "circled", label: "Circled" },
+              { value: "fullwidth", label: "Full-width" },
+              { value: "stacked", label: "Stacked (one per line)" },
+            ],
+          },
+        ],
+        run: text.styleLetters,
       },
     ],
   },
@@ -1463,6 +1492,128 @@ export const utilityGroups: UtilityGroup[] = [
           },
         ],
         run: misc.symbolList,
+      },
+      {
+        id: "whatsapp-link",
+        label: "WhatsApp link",
+        description: "A wa.me link that opens a chat with a message ready to send.",
+        input: "none",
+        fields: [
+          { key: "phone", label: "Phone (with country code)", type: "text", placeholder: "5511999999999" },
+          { key: "message", label: "Message (optional)", type: "text" },
+        ],
+        run: misc.whatsappLink,
+      },
+      {
+        id: "minimum-wage",
+        label: "Minimum wages",
+        description: "How many minimum wages an amount represents.",
+        input: "none",
+        fields: [
+          { key: "wage", label: "Amount", type: "number", defaultValue: "5000" },
+          { key: "reference", label: "Minimum wage", type: "number", defaultValue: "1412" },
+        ],
+        run: () => "",
+        facts: misc.minimumWageFacts,
+      },
+      {
+        id: "first-million",
+        label: "First million",
+        description: "Months to reach a target, saving the same amount every month.",
+        input: "none",
+        fields: [
+          { key: "monthly", label: "Monthly contribution", type: "number", defaultValue: "1000" },
+          { key: "rate", label: "Monthly return (%)", type: "number", defaultValue: "0.8" },
+          { key: "target", label: "Target", type: "number", defaultValue: "1000000" },
+        ],
+        run: () => "",
+        facts: misc.firstMillionFacts,
+      },
+    ],
+  },
+  {
+    id: "random-picks",
+    title: "Random picks",
+    description: "Dice, roulette, the lottery, a raffle, and plain random picks.",
+    keywords: ["random", "dice", "roulette", "lottery", "raffle", "sorteio", "dado", "loteria"],
+    utilities: [
+      {
+        id: "dice",
+        label: "Roll dice",
+        description: "One or more dice, any number of sides.",
+        input: "none",
+        fields: [
+          { key: "sides", label: "Sides", type: "number", defaultValue: "6", min: 2 },
+          { key: "count", label: "How many dice", type: "number", defaultValue: "1", min: 1, max: 20 },
+        ],
+        run: random.rollDice,
+      },
+      {
+        id: "roulette",
+        label: "Roulette",
+        description: "A European wheel: 0 to 36, with its colour.",
+        input: "none",
+        fields: [],
+        run: () => "",
+        facts: random.spinRouletteFacts,
+      },
+      {
+        id: "mega-sena",
+        label: "Mega-Sena numbers",
+        description: "Six unique numbers between 1 and 60.",
+        input: "none",
+        fields: [],
+        run: () => random.megaSenaNumbers(),
+      },
+      {
+        id: "raffle",
+        label: "Raffle",
+        description: "One name per line — pick the winners without repeats.",
+        input: "text",
+        inputLabel: "Names, one per line",
+        fields: [{ key: "winners", label: "Winners", type: "number", defaultValue: "1", min: 1 }],
+        run: random.raffleWinners,
+      },
+      {
+        id: "random-numbers",
+        label: "Random numbers",
+        description: "A range, a count, unique or not.",
+        input: "none",
+        fields: [
+          { key: "min", label: "Minimum", type: "number", defaultValue: "1" },
+          { key: "max", label: "Maximum", type: "number", defaultValue: "100" },
+          { key: "count", label: "How many", type: "number", defaultValue: "5", min: 1, max: 50 },
+          {
+            key: "unique",
+            label: "No repeats",
+            type: "select",
+            defaultValue: "yes",
+            choices: yesNo,
+          },
+        ],
+        run: random.randomNumbers,
+      },
+      {
+        id: "random-words",
+        label: "Random words",
+        description: "A handful of words from a category, in Portuguese.",
+        input: "none",
+        fields: [
+          {
+            key: "bank",
+            label: "Category",
+            type: "select",
+            defaultValue: "animals",
+            choices: [
+              { value: "animals", label: "Animals" },
+              { value: "names", label: "Names" },
+              { value: "objects", label: "Objects" },
+              { value: "colors", label: "Colors" },
+            ],
+          },
+          { key: "count", label: "How many", type: "number", defaultValue: "5", min: 1, max: 20 },
+        ],
+        run: random.randomWords,
       },
     ],
   },

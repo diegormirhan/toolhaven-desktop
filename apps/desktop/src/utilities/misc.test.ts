@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { barbecueFacts, fuelChoiceFacts, fuelCostFacts, symbolList } from "./misc";
+import {
+  barbecueFacts,
+  firstMillionFacts,
+  fuelChoiceFacts,
+  fuelCostFacts,
+  minimumWageFacts,
+  symbolList,
+  whatsappLink,
+} from "./misc";
 
 function fact(facts: Array<[string, string]>, name: string): string | undefined {
   return facts.find(([entry]) => entry === name)?.[1];
@@ -49,5 +57,38 @@ describe("symbol list", () => {
 
   it("returns nothing for an unknown category rather than throwing", () => {
     expect(symbolList("", { category: "unknown" })).toBe("");
+  });
+});
+
+describe("whatsapp link", () => {
+  it("strips non-digits and appends the message", () => {
+    expect(whatsappLink("", { phone: "+55 (11) 99999-9999", message: "Oi" })).toBe(
+      "https://wa.me/5511999999999?text=Oi",
+    );
+  });
+
+  it("omits the query string with no message", () => {
+    expect(whatsappLink("", { phone: "5511999999999" })).toBe("https://wa.me/5511999999999");
+  });
+
+  it("refuses an empty phone number", () => {
+    expect(() => whatsappLink("", { phone: "" })).toThrow();
+  });
+});
+
+describe("minimum wage", () => {
+  it("divides the amount by the reference wage", () => {
+    expect(fact(minimumWageFacts("", { wage: "2824", reference: "1412" }), "Minimum wages")).toBe("2x");
+  });
+});
+
+describe("first million", () => {
+  it("computes months needed with no return", () => {
+    const facts = firstMillionFacts("", { monthly: "1000", rate: "0", target: "12000" });
+    expect(fact(facts, "Months needed")).toBe("12");
+  });
+
+  it("refuses a non-positive monthly contribution", () => {
+    expect(() => firstMillionFacts("", { monthly: "0", rate: "1", target: "1000" })).toThrow();
   });
 });

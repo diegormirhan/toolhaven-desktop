@@ -55,3 +55,21 @@ export type ChatPlatform = (typeof CHAT_PLATFORMS)[number];
 
 export const POST_PLATFORMS = ["tweet", "instagram-post"] as const;
 export type PostPlatform = (typeof POST_PLATFORMS)[number];
+
+/** Rejects if `promise` has not settled within `ms` — a safety net around
+ * html-to-image, which can hang instead of rejecting in some environments. */
+export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("Timed out saving the image.")), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}

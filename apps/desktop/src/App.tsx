@@ -32,6 +32,7 @@ import { utilityGroupIds } from "./utilities/registry";
 import { useUpdate, type UpdateState } from "./hooks/useUpdate";
 import { MusicPanel } from "./components/MusicPanel";
 import { ChatMockupPanel } from "./components/ChatMockupPanel";
+import { PostMockupPanel } from "./components/PostMockupPanel";
 import { ToolSection } from "./components/ToolSection";
 import { CategoryFilter } from "./components/CategoryFilter";
 import type { ToolJob } from "./domain/job-queue";
@@ -499,6 +500,15 @@ function Shell() {
             />
           ) : selectedTool.id === "chat-mockup" ? (
             <ChatMockupPanel
+              key={selectedTool.id}
+              tool={selectedTool}
+              leaving={panelLeaving}
+              onDirtyChange={setPanelDirty}
+              onClose={closeTool}
+              onExited={finishClosingTool}
+            />
+          ) : selectedTool.id === "post-mockup" ? (
+            <PostMockupPanel
               key={selectedTool.id}
               tool={selectedTool}
               leaving={panelLeaving}

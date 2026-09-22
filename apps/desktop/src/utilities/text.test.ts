@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   affixLines,
+  bionicReading,
   changeCase,
   countText,
   findAndReplace,
@@ -12,6 +13,7 @@ import {
   shuffleLines,
   slugify,
   sortLines,
+  styleLetters,
   tidyWhitespace,
   upsideDown,
 } from "./text";
@@ -167,5 +169,33 @@ describe("the random source", () => {
 
   it("has nothing to pick from a bound of zero", () => {
     expect(randomInteger(0)).toBe(0);
+  });
+});
+
+describe("bionic reading", () => {
+  it("bolds the leading part of each word", () => {
+    expect(bionicReading("reading")).toBe("𝐫𝐞𝐚ding");
+  });
+
+  it("bolds at least one letter of a short word", () => {
+    expect(bionicReading("a")).toBe("𝐚");
+  });
+
+  it("leaves punctuation and spacing untouched", () => {
+    expect(bionicReading("hi, there!")).toContain(", ");
+  });
+});
+
+describe("letter styles", () => {
+  it("circles letters by default", () => {
+    expect(styleLetters("AB", {})).toBe("ⒶⒷ");
+  });
+
+  it("stacks one letter per line", () => {
+    expect(styleLetters("abc", { style: "stacked" })).toBe("a\nb\nc");
+  });
+
+  it("converts to full-width forms", () => {
+    expect(styleLetters("AB", { style: "fullwidth" })).toBe("ＡＢ");
   });
 });

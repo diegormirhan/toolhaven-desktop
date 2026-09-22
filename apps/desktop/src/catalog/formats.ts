@@ -35,6 +35,7 @@ export const toolAccepts: Record<string, FormatFamily[]> = {
   "image-search": ["image"],
   // No file at all: the chat mockup is built entirely from typed text.
   "chat-mockup": ["any"],
+  "post-mockup": ["any"],
   // The recogniser is fed through FFmpeg, so anything with sound in it works.
   songrec: ["audio", "video"],
   imagemagick: ["image", "pdf"],

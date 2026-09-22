@@ -32,18 +32,19 @@ test("leaves a way out of the blur for anyone who asked for less transparency", 
 test("never hardcodes a colour below the token blocks", () => {
   // The token blocks own every literal colour; a hex further down means the
   // light theme has a rule that does not follow it. The one deliberate
-  // exception is the chat mockup: a WhatsApp bubble has to be WhatsApp
-  // green whichever theme the app itself is in, the same way a flag does
-  // not recolour for dark mode. That exemption has to track which rule a
-  // line is *inside*, not just whether the selector's own text sits on the
-  // same line — a multi-line rule's declarations do not repeat it.
+  // exception is a mockup: a WhatsApp bubble has to be WhatsApp green and a
+  // tweet's card has to be Twitter's own off-white, whichever theme the app
+  // itself is in, the same way a flag does not recolour for dark mode. That
+  // exemption has to track which rule a line is *inside*, not just whether
+  // the selector's own text sits on the same line — a multi-line rule's
+  // declarations do not repeat it.
   const body = stylesheet.slice(stylesheet.indexOf("* { box-sizing: border-box; }"));
   let insideMockupPhone = false;
   let depth = 0;
   const literals = [];
   for (const raw of body.split("\n")) {
     const line = raw.trim();
-    if (!insideMockupPhone && line.includes(".mockup-phone") && line.includes("{")) {
+    if (!insideMockupPhone && (line.includes(".mockup-phone") || line.includes(".mockup-post")) && line.includes("{")) {
       insideMockupPhone = true;
       depth = 0;
     }

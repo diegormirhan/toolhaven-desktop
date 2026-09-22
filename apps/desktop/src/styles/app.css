@@ -809,6 +809,25 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 }
 .mockup-phone--instagram-dm .mockup-phone__watermark { color: rgba(255, 255, 255, 0.65); background: rgba(0, 0, 0, 0.55); }
 
+/* ── Post mockup ──────────────────────────────────────────────
+   One card rather than a phone shell: a tweet and an Instagram post
+   are both "one message plus a stats row", not a scrolling thread. */
+.mockup-message-row--stats { display: flex; gap: var(--space-3); grid-template-columns: none; }
+.mockup-post {
+  display: flex; flex-direction: column; gap: 10px;
+  inline-size: 340px; padding: 16px 18px; overflow: hidden;
+  background: white; border-radius: 16px; box-shadow: var(--shadow-lifted);
+}
+.mockup-post__header { display: flex; align-items: center; gap: 10px; }
+.mockup-post__identity { display: flex; flex-direction: column; line-height: 1.25; color: #111; }
+.mockup-post__identity small { color: #6b7280; font-size: 0.76rem; }
+.mockup-post__text { margin: 0; color: #111; font-size: 0.86rem; line-height: 1.45; overflow-wrap: anywhere; white-space: pre-wrap; }
+.mockup-post__stats { display: flex; gap: 18px; color: #6b7280; font-size: 0.76rem; }
+.mockup-post__stats span { display: inline-flex; align-items: center; gap: 5px; }
+
+.mockup-post--tweet { border: 1px solid #cfd9de; }
+.mockup-post--instagram-post { background: #fafafa; border: 1px solid #dbdbdb; }
+
 @media (max-width: 900px) {
   .mockup-panel__body { grid-template-columns: 1fr; }
   .mockup-panel__preview { border-left: 0; border-top: 1px solid var(--line); }

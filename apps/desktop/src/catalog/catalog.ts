@@ -152,6 +152,22 @@ const presentationById: Record<string, ToolPresentation> = {
     ],
     builtIn: { integrationName: "Chat mockup", capabilities: [] },
   },
+  "post-mockup": {
+    id: "post-mockup",
+    title: "Post mockup",
+    description: "A made-up tweet or Instagram post, for a mockup or a test.",
+    category: "utilities",
+    accent: "action",
+    size: "standard",
+    operations: [
+      { id: "build", label: "Build", description: "Type the post, then save it as a picture." },
+    ],
+    keywords: [
+      "post", "mockup", "fake", "tweet", "twitter", "x", "instagram", "social",
+      "screenshot", "test", "design", "generator",
+    ],
+    builtIn: { integrationName: "Post mockup", capabilities: [] },
+  },
   imagemagick: {
     id: "imagemagick",
     title: "Image formats",
@@ -494,7 +510,7 @@ const rowDefinitions = [
     id: "calculators",
     title: "Calculators",
     description: "Dates, money, health and colour — worked out on the spot.",
-    toolIds: ["dates-time", "math-finance", "colors", "everyday", "network"],
+    toolIds: ["dates-time", "math-finance", "colors", "everyday", "network", "random-picks"],
   },
   {
     id: "files",
@@ -506,7 +522,7 @@ const rowDefinitions = [
     id: "mockups",
     title: "Mockups",
     description: "Made up on purpose — for a design or a test, never a real account.",
-    toolIds: ["chat-mockup"],
+    toolIds: ["chat-mockup", "post-mockup"],
   },
 ] as const;
 

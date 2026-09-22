@@ -91,3 +91,58 @@ export function symbolList(_input: string, options: Options): string {
   const category = options.category ?? "arrows";
   return (SYMBOL_SETS[category] ?? []).join(" ");
 }
+
+// ── WhatsApp link ───────────────────────────────────────────────────────
+
+export function whatsappLink(_input: string, options: Options): string {
+  const digits = (options.phone ?? "").replace(/\D/g, "");
+  if (!digits) throw new Error("Type a phone number, with the country code.");
+  const message = options.message ?? "";
+  const query = message ? `?text=${encodeURIComponent(message)}` : "";
+  return `https://wa.me/${digits}${query}`;
+}
+
+// ── Minimum wage multiples ──────────────────────────────────────────────
+
+export function minimumWageFacts(_input: string, options: Options): Array<[string, string]> {
+  const wage = Number(options.wage ?? "0");
+  const reference = Number(options.reference ?? "1412");
+  if (!Number.isFinite(wage) || wage <= 0 || !Number.isFinite(reference) || reference <= 0) {
+    throw new Error("Both the amount and the minimum wage need to be positive numbers.");
+  }
+  const multiples = wage / reference;
+  return [
+    ["Minimum wages", `${round(multiples)}x`],
+    ["Amount", wage.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })],
+  ];
+}
+
+// ── First million ───────────────────────────────────────────────────────
+
+/** Months to reach a target, saving a fixed amount monthly at a fixed
+ * monthly rate — the ordinary future-value-of-an-annuity formula, solved
+ * for the number of periods instead of the total. */
+export function firstMillionFacts(_input: string, options: Options): Array<[string, string]> {
+  const monthly = Number(options.monthly ?? "0");
+  const ratePercent = Number(options.rate ?? "0");
+  const target = Number(options.target ?? "1000000");
+  if (!Number.isFinite(monthly) || monthly <= 0) throw new Error("Type a positive monthly contribution.");
+  if (!Number.isFinite(target) || target <= 0) throw new Error("Type a positive target.");
+
+  const rate = ratePercent / 100;
+  let months: number;
+  if (rate === 0) {
+    months = target / monthly;
+  } else {
+    months = Math.log(1 + (target * rate) / monthly) / Math.log(1 + rate);
+  }
+  const wholeMonths = Math.ceil(months);
+  const years = Math.floor(wholeMonths / 12);
+  const remainingMonths = wholeMonths % 12;
+
+  return [
+    ["Months needed", String(wholeMonths)],
+    ["Roughly", `${years} ${years === 1 ? "year" : "years"}, ${remainingMonths} ${remainingMonths === 1 ? "month" : "months"}`],
+    ["Total contributed", (wholeMonths * monthly).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })],
+  ];
+}

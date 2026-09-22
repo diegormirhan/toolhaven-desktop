@@ -65,6 +65,62 @@ export function upsideDown(text: string): string {
     .join("");
 }
 
+// ── Bionic reading ──────────────────────────────────────────────────────
+
+const BOLD_LETTERS: Record<string, string> = {};
+{
+  const upperStart = "A".codePointAt(0)!;
+  const boldUpperStart = "𝐀".codePointAt(0)!;
+  const lowerStart = "a".codePointAt(0)!;
+  const boldLowerStart = "𝐚".codePointAt(0)!;
+  for (let i = 0; i < 26; i += 1) {
+    BOLD_LETTERS[String.fromCodePoint(upperStart + i)] = String.fromCodePoint(boldUpperStart + i);
+    BOLD_LETTERS[String.fromCodePoint(lowerStart + i)] = String.fromCodePoint(boldLowerStart + i);
+  }
+}
+
+/** Bolds the leading part of each word — the fixation point the eye needs,
+ * the rest left for peripheral vision to fill in. */
+export function bionicReading(text: string): string {
+  return text.replace(/\p{L}+/gu, (word) => {
+    const boldLength = Math.max(1, Math.ceil(word.length * 0.4));
+    const head = [...word.slice(0, boldLength)].map((c) => BOLD_LETTERS[c] ?? c).join("");
+    return head + word.slice(boldLength);
+  });
+}
+
+// ── Letter styles ───────────────────────────────────────────────────────
+
+const CIRCLED_LETTERS: Record<string, string> = {};
+{
+  const upperStart = "A".codePointAt(0)!;
+  const circledUpperStart = "Ⓐ".codePointAt(0)!;
+  const lowerStart = "a".codePointAt(0)!;
+  const circledLowerStart = "ⓐ".codePointAt(0)!;
+  for (let i = 0; i < 26; i += 1) {
+    CIRCLED_LETTERS[String.fromCodePoint(upperStart + i)] = String.fromCodePoint(circledUpperStart + i);
+    CIRCLED_LETTERS[String.fromCodePoint(lowerStart + i)] = String.fromCodePoint(circledLowerStart + i);
+  }
+  for (let digit = 1; digit <= 9; digit += 1) {
+    CIRCLED_LETTERS[String(digit)] = String.fromCodePoint("①".codePointAt(0)! + digit - 1);
+  }
+}
+
+const FULLWIDTH_START = "！".codePointAt(0)! - "!".codePointAt(0)!;
+
+export function styleLetters(text: string, options: Options): string {
+  const style = options.style ?? "circled";
+  if (style === "fullwidth") {
+    return [...text]
+      .map((c) => (c.codePointAt(0)! >= 0x21 && c.codePointAt(0)! <= 0x7e ? String.fromCodePoint(c.codePointAt(0)! + FULLWIDTH_START) : c))
+      .join("");
+  }
+  if (style === "stacked") {
+    return [...text].join("\n");
+  }
+  return [...text].map((c) => CIRCLED_LETTERS[c] ?? c).join("");
+}
+
 /** Drops repeated lines, keeping the first of each. */
 export function removeDuplicateLines(text: string, options: Options): string {
   const fold = options.caseSensitive === "no";
