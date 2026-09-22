@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { AlertTriangle, Download, Plus, ShieldAlert, Trash2 } from "lucide-react";
+import { AlertTriangle, CheckCheck, Download, Plus, Trash2 } from "lucide-react";
 import { toPng } from "html-to-image";
 import { withTimeout } from "../utilities/mockup";
 import type { CatalogTool } from "../catalog/catalog";
@@ -26,14 +26,9 @@ const PLATFORM_LABELS: Record<ChatPlatform, string> = {
  * A fake chat, built by hand and exported as a picture.
  *
  * Every message is typed in here — there is no import, no connected account
- * and nothing captured from a real conversation. That is also the whole
- * reason it exists: a screenshot of a chat interface for a design mockup or
- * a test fixture, without either staging a real conversation to screenshot
- * or asking whoever owns one for it.
- *
- * The warning baked into the exported image is not decoration. A caption
- * saying "for testing" is read once, in this window; the picture is what
- * travels afterwards, and it is the picture that has to say what it is.
+ * and nothing captured from a real conversation. It exists to produce a
+ * clean screenshot of a chat interface for a design mockup, a caption graphic
+ * or a test fixture, without staging a real conversation to screenshot.
  */
 export function ChatMockupPanel({
   tool,
@@ -110,15 +105,6 @@ export function ChatMockupPanel({
       <section className="tool-panel__controls mockup-panel__form">
         <h2 id="tool-panel-title">{t(tool.title)}</h2>
         <p>{t(tool.description)}</p>
-
-        <p className="notice notice--warning">
-          <ShieldAlert size={14} aria-hidden="true" />
-          <span>
-            {t(
-              "For UI mockups and testing only. Every message here is made up, exported with a visible label saying so, and never claims to be a real conversation.",
-            )}
-          </span>
-        </p>
 
         <label className="operation-select">
           <span>{t("App")}</span>
@@ -202,13 +188,15 @@ export function ChatMockupPanel({
             {messages.map((message) => (
               <div key={message.id} className={`mockup-bubble mockup-bubble--${message.from}`}>
                 <span className="mockup-bubble__text">{message.text || t("Type a message")}</span>
-                <span className="mockup-bubble__time">{message.time}</span>
+                <span className="mockup-bubble__meta">
+                  <span className="mockup-bubble__time">{message.time}</span>
+                  {message.from === "me" && platform === "whatsapp" && (
+                    <CheckCheck size={14} className="mockup-bubble__check" aria-hidden="true" />
+                  )}
+                </span>
               </div>
             ))}
           </div>
-          <footer className="mockup-phone__watermark">
-            {t("MOCKUP — not a real conversation")}
-          </footer>
         </div>
 
         <button className="button button--primary" type="button" onClick={() => void saveImage()} disabled={saving}>

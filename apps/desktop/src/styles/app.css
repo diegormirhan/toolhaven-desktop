@@ -764,12 +764,11 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .utility-image-frame img { max-inline-size: 100%; max-block-size: 220px; }
 
 /* ── Chat mockup ──────────────────────────────────────────────
-   A form on the left, a phone-shaped preview on the right, and a
-   warning that is part of the exported picture rather than only of
-   the window around it — a screenshot travels on its own, and has to
-   say on its own that it is not real. */
+   A form on the left, a phone-shaped preview on the right. The
+   preview mirrors each app's real look closely enough to read as a
+   screenshot of it. */
 .mockup-panel__body {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
   gap: 0; padding: 0;
 }
 .mockup-panel__form { min-width: 0; overflow: auto; padding: 30px 26px; }
@@ -825,41 +824,51 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 }
 .mockup-bubble {
   display: flex; flex-direction: column; gap: 2px;
-  max-inline-size: 78%; padding: 8px 11px; border-radius: 14px; font-size: 0.78rem;
+  max-inline-size: 80%; padding: 6px 9px 5px; border-radius: 8px; font-size: 0.78rem;
 }
 .mockup-bubble__text { overflow-wrap: anywhere; white-space: pre-wrap; }
-.mockup-bubble__time { align-self: flex-end; font-size: 0.6rem; opacity: 0.65; }
-.mockup-phone__watermark {
-  padding: 6px 10px; color: rgba(0, 0, 0, 0.55); background: rgba(255, 255, 255, 0.85);
-  font-size: 0.6rem; text-align: center; letter-spacing: 0.02em;
-}
+.mockup-bubble__meta { display: flex; align-items: center; gap: 3px; align-self: flex-end; margin-top: 1px; }
+.mockup-bubble__time { font-size: 0.6rem; opacity: 0.7; }
 
-.mockup-phone--whatsapp { background: #e5ddd5; }
-.mockup-phone--whatsapp .mockup-phone__header { background: #075e54; }
-.mockup-phone--whatsapp .mockup-bubble--them { align-self: flex-start; color: #111; background: white; }
-.mockup-phone--whatsapp .mockup-bubble--me { align-self: flex-end; color: #111; background: #dcf8c6; }
+/* WhatsApp, dark theme: a near-black background with a faint texture, dark
+   grey bubbles inbound and dark green outbound, with read ticks. */
+.mockup-phone--whatsapp { background: #0b141a; }
+.mockup-phone--whatsapp .mockup-phone__header { background: #202c33; color: #e9edef; }
+.mockup-phone--whatsapp .mockup-phone__messages {
+  background:
+    radial-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1.4px) 0 0 / 22px 22px,
+    #0b141a;
+}
+.mockup-phone--whatsapp .mockup-bubble--them { align-self: flex-start; color: #e9edef; background: #202c33; }
+.mockup-phone--whatsapp .mockup-bubble--me { align-self: flex-end; color: #e9edef; background: #005c4b; }
+.mockup-phone--whatsapp .mockup-bubble__time { color: #8696a0; opacity: 1; }
+.mockup-phone--whatsapp .mockup-bubble__check { color: #53bdeb; }
 
 .mockup-phone--imessage { background: white; }
 .mockup-phone--imessage .mockup-phone__header { color: #111; background: #f5f5f5; border-bottom: 1px solid var(--line); }
-.mockup-phone--imessage .mockup-bubble--them { align-self: flex-start; color: #111; background: #e9e9eb; }
-.mockup-phone--imessage .mockup-bubble--me { align-self: flex-end; color: white; background: #0b93f6; }
+.mockup-phone--imessage .mockup-bubble--them { align-self: flex-start; color: #111; background: #e9e9eb; border-radius: 16px; }
+.mockup-phone--imessage .mockup-bubble--me { align-self: flex-end; color: white; background: #0b93f6; border-radius: 16px; }
 
 .mockup-phone--instagram-dm { background: #000; }
 .mockup-phone--instagram-dm .mockup-phone__header { background: #000; border-bottom: 1px solid #262626; }
-.mockup-phone--instagram-dm .mockup-bubble--them { align-self: flex-start; color: white; background: #262626; }
+.mockup-phone--instagram-dm .mockup-bubble--them { align-self: flex-start; color: white; background: #262626; border-radius: 18px; }
 .mockup-phone--instagram-dm .mockup-bubble--me {
-  align-self: flex-end; color: white;
+  align-self: flex-end; color: white; border-radius: 18px;
   background: linear-gradient(45deg, #833ab4, #fd1d1d, #fcb045);
 }
-.mockup-phone--instagram-dm .mockup-phone__watermark { color: rgba(255, 255, 255, 0.65); background: rgba(0, 0, 0, 0.55); }
 
 /* ── Post mockup ──────────────────────────────────────────────
-   One card rather than a phone shell: a tweet and an Instagram post
-   are both "one message plus a stats row", not a scrolling thread. */
-.mockup-message-row--stats { display: flex; gap: var(--space-3); grid-template-columns: none; }
+   A tweet renders as X's own timeline card — avatar in its own column
+   with the text indented under the name; an Instagram post is a plainer
+   card. Both carry their brand colours whichever theme the app is in. */
+.mockup-message-row--stats { display: flex; flex-wrap: wrap; gap: var(--space-3); grid-template-columns: none; }
+.mockup-message-row--stats .mockup-field { flex: 1 1 90px; margin: 0; }
+.mockup-checkbox { display: flex; align-items: center; gap: 8px; margin: var(--space-4) 0; cursor: pointer; }
+.mockup-checkbox input { inline-size: 16px; block-size: 16px; }
+.mockup-checkbox span { color: var(--text-secondary); font-size: 0.82rem; }
 .mockup-post {
   display: flex; flex-direction: column; gap: 10px;
-  inline-size: 340px; padding: 16px 18px; overflow: hidden;
+  inline-size: min(340px, 100%); padding: 14px 16px; overflow: hidden;
   background: white; border-radius: 16px; box-shadow: var(--shadow-lifted);
 }
 .mockup-post__header { display: flex; align-items: center; gap: 10px; }
@@ -868,9 +877,31 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .mockup-post__text { margin: 0; color: #111; font-size: 0.86rem; line-height: 1.45; overflow-wrap: anywhere; white-space: pre-wrap; }
 .mockup-post__stats { display: flex; gap: 18px; color: #6b7280; font-size: 0.76rem; }
 .mockup-post__stats span { display: inline-flex; align-items: center; gap: 5px; }
-
-.mockup-post--tweet { border: 1px solid #cfd9de; }
 .mockup-post--instagram-post { background: #fafafa; border: 1px solid #dbdbdb; }
+
+/* Tweet / X card. */
+.mockup-post--tweet {
+  gap: 0; padding: 12px 14px;
+  background: #ffffff; border: 1px solid #eff3f4; border-radius: 16px;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; color: #0f1419;
+}
+.mockup-post--tweet .mockup-tweet__grid { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; }
+.mockup-post--tweet .mockup-avatar--tweet { inline-size: 44px; block-size: 44px; font-size: 0.86rem; }
+.mockup-post--tweet .mockup-tweet__col { min-width: 0; }
+.mockup-post--tweet .mockup-tweet__meta { display: flex; align-items: center; gap: 4px; font-size: 0.95rem; }
+.mockup-post--tweet .mockup-tweet__meta strong { color: #0f1419; font-weight: 700; white-space: nowrap; }
+.mockup-post--tweet .mockup-tweet__verified { flex: 0 0 auto; color: white; }
+.mockup-post--tweet .mockup-tweet__muted { color: #536471; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mockup-post--tweet .mockup-tweet__more { flex: 0 0 auto; margin-left: auto; color: #536471; }
+.mockup-post--tweet .mockup-tweet__text {
+  margin: 2px 0 12px; color: #0f1419; font-size: 1.08rem; line-height: 1.4;
+  overflow-wrap: anywhere; white-space: pre-wrap;
+}
+.mockup-post--tweet .mockup-tweet__actions {
+  display: flex; justify-content: space-between;
+  color: #536471; font-size: 0.8rem;
+}
+.mockup-post--tweet .mockup-tweet__actions span { display: inline-flex; align-items: center; gap: 6px; }
 
 @media (max-width: 900px) {
   .mockup-panel__body { grid-template-columns: 1fr; }

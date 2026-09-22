@@ -1,5 +1,14 @@
 import { useRef, useState } from "react";
-import { AlertTriangle, Download, Heart, MessageCircle, Repeat2, ShieldAlert } from "lucide-react";
+import {
+  AlertTriangle,
+  BadgeCheck,
+  BarChart2,
+  Download,
+  Heart,
+  MessageCircle,
+  MoreHorizontal,
+  Repeat2,
+} from "lucide-react";
 import { toPng } from "html-to-image";
 import { withTimeout } from "../utilities/mockup";
 import type { CatalogTool } from "../catalog/catalog";
@@ -42,6 +51,9 @@ export function PostMockupPanel({
   const [likes, setLikes] = useState("128");
   const [comments, setComments] = useState("14");
   const [shares, setShares] = useState("9");
+  const [views, setViews] = useState("15.2K");
+  const [time, setTime] = useState("2h");
+  const [verified, setVerified] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -86,15 +98,6 @@ export function PostMockupPanel({
         <h2 id="tool-panel-title">{t(tool.title)}</h2>
         <p>{t(tool.description)}</p>
 
-        <p className="notice notice--warning">
-          <ShieldAlert size={14} aria-hidden="true" />
-          <span>
-            {t(
-              "For UI mockups and testing only. Nothing here is a real post, and the exported image says so.",
-            )}
-          </span>
-        </p>
-
         <label className="operation-select">
           <span>{t("App")}</span>
           <Select
@@ -115,6 +118,20 @@ export function PostMockupPanel({
           <input type="text" value={handle} onChange={(event) => mark(setHandle)(event.target.value)} />
         </label>
 
+        {platform === "tweet" && (
+          <label className="mockup-checkbox">
+            <input
+              type="checkbox"
+              checked={verified}
+              onChange={(event) => {
+                setVerified(event.target.checked);
+                onDirtyChange?.(true);
+              }}
+            />
+            <span>{t("Verified badge")}</span>
+          </label>
+        )}
+
         <label className="mockup-field">
           <span>{t("Post text")}</span>
           <textarea
@@ -126,10 +143,6 @@ export function PostMockupPanel({
 
         <div className="mockup-message-row mockup-message-row--stats">
           <label className="mockup-field">
-            <span>{t("Likes")}</span>
-            <input type="text" value={likes} onChange={(event) => mark(setLikes)(event.target.value)} />
-          </label>
-          <label className="mockup-field">
             <span>{platform === "tweet" ? t("Replies") : t("Comments")}</span>
             <input type="text" value={comments} onChange={(event) => mark(setComments)(event.target.value)} />
           </label>
@@ -137,6 +150,22 @@ export function PostMockupPanel({
             <label className="mockup-field">
               <span>{t("Reposts")}</span>
               <input type="text" value={shares} onChange={(event) => mark(setShares)(event.target.value)} />
+            </label>
+          )}
+          <label className="mockup-field">
+            <span>{t("Likes")}</span>
+            <input type="text" value={likes} onChange={(event) => mark(setLikes)(event.target.value)} />
+          </label>
+          {platform === "tweet" && (
+            <label className="mockup-field">
+              <span>{t("Views")}</span>
+              <input type="text" value={views} onChange={(event) => mark(setViews)(event.target.value)} />
+            </label>
+          )}
+          {platform === "tweet" && (
+            <label className="mockup-field">
+              <span>{t("Time")}</span>
+              <input type="text" value={time} onChange={(event) => mark(setTime)(event.target.value)} />
             </label>
           )}
         </div>
@@ -149,32 +178,63 @@ export function PostMockupPanel({
       </section>
 
       <section className="mockup-panel__preview">
-        <div className={`mockup-post mockup-post--${platform}`} ref={previewRef}>
-          <div className="mockup-post__header">
-            <span className="mockup-avatar" style={{ background: avatarColor(name) }}>
-              {initials(name)}
-            </span>
-            <span className="mockup-post__identity">
-              <strong>{name || t("Name")}</strong>
-              <small>@{handle || "handle"}</small>
-            </span>
-          </div>
-          <p className="mockup-post__text">{text || t("Post text")}</p>
-          <div className="mockup-post__stats">
-            <span>
-              <MessageCircle size={14} aria-hidden="true" /> {comments}
-            </span>
-            {platform === "tweet" && (
-              <span>
-                <Repeat2 size={14} aria-hidden="true" /> {shares}
+        {platform === "tweet" ? (
+          <div className="mockup-post mockup-post--tweet" ref={previewRef}>
+            <div className="mockup-tweet__grid">
+              <span className="mockup-avatar mockup-avatar--tweet" style={{ background: avatarColor(name) }}>
+                {initials(name)}
               </span>
-            )}
-            <span>
-              <Heart size={14} aria-hidden="true" /> {likes}
-            </span>
+              <div className="mockup-tweet__col">
+                <div className="mockup-tweet__meta">
+                  <strong>{name || t("Name")}</strong>
+                  {verified && (
+                    <BadgeCheck size={17} className="mockup-tweet__verified" fill="#1d9bf0" aria-hidden="true" />
+                  )}
+                  <span className="mockup-tweet__muted">
+                    @{handle || "handle"} · {time}
+                  </span>
+                  <MoreHorizontal size={17} className="mockup-tweet__more" aria-hidden="true" />
+                </div>
+                <p className="mockup-tweet__text">{text || t("Post text")}</p>
+                <div className="mockup-tweet__actions">
+                  <span>
+                    <MessageCircle size={17} aria-hidden="true" /> {comments}
+                  </span>
+                  <span>
+                    <Repeat2 size={17} aria-hidden="true" /> {shares}
+                  </span>
+                  <span>
+                    <Heart size={17} aria-hidden="true" /> {likes}
+                  </span>
+                  <span>
+                    <BarChart2 size={17} aria-hidden="true" /> {views}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
-          <footer className="mockup-phone__watermark">{t("MOCKUP — not a real post")}</footer>
-        </div>
+        ) : (
+          <div className="mockup-post mockup-post--instagram-post" ref={previewRef}>
+            <div className="mockup-post__header">
+              <span className="mockup-avatar" style={{ background: avatarColor(name) }}>
+                {initials(name)}
+              </span>
+              <span className="mockup-post__identity">
+                <strong>{name || t("Name")}</strong>
+                <small>@{handle || "handle"}</small>
+              </span>
+            </div>
+            <p className="mockup-post__text">{text || t("Post text")}</p>
+            <div className="mockup-post__stats">
+              <span>
+                <Heart size={14} aria-hidden="true" /> {likes}
+              </span>
+              <span>
+                <MessageCircle size={14} aria-hidden="true" /> {comments}
+              </span>
+            </div>
+          </div>
+        )}
 
         <button className="button button--primary" type="button" onClick={() => void saveImage()} disabled={saving}>
           <Download size={16} aria-hidden="true" /> {t(saving ? "Saving…" : "Save as image")}
