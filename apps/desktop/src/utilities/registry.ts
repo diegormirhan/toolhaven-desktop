@@ -27,7 +27,7 @@ import * as random from "./random";
 export type UtilityField = {
   key: string;
   label: string;
-  type: "text" | "number" | "select";
+  type: "text" | "number" | "select" | "color";
   defaultValue?: string;
   placeholder?: string;
   min?: number;
@@ -1013,7 +1013,7 @@ export const utilityGroups: UtilityGroup[] = [
           { key: "y", label: "Offset Y", type: "number", defaultValue: "8", min: -100, max: 100 },
           { key: "blur", label: "Blur", type: "number", defaultValue: "24", min: 0, max: 200 },
           { key: "spread", label: "Spread", type: "number", defaultValue: "0", min: -100, max: 100 },
-          { key: "color", label: "Colour", type: "text", defaultValue: "#000000" },
+          { key: "color", label: "Colour", type: "color", defaultValue: "#000000" },
           { key: "opacity", label: "Opacity (%)", type: "number", defaultValue: "25", min: 0, max: 100 },
           { key: "inset", label: "Inset", type: "select", defaultValue: "no", choices: yesNo },
         ],
@@ -1105,7 +1105,7 @@ export const utilityGroups: UtilityGroup[] = [
               { value: "grid", label: "Grid" },
             ],
           },
-          { key: "color", label: "Colour", type: "text", defaultValue: "#6366f1" },
+          { key: "color", label: "Colour", type: "color", defaultValue: "#6366f1" },
           { key: "size", label: "Size", type: "number", defaultValue: "20", min: 4, max: 100 },
         ],
         run: css.backgroundPatternCss,
@@ -1118,7 +1118,7 @@ export const utilityGroups: UtilityGroup[] = [
         input: "none",
         fields: [
           { key: "size", label: "Size", type: "number", defaultValue: "60", min: 10, max: 200 },
-          { key: "color", label: "Colour", type: "text", defaultValue: "#6366f1" },
+          { key: "color", label: "Colour", type: "color", defaultValue: "#6366f1" },
           {
             key: "direction",
             label: "Points",
@@ -1151,7 +1151,7 @@ export const utilityGroups: UtilityGroup[] = [
               { value: "dots", label: "Pulsing dots" },
             ],
           },
-          { key: "color", label: "Colour", type: "text", defaultValue: "#6366f1" },
+          { key: "color", label: "Colour", type: "color", defaultValue: "#6366f1" },
           { key: "size", label: "Size", type: "number", defaultValue: "40", min: 10, max: 120 },
         ],
         run: css.loaderCss,
@@ -1205,7 +1205,7 @@ export const utilityGroups: UtilityGroup[] = [
         description: "A toggle track and thumb.",
         input: "none",
         fields: [
-          { key: "color", label: "Colour", type: "text", defaultValue: "#6366f1" },
+          { key: "color", label: "Colour", type: "color", defaultValue: "#6366f1" },
           { key: "size", label: "Size", type: "number", defaultValue: "24", min: 14, max: 60 },
         ],
         run: css.switchCss,
@@ -1217,7 +1217,7 @@ export const utilityGroups: UtilityGroup[] = [
         description: "A styled box, square, rounded or circular.",
         input: "none",
         fields: [
-          { key: "color", label: "Colour", type: "text", defaultValue: "#6366f1" },
+          { key: "color", label: "Colour", type: "color", defaultValue: "#6366f1" },
           { key: "size", label: "Size", type: "number", defaultValue: "22", min: 12, max: 60 },
           {
             key: "shape",
@@ -1366,8 +1366,8 @@ export const utilityGroups: UtilityGroup[] = [
             ],
             hint: "Higher survives more damage to the printed code, at a denser pattern.",
           },
-          { key: "color", label: "Colour", type: "text", defaultValue: "#000000" },
-          { key: "background", label: "Background", type: "text", defaultValue: "#ffffff" },
+          { key: "color", label: "Colour", type: "color", defaultValue: "#000000" },
+          { key: "background", label: "Background", type: "color", defaultValue: "#ffffff" },
         ],
         run: (input, options) => qr.generateQrImage(input, options),
       },
@@ -1410,8 +1410,8 @@ export const utilityGroups: UtilityGroup[] = [
             defaultValue: "CODE128",
             choices: qr.barcodeFormats.map((format) => ({ value: format, label: format })),
           },
-          { key: "color", label: "Colour", type: "text", defaultValue: "#000000" },
-          { key: "background", label: "Background", type: "text", defaultValue: "#ffffff" },
+          { key: "color", label: "Colour", type: "color", defaultValue: "#000000" },
+          { key: "background", label: "Background", type: "color", defaultValue: "#ffffff" },
           {
             key: "displayValue",
             label: "Show the value under the bars",

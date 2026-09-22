@@ -167,6 +167,29 @@ export function UtilityPanel({
                         setTouched(true);
                       }}
                     />
+                  ) : field.type === "color" ? (
+                    <span className="utility-color-field">
+                      <input
+                        aria-label={t(field.label)}
+                        type="color"
+                        value={/^#[0-9a-fA-F]{6}$/.test(values[field.key] ?? "") ? values[field.key] : "#000000"}
+                        onChange={(event) => {
+                          setOptions((current) => ({ ...current, [field.key]: event.target.value }));
+                          setTouched(true);
+                        }}
+                      />
+                      <input
+                        aria-label={t(field.label)}
+                        type="text"
+                        className="utility-color-field__hex"
+                        value={values[field.key] ?? ""}
+                        placeholder={field.placeholder && t(field.placeholder)}
+                        onChange={(event) => {
+                          setOptions((current) => ({ ...current, [field.key]: event.target.value }));
+                          setTouched(true);
+                        }}
+                      />
+                    </span>
                   ) : field.type === "number" ? (
                     <NumberField
                       label={t(field.label)}
