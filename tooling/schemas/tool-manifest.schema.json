@@ -172,8 +172,8 @@
         },
         "archive": {
           "type": "string",
-          "enum": ["7z"],
-          "description": "Declares a payload that is not a zip. \"7z\" covers a bare .7z and a self-extracting .exe carrying one."
+          "enum": ["7z", "zip"],
+          "description": "Declares how the payload is packed when the URL does not end in .zip. \"7z\" covers a bare .7z and a self-extracting .exe carrying one; \"zip\" is for a zip served from a URL without that extension."
         },
         "sizeBytes": {
           "type": "integer",

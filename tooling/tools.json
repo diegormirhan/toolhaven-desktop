@@ -19,10 +19,10 @@
       "version": "9.0.1",
       "artifacts": [
         {
-          "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-06-13-06/ffmpeg-n9.0.1-26-g5c8e7e2433-win64-lgpl-9.0.zip",
-          "sha256": "4700c0bcb523466fdf5e36e22ad4ff3fadf33f203e2dbfdc78f5b4cd068b8818",
-          "binaryDirectory": "ffmpeg-n9.0.1-26-g5c8e7e2433-win64-lgpl-9.0/bin",
-          "sizeBytes": 147006079
+          "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-08-31-13-27/ffmpeg-n9.0.1-11-ge47273f4d9-win64-lgpl-9.0.zip",
+          "sha256": "2484854ad6988d34560f4e6ea7a6ecb9dde0af7c229d2591815d056b04ec4f56",
+          "binaryDirectory": "ffmpeg-n9.0.1-11-ge47273f4d9-win64-lgpl-9.0/bin",
+          "sizeBytes": 147007942
         }
       ]
     },
@@ -39,10 +39,10 @@
       "version": "9.0.1",
       "artifacts": [
         {
-          "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-06-13-06/ffmpeg-n9.0.1-26-g5c8e7e2433-win64-lgpl-9.0.zip",
-          "sha256": "4700c0bcb523466fdf5e36e22ad4ff3fadf33f203e2dbfdc78f5b4cd068b8818",
-          "binaryDirectory": "ffmpeg-n9.0.1-26-g5c8e7e2433-win64-lgpl-9.0/bin",
-          "sizeBytes": 147006079
+          "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-08-31-13-27/ffmpeg-n9.0.1-11-ge47273f4d9-win64-lgpl-9.0.zip",
+          "sha256": "2484854ad6988d34560f4e6ea7a6ecb9dde0af7c229d2591815d056b04ec4f56",
+          "binaryDirectory": "ffmpeg-n9.0.1-11-ge47273f4d9-win64-lgpl-9.0/bin",
+          "sizeBytes": 147007942
         }
       ]
     },
@@ -361,6 +361,7 @@
           "url": "https://sourceforge.net/projects/exiftool/files/exiftool-13.59_64.zip/download",
           "sha256": "44b512b25af500724ba579d0a53c8fc5851628b692dd5e5d94ae4a15c2cba9ec",
           "binaryDirectory": "exiftool-13.59_64",
+          "archive": "zip",
           "rename": {
             "exiftool-13.59_64/exiftool(-k).exe": "exiftool-13.59_64/exiftool.exe"
           },

@@ -46,7 +46,10 @@ pub struct Artifact {
     /// with no window to answer.
     #[serde(default)]
     pub silent_install: Vec<String>,
-    /// How the payload is packed, when it is not simply a zip.
+    /// How the payload is packed, when the URL does not end in `.zip`.
+    ///
+    /// `zip` is for a zip served from an address without that extension —
+    /// SourceForge's `…/file.zip/download`, which ExifTool uses.
     ///
     /// `7z` covers both a bare `.7z` and a self-extracting `.exe` with a `.7z`
     /// appended to it — SongRec ships the latter, and its extractor offers no
@@ -477,11 +480,19 @@ fn unpack(artifact: &Artifact, bytes: &[u8], staging: &Path) -> Result<(), Strin
         extract_seven_zip(bytes, staging)
     } else if !artifact.silent_install.is_empty() {
         run_silent_installer(artifact, bytes, staging)
-    } else if is_archive(&artifact.url) {
+    } else if artifact.archive == "zip" || is_archive(&artifact.url) {
         extract_zip(bytes, staging)
     } else {
         write_single_file(artifact, bytes, staging)
     }
+}
+
+/// Whether `unpack` opens this artifact rather than keeping it as one file.
+#[cfg(test)]
+fn unpacks(artifact: &Artifact) -> bool {
+    matches!(artifact.archive.as_str(), "7z" | "zip")
+        || !artifact.silent_install.is_empty()
+        || is_archive(&artifact.url)
 }
 
 /// Whether a URL names something to unpack rather than something to keep.
@@ -665,6 +676,65 @@ mod tests {
         println!("Component installed at {}", binaries.display());
     }
 
+    /// Installs every downloadable tool into an empty store, as a fresh machine
+    /// would, then runs each one. About 900 MB of downloads; pinned URLs rot
+    /// (BtbN prunes its daily builds), and only this finds out before a user does.
+    ///
+    /// `cargo test --lib -- --ignored --nocapture installs_and_runs_every_tool`
+    #[test]
+    #[ignore = "downloads every component from the internet"]
+    fn installs_and_runs_every_tool() {
+        let store = std::env::temp_dir().join("toolhaven-fresh-machine");
+        let _ = std::fs::remove_dir_all(&store);
+        std::fs::create_dir_all(&store).unwrap();
+        std::env::set_var("LOCALAPPDATA", &store);
+
+        let mut failures = Vec::new();
+        for entry in manifest().tools.iter().filter(|tool| tool.status == "downloadable") {
+            let id = entry.id.as_str();
+            if let Err(error) = install(id, &|_| {}) {
+                failures.push(format!("{id}: install failed: {error}"));
+                continue;
+            }
+            let executable = crate::executable_name(id).unwrap();
+            let Some(binary) = installed_binary_directory(id).map(|dir| dir.join(&executable)) else {
+                failures.push(format!("{id}: no binary directory after install"));
+                continue;
+            };
+            let arguments: &[&str] = match id {
+                "ffmpeg" | "ffprobe" => &["-version"],
+                "exiftool" => &["-ver"],
+                "poppler" => &["-v"],
+                "7zip" => &["i"],
+                "upscaler" => &["-h"],
+                _ => &["--version"],
+            };
+            let output = std::process::Command::new(&binary)
+                .args(arguments)
+                .current_dir(binary.parent().unwrap())
+                .stdin(std::process::Stdio::null())
+                .output();
+            match output {
+                Err(error) => failures.push(format!("{id}: could not start {}: {error}", binary.display())),
+                Ok(output) => {
+                    let text = format!(
+                        "{}{}",
+                        String::from_utf8_lossy(&output.stdout),
+                        String::from_utf8_lossy(&output.stderr)
+                    );
+                    let first = text.lines().find(|line| !line.trim().is_empty()).unwrap_or("").trim();
+                    println!("{id:12} {:?}  {first}", output.status.code());
+                    // 0xC0000135 / 0xC000007B: a DLL the build needs is missing or the wrong bitness.
+                    let loader_failure = matches!(output.status.code(), Some(-1073741515) | Some(-1073741701));
+                    if first.is_empty() || loader_failure {
+                        failures.push(format!("{id}: ran but did not work ({:?}): {first}", output.status.code()));
+                    }
+                }
+            }
+        }
+        assert!(failures.is_empty(), "\n{}", failures.join("\n"));
+    }
+
     /// Runs a real installer into a temporary directory, with this app's own
     /// token and nothing else.
     ///
@@ -758,6 +828,21 @@ mod tests {
         assert!(!is_archive("https://example.test/models/4xNomos8kSC.bin"));
         assert!(!is_archive("https://example.test/tool.exe"));
         assert!(!is_archive("https://example.test/weights.param"));
+    }
+
+    #[test]
+    fn every_artifact_that_names_a_folder_inside_itself_is_unpacked() {
+        // ExifTool's SourceForge URL ends in `.zip/download`, so it was kept as
+        // a loose file called `download` and its rename then found nothing.
+        for tool in &manifest().tools {
+            for artifact in &tool.artifacts {
+                let names_a_folder = !artifact.binary_directory.is_empty()
+                    || artifact.rename.keys().any(|from| from.contains(['/', '\\']));
+                if names_a_folder {
+                    assert!(unpacks(artifact), "{} would not be unpacked: {}", tool.id, artifact.url);
+                }
+            }
+        }
     }
 
     #[test]
