@@ -12,6 +12,8 @@ export type MockupMessage = {
   from: Sender;
   text: string;
   time: string;
+  type?: "text" | "voice";
+  duration?: string; // voice only, e.g. "0:21"
 };
 
 let counter = 0;

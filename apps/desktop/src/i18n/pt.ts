@@ -941,4 +941,10 @@ export const portuguese: Record<string, string> = {
   "Supporting text for the card.": "Texto de apoio do cartão.",
   "The quick brown fox jumps over the lazy dog.": "Um pequeno jabuti xereta viu dez cegonhas felizes.",
   "Upload a file": "Enviar um arquivo",
+  // ── Chat / post mockup additions
+  "Bookmarks": "Salvos",
+  "Duration": "Duração",
+  "It's between us…": "É entre a gente…",
+  "Status": "Status",
+  "Toggle voice message": "Alternar áudio",
 };

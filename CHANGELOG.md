@@ -2,6 +2,20 @@
 
 All notable changes to ToolHaven. Versions follow [semantic versioning](https://semver.org/).
 
+## 3.3.0 (2026-09-23)
+
+### Chat mockup — WhatsApp redesign
+- Header now shows a back arrow, contact status line ("typing…" / "Online") and action icons (video, call, menu), matching the real app.
+- Incoming messages display a small avatar beside the bubble.
+- A "Today" date separator appears above the message list.
+- New voice message type: toggle a message to audio with the mic button, set the duration and see a waveform bubble in the preview.
+- An input bar with emoji, attach, camera and mic buttons appears at the bottom of the WhatsApp preview.
+
+### Post mockup — tweet improvements
+- Like count is now shown in pink, matching X's own liked state.
+- Bookmark icon and count added to the action bar.
+- Share icon added at the end of the action bar.
+
 ## 3.2.2 (2026-09-23)
 
 ### Fixed

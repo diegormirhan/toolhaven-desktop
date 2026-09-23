@@ -1,0 +1,29 @@
+/* Landing page styles */
+:root {
+  --brand: #6366f1;
+  --accent: #ec4899;
+  --radius: 16px;
+}
+
+.hero {
+  display: grid;
+  place-items: center;
+  padding: 96px 24px;
+  background: linear-gradient(135deg, var(--brand), var(--accent));
+}
+
+.hero h1 {
+  font-size: clamp(2rem, 5vw, 4rem);
+  letter-spacing: -0.03em;
+  color: white;
+}
+
+.card {
+  border-radius: var(--radius);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  transition: transform 200ms ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+}

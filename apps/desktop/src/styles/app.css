@@ -789,12 +789,15 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 
 .mockup-messages { display: grid; gap: 8px; margin: var(--space-2) 0; }
 .mockup-message-row { display: grid; grid-template-columns: auto minmax(0, 1fr) 72px auto; align-items: center; gap: 6px; }
+.mockup-message-row--chat { grid-template-columns: auto auto minmax(0, 1fr) 56px auto; }
 .mockup-sender {
   padding: 6px 10px; font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
   color: var(--text-secondary); background: var(--surface-sunken); border: 1px solid var(--line-strong);
   border-radius: 999px; cursor: pointer;
 }
 .mockup-sender--me { color: var(--on-action); background: var(--action); border-color: var(--action); }
+.mockup-sender--type { padding: 6px 8px; }
+.mockup-sender--active { color: var(--on-action); background: var(--action); border-color: var(--action); }
 .mockup-message-text, .mockup-message-time {
   min-height: 34px; padding: 0 9px; color: var(--text); background: var(--surface-sunken);
   border: 1px solid var(--line); border-radius: var(--radius-control); font-size: 0.78rem;
@@ -810,9 +813,14 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
   background: white; border-radius: 22px; box-shadow: var(--shadow-lifted);
 }
 .mockup-phone__header {
-  display: flex; align-items: center; gap: 10px; padding: 14px 16px;
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
   color: white; font-size: 0.86rem; font-weight: 600;
 }
+.mockup-phone__header-back { flex: 0 0 auto; color: #aebac1; }
+.mockup-phone__header-info { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.mockup-phone__header-info strong { font-size: 0.88rem; line-height: 1.2; }
+.mockup-phone__header-status { font-size: 0.65rem; font-weight: 400; color: #aebac1; }
+.mockup-phone__header-actions { display: flex; gap: 14px; color: #aebac1; margin-left: auto; }
 .mockup-avatar {
   display: grid; place-items: center; flex: 0 0 auto;
   inline-size: 32px; block-size: 32px; border-radius: 50%;
@@ -843,6 +851,47 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
 .mockup-phone--whatsapp .mockup-bubble--me { align-self: flex-end; color: #e9edef; background: #005c4b; }
 .mockup-phone--whatsapp .mockup-bubble__time { color: #8696a0; opacity: 1; }
 .mockup-phone--whatsapp .mockup-bubble__check { color: #53bdeb; }
+.mockup-phone--whatsapp .mockup-date-sep { background: #1d2b33; color: #8696a0; }
+.mockup-phone--whatsapp .mockup-bubble--them .mockup-voice__dur { color: #8696a0; }
+.mockup-phone--whatsapp .mockup-bubble--me .mockup-voice__dur { color: rgba(255,255,255,.6); }
+
+/* Date separator badge ("Today") */
+.mockup-date-sep {
+  align-self: center; padding: 3px 11px; border-radius: 6px; margin: 2px 0;
+  font-size: 0.64rem; font-weight: 500;
+}
+
+/* Bubble outer wrapper: avatar + bubble side by side for WhatsApp "them" */
+.mockup-bubble-outer { display: flex; gap: 6px; align-items: flex-end; }
+.mockup-bubble-outer--me { justify-content: flex-end; }
+.mockup-avatar--xs {
+  inline-size: 24px; block-size: 24px; border-radius: 50%;
+  font-size: 0.5rem; font-weight: 700; flex: 0 0 auto;
+  display: grid; place-items: center; color: white;
+}
+
+/* Voice message bubble */
+.mockup-bubble--voice { min-inline-size: 140px; }
+.mockup-voice { display: flex; align-items: center; gap: 7px; }
+.mockup-voice__play { flex: 0 0 auto; }
+.mockup-waveform { display: flex; align-items: center; gap: 2px; height: 26px; flex: 1; }
+.mockup-waveform div { width: 3px; border-radius: 2px; background: currentColor; opacity: 0.65; }
+.mockup-voice__dur { font-size: 0.62rem; white-space: nowrap; }
+
+/* WhatsApp input bar at bottom */
+.mockup-phone__footer {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  background: #1f2c33; flex: 0 0 auto;
+}
+.mockup-phone__footer-icon { color: #aebac1; flex: 0 0 auto; }
+.mockup-phone__footer-input {
+  flex: 1; padding: 7px 12px; border-radius: 22px;
+  background: #2a3942; color: #8696a0; font-size: 0.72rem; white-space: nowrap; overflow: hidden;
+}
+.mockup-phone__footer-mic {
+  display: grid; place-items: center; inline-size: 38px; block-size: 38px;
+  border-radius: 50%; background: #00a884; color: white; flex: 0 0 auto;
+}
 
 .mockup-phone--imessage { background: white; }
 .mockup-phone--imessage .mockup-phone__header { color: #111; background: #f5f5f5; border-bottom: 1px solid var(--line); }
@@ -902,6 +951,8 @@ code { font-family: ui-monospace, "Cascadia Mono", monospace; }
   color: #536471; font-size: 0.8rem;
 }
 .mockup-post--tweet .mockup-tweet__actions span { display: inline-flex; align-items: center; gap: 6px; }
+.mockup-post--tweet .mockup-tweet__action--like { color: #f91880; }
+.mockup-post--tweet .mockup-tweet__action--share { color: #536471; }
 
 @media (max-width: 900px) {
   .mockup-panel__body { grid-template-columns: 1fr; }

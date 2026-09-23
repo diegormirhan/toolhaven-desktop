@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<!-- The programmatic layer of the demo video: an intro card, a caption, and an
+     outro card, picked by the query string. compose.mjs screenshots each one at
+     1920x1080 (captions on a transparent background) and animates them in
+     ffmpeg. Expects beside it: cover.png, toolhaven-mark.svg and the Inter
+     Tight fonts, which compose.mjs copies in. -->
+<style>
+  @font-face { font-family: "Inter Tight"; font-weight: 400; src: url("inter-tight-400.woff2") format("woff2"); }
+  @font-face { font-family: "Inter Tight"; font-weight: 500; src: url("inter-tight-500.woff2") format("woff2"); }
+  @font-face { font-family: "Inter Tight"; font-weight: 600; src: url("inter-tight-600.woff2") format("woff2"); }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+  body { position: relative; color: #f4f7fb; font-family: "Inter Tight", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  /* Only the requested mode is shown; the script sets its display. */
+  [data-mode] { display: none; }
+  .card {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(900px 700px at 78% 30%, rgba(91, 192, 235, .22), transparent 70%),
+      radial-gradient(700px 600px at 10% 100%, rgba(99, 102, 241, .20), transparent 70%),
+      #0a0e14;
+  }
+  .card::before {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(circle at 1px 1px, rgba(255,255,255,.07) 1px, transparent 0) 0 0 / 28px 28px;
+    mask-image: linear-gradient(90deg, #000 0%, transparent 60%);
+  }
+  .brand { display: flex; align-items: center; gap: 20px; font-size: 44px; font-weight: 600; letter-spacing: -.02em; }
+  .brand img { width: 72px; height: 72px; border-radius: 16px; background: #111820; padding: 8px; border: 1px solid rgba(255,255,255,.12); }
+  .accent { color: #5bc0eb; }
+
+  /* Intro: the cover's composition, without the play button. */
+  .intro .copy { position: absolute; left: 110px; top: 250px; width: 820px; }
+  .intro h1 { margin-top: 64px; font-size: 92px; line-height: .98; font-weight: 600; letter-spacing: -.045em; }
+  .intro .shot {
+    position: absolute; left: 930px; top: 170px; width: 1320px; border-radius: 22px;
+    border: 1px solid rgba(255,255,255,.14); box-shadow: 0 60px 120px -30px rgba(0,0,0,.8);
+    transform: perspective(2200px) rotateY(-14deg) rotateX(4deg); transform-origin: left center;
+  }
+
+  /* Caption: one line, low and centred, readable muted on a phone. */
+  .caption { position: absolute; left: 0; right: 0; bottom: 72px; justify-content: center; }
+  .caption p {
+    max-width: 1500px; padding: 22px 38px; border-radius: 20px;
+    font-size: 42px; font-weight: 500; letter-spacing: -.015em; line-height: 1.25; text-align: center;
+    background: rgba(10, 14, 20, .88); border: 1px solid rgba(255,255,255,.12);
+    box-shadow: 0 24px 60px -20px rgba(0,0,0,.7);
+  }
+  .caption b { color: #5bc0eb; font-weight: 600; }
+
+  /* Outro: what to do next. */
+  .outro { place-content: center; justify-items: center; text-align: center; }
+  .outro h2 { margin-top: 56px; font-size: 84px; line-height: 1; font-weight: 600; letter-spacing: -.04em; }
+  .outro .sub { margin-top: 28px; font-size: 36px; color: #a9b4c2; }
+  .outro .link {
+    margin-top: 56px; padding: 18px 34px; border-radius: 999px; font-size: 32px; font-weight: 500;
+    background: rgba(91,192,235,.12); border: 1px solid rgba(91,192,235,.45); color: #dff3fc;
+  }
+</style>
+</head>
+<body>
+  <section class="card intro" data-mode="intro">
+    <img class="shot" src="cover.png" alt="">
+    <div class="copy">
+      <div class="brand"><img src="toolhaven-mark.svg" alt="">ToolHaven</div>
+      <h1>Mais de 100 ferramentas.<br><span class="accent">Zero linha de comando.</span></h1>
+    </div>
+  </section>
+
+  <section class="caption" data-mode="caption"><p id="caption"></p></section>
+
+  <section class="card outro" data-mode="outro">
+    <div class="brand"><img src="toolhaven-mark.svg" alt="">ToolHaven</div>
+    <h2>Grátis e open source<br><span class="accent">para Windows.</span></h2>
+    <p class="sub">Tudo roda no seu computador. Sem conta, sem nuvem.</p>
+    <p class="link">github.com/diegormirhan/toolhaven-desktop</p>
+  </section>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const mode = params.get("mode") ?? "caption";
+    document.querySelector(`[data-mode="${mode}"]`).style.display = mode === "outro" ? "grid" : mode === "caption" ? "flex" : "block";
+    // The caption markup comes from the scenario in record.mjs, not from users.
+    if (mode === "caption") document.getElementById("caption").innerHTML = params.get("text") ?? "";
+  </script>
+</body>
+</html>

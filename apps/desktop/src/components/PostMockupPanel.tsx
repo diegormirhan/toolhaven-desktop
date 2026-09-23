@@ -3,11 +3,13 @@ import {
   AlertTriangle,
   BadgeCheck,
   BarChart2,
+  Bookmark,
   Download,
   Heart,
   MessageCircle,
   MoreHorizontal,
   Repeat2,
+  Upload,
 } from "lucide-react";
 import { toPng } from "html-to-image";
 import { withTimeout } from "../utilities/mockup";
@@ -48,10 +50,11 @@ export function PostMockupPanel({
   const [name, setName] = useState("Alex Rivera");
   const [handle, setHandle] = useState("alexrivera");
   const [text, setText] = useState(t("Just shipped a new feature — small change, but it took the whole afternoon to get right."));
-  const [likes, setLikes] = useState("128");
-  const [comments, setComments] = useState("14");
-  const [shares, setShares] = useState("9");
-  const [views, setViews] = useState("15.2K");
+  const [likes, setLikes] = useState("91k");
+  const [comments, setComments] = useState("82k");
+  const [shares, setShares] = useState("45k");
+  const [bookmarks, setBookmarks] = useState("78k");
+  const [views, setViews] = useState("87K");
   const [time, setTime] = useState("2h");
   const [verified, setVerified] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -158,6 +161,12 @@ export function PostMockupPanel({
           </label>
           {platform === "tweet" && (
             <label className="mockup-field">
+              <span>{t("Bookmarks")}</span>
+              <input type="text" value={bookmarks} onChange={(event) => mark(setBookmarks)(event.target.value)} />
+            </label>
+          )}
+          {platform === "tweet" && (
+            <label className="mockup-field">
               <span>{t("Views")}</span>
               <input type="text" value={views} onChange={(event) => mark(setViews)(event.target.value)} />
             </label>
@@ -203,11 +212,17 @@ export function PostMockupPanel({
                   <span>
                     <Repeat2 size={17} aria-hidden="true" /> {shares}
                   </span>
+                  <span className="mockup-tweet__action--like">
+                    <Heart size={17} fill="currentColor" aria-hidden="true" /> {likes}
+                  </span>
                   <span>
-                    <Heart size={17} aria-hidden="true" /> {likes}
+                    <Bookmark size={17} aria-hidden="true" /> {bookmarks}
                   </span>
                   <span>
                     <BarChart2 size={17} aria-hidden="true" /> {views}
+                  </span>
+                  <span className="mockup-tweet__action--share">
+                    <Upload size={17} aria-hidden="true" />
                   </span>
                 </div>
               </div>
