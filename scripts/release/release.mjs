@@ -1,0 +1,150 @@
+/**
+ * Builds a release end to end:
+ *
+ *   npm run release -- 3.2.2
+ *
+ * 1. sets the version in package.json, package-lock.json, Cargo.toml, Cargo.lock
+ *    and tauri.conf.json
+ * 2. adds a CHANGELOG.md section from the commits since the last tag, unless the
+ *    version already has one (write it by hand first to use your own wording)
+ * 3. runs the tests, then a signed `tauri build`
+ * 4. stages everything in Releases/<version>/: installer, MSI, signatures,
+ *    portable zip, checksums.txt, latest.json and RELEASE-NOTES.md
+ *
+ * Signing reads TAURI_SIGNING_PRIVATE_KEY, or ~/.toolhaven/updater.key when unset.
+ * It does not commit, tag or publish.
+ */
+import { execFileSync, execSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+
+const root = fileURLToPath(new URL("../..", import.meta.url));
+const at = (...parts) => path.join(root, ...parts);
+const version = process.argv[2];
+if (!/^\d+\.\d+\.\d+$/.test(version ?? "")) {
+  console.error("Usage: npm run release -- <major.minor.patch>");
+  process.exit(1);
+}
+const run = (command) => execSync(command, { cwd: root, stdio: "inherit" });
+const step = (message) => console.log(`\n▸ ${message}`);
+
+// ── 1. Version ──────────────────────────────────────────────────────────
+step(`Version ${version}`);
+function replaceIn(file, pattern, replacement, expected = 1) {
+  const text = readFileSync(at(file), "utf8");
+  let count = 0;
+  const next = text.replace(pattern, (...match) => (count++ < expected ? replacement(...match) : match[0]));
+  if (count < expected) throw new Error(`${file}: version not found`);
+  writeFileSync(at(file), next);
+}
+const jsonVersion = /("version":\s*")[^"]+(")/g;
+replaceIn("package.json", jsonVersion, (_, a, b) => `${a}${version}${b}`);
+replaceIn("package-lock.json", jsonVersion, (_, a, b) => `${a}${version}${b}`, 2);
+replaceIn("apps/desktop/src-tauri/tauri.conf.json", jsonVersion, (_, a, b) => `${a}${version}${b}`);
+replaceIn("apps/desktop/src-tauri/Cargo.toml", /^(version = ")[^"]+(")/m, (_, a, b) => `${a}${version}${b}`);
+replaceIn("apps/desktop/src-tauri/Cargo.lock", /(name = "toolhaven"\r?\nversion = ")[^"]+(")/, (_, a, b) => `${a}${version}${b}`);
+
+// ── 2. Changelog ────────────────────────────────────────────────────────
+step("Changelog");
+const changelogPath = at("CHANGELOG.md");
+let changelog = readFileSync(changelogPath, "utf8");
+if (!changelog.includes(`## ${version} `)) {
+  const lastTag = execSync("git describe --tags --abbrev=0", { cwd: root }).toString().trim();
+  // A commit that only touched docs changed nothing a user of the app sees.
+  const touchesTheApp = (hash) =>
+    execSync(`git diff-tree --no-commit-id --name-only -r ${hash}`, { cwd: root })
+      .toString().split("\n").filter(Boolean)
+      .some((file) => !/^docs\/|\.md$/.test(file));
+  const subjects = execSync(`git log ${lastTag}..HEAD --no-merges --format=%H%x09%s`, { cwd: root })
+    .toString().split("\n").filter(Boolean)
+    .map((line) => line.split("\t"))
+    .filter(([hash, subject]) => !/^release\b/i.test(subject) && touchesTheApp(hash))
+    .map(([, subject]) => subject.replace(/\.?$/, "."));
+  const groups = { Added: [], Fixed: [], Changed: [] };
+  for (const subject of subjects) {
+    const [, type, text] = subject.match(/^(\w+)(?:\([^)]*\))?!?:\s*(.+)$/) ?? [null, "", subject];
+    const line = text.charAt(0).toUpperCase() + text.slice(1);
+    (type === "feat" ? groups.Added : type === "fix" ? groups.Fixed : groups.Changed).push(`- ${line}`);
+  }
+  const body = Object.entries(groups)
+    .filter(([, lines]) => lines.length)
+    .map(([title, lines]) => `### ${title}\n\n${lines.join("\n")}`)
+    .join("\n\n");
+  const date = new Date().toISOString().slice(0, 10);
+  const section = `## ${version} (${date})\n\n${body || "- Maintenance release."}\n\n`;
+  changelog = changelog.replace(/^## /m, `${section}## `);
+  writeFileSync(changelogPath, changelog);
+  console.log(`  added from ${subjects.length} commits since ${lastTag}`);
+} else {
+  console.log("  already has a section, kept as written");
+}
+const section = changelog.split(/^## /m).find((part) => part.startsWith(`${version} `));
+const notes = section.replace(/^.*\n/, "").trim().replace(/^### /gm, "## ");
+
+// ── 3. Test and build ───────────────────────────────────────────────────
+step("Tests");
+run("npm test");
+
+step("Signed build");
+process.env.TAURI_SIGNING_PRIVATE_KEY ??= path.join(homedir(), ".toolhaven", "updater.key");
+process.env.TAURI_SIGNING_PRIVATE_KEY_PASSWORD ??= "";
+run("npm run tauri:build");
+
+// ── 4. Stage ────────────────────────────────────────────────────────────
+step(`Staging Releases/${version}`);
+const out = at("Releases", version);
+mkdirSync(out, { recursive: true });
+const target = at("apps/desktop/src-tauri/target/release");
+const setup = `ToolHaven_${version}_x64-setup.exe`;
+const msi = `ToolHaven_${version}_x64_en-US.msi`;
+const portable = `ToolHaven_${version}_x64-portable.zip`;
+for (const file of [setup, `${setup}.sig`]) copyFileSync(path.join(target, "bundle/nsis", file), path.join(out, file));
+for (const file of [msi, `${msi}.sig`]) copyFileSync(path.join(target, "bundle/msi", file), path.join(out, file));
+
+// The portable build is the executable, the bundled tools beside it, and the licence.
+const staging = at("tmp", "portable");
+rmSync(staging, { recursive: true, force: true });
+mkdirSync(path.join(staging, "tools"), { recursive: true });
+copyFileSync(path.join(target, "toolhaven.exe"), path.join(staging, "toolhaven.exe"));
+copyFileSync(at("LICENSE"), path.join(staging, "LICENSE"));
+execFileSync("powershell.exe", [
+  "-NoProfile", "-Command",
+  `Copy-Item '${at("apps/desktop/src-tauri/resources/tools")}\\*.exe' '${path.join(staging, "tools")}'; ` +
+    `Compress-Archive -Path '${staging}\\*' -DestinationPath '${path.join(out, portable)}' -Force`,
+], { stdio: "inherit" });
+rmSync(staging, { recursive: true, force: true });
+
+const checksums = [portable, setup, msi]
+  .map((file) => `${createHash("sha256").update(readFileSync(path.join(out, file))).digest("hex")} *${file}`)
+  .join("\n");
+writeFileSync(path.join(out, "checksums.txt"), `${checksums}\n`);
+
+run(`node scripts/release/build-update-manifest.mjs "${out}"`);
+
+writeFileSync(
+  path.join(out, "RELEASE-NOTES.md"),
+  `# ToolHaven ${version}
+
+${notes}
+
+## Downloads
+
+| File | What it is |
+|---|---|
+| \`${setup}\` | Installer (recommended) |
+| \`${msi}\` | MSI, for managed deployment |
+| \`${portable}\` | Portable, unzip and run |
+| \`latest.json\`, \`*.sig\` | Needed for automatic updates |
+
+Windows x64 only. SHA-256 checksums are in \`checksums.txt\`. The portable build doesn't update itself. SmartScreen warns on first run because the installer isn't code-signed.
+
+If you're on 2.1.0 or later, just open the app and it will update itself.
+`,
+);
+
+step("Done");
+console.log(`  ${out}`);
+console.log(`  Publish as tag v${version}, and upload every file in that folder.`);

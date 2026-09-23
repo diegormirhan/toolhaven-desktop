@@ -2,6 +2,13 @@
 
 All notable changes to ToolHaven. Versions follow [semantic versioning](https://semver.org/).
 
+## 3.2.2 (2026-09-23)
+
+### Fixed
+
+- FFmpeg and ffprobe failed to install on a new machine, because the pinned build had been deleted upstream. They now use a build that stays available.
+- ExifTool failed to install on a new machine with "The download does not contain exiftool(-k).exe".
+
 ## 3.2.1 (2026-09-22)
 
 ### Added

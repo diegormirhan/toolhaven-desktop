@@ -1,6 +1,6 @@
 {
   "name": "toolhaven-desktop",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "private": true,
   "type": "module",
   "engines": {
@@ -20,6 +20,7 @@
     "tauri:build": "tauri build --config apps/desktop/src-tauri/tauri.conf.json",
     "tools:stage": "node scripts/tools/stage-embedded-tools.mjs",
     "screenshots": "node scripts/screenshots.mjs",
+    "release": "node scripts/release/release.mjs",
     "release:manifest": "node scripts/release/build-update-manifest.mjs"
   },
   "dependencies": {

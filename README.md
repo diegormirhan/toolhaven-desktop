@@ -101,7 +101,19 @@ npm run tauri:build   # installer, MSI and portable build
 > TAURI_SIGNING_PRIVATE_KEY_PASSWORD="" npm run tauri:build
 > ```
 
-Release files go in `Releases/<version>/`. `npm run release:manifest` writes the `latest.json` the updater reads. Changes between versions are listed in [CHANGELOG.md](CHANGELOG.md).
+To cut a release, run one command:
+
+```bash
+npm run release -- 3.2.2
+```
+
+It sets the version everywhere, adds a [CHANGELOG.md](CHANGELOG.md) section from the commits since the last tag (unless you already wrote one), runs the tests, builds and signs, and puts the installer, MSI, portable zip, signatures, `checksums.txt`, `latest.json` and `RELEASE-NOTES.md` in `Releases/<version>/`. It signs with `~/.toolhaven/updater.key` unless `TAURI_SIGNING_PRIVATE_KEY` is set. It doesn't commit, tag or publish.
+
+Before a release, check that every pinned download still installs and runs (about 900 MB):
+
+```bash
+cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --lib -- --ignored --nocapture installs_and_runs_every_tool
+```
 
 ## Languages
 
