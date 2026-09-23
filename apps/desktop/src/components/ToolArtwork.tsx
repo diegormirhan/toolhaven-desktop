@@ -251,6 +251,28 @@ const glyphByToolId: Record<string, ReactNode> = {
       <path className="aw-soft" d="M106 50h24M118 38v24" strokeLinecap="round" />
     </>
   ),
+  "chat-mockup": (
+    <>
+      <rect className="aw-soft" x="54" y="12" width="92" height="80" rx="10" />
+      <path className="aw-line" d="M54 26h92" strokeLinecap="round" />
+      <circle className="aw-soft-fill" cx="66" cy="19" r="3.5" />
+      <rect className="aw-soft" x="62" y="34" width="46" height="14" rx="5" />
+      <rect className="aw-line" x="92" y="54" width="46" height="14" rx="5" />
+      <path className="aw-line" d="M124 61l3 3 5-6M130 61l3 3 5-6" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+      <path className="aw-soft" d="M66 84h52" strokeLinecap="round" />
+      <circle className="aw-solid" cx="132" cy="84" r="5" />
+    </>
+  ),
+  "post-mockup": (
+    <>
+      <rect className="aw-soft" x="44" y="14" width="112" height="72" rx="10" />
+      <circle className="aw-line" cx="62" cy="32" r="8" />
+      <path className="aw-line" d="M76 28h30" strokeLinecap="round" />
+      <path className="aw-soft" d="M110 28h18M76 44h66M76 54h50" strokeLinecap="round" />
+      <path className="aw-soft" d="M76 72h8M98 72h8M142 72h4" strokeLinecap="round" />
+      <path className="aw-solid" d="M124 76l-5-5a3 3 0 0 1 5-4 3 3 0 0 1 5 4z" />
+    </>
+  ),
 };
 
 const fallbackGlyph = (

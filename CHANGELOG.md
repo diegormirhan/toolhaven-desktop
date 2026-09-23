@@ -4,17 +4,15 @@ All notable changes to ToolHaven. Versions follow [semantic versioning](https://
 
 ## 3.3.0 (2026-09-23)
 
-### Chat mockup — WhatsApp redesign
-- Header now shows a back arrow, contact status line ("typing…" / "Online") and action icons (video, call, menu), matching the real app.
-- Incoming messages display a small avatar beside the bubble.
-- A "Today" date separator appears above the message list.
-- New voice message type: toggle a message to audio with the mic button, set the duration and see a waveform bubble in the preview.
-- An input bar with emoji, attach, camera and mic buttons appears at the bottom of the WhatsApp preview.
+### Changed
 
-### Post mockup — tweet improvements
-- Like count is now shown in pink, matching X's own liked state.
-- Bookmark icon and count added to the action bar.
-- Share icon added at the end of the action bar.
+- The WhatsApp chat mockup now looks like the real app. The header has a back arrow, the contact's status ("typing...", "Online" or anything you type) and the video, call and menu icons. Incoming messages show the contact's avatar beside the bubble, a "Today" label sits above the conversation, and the bottom has the message bar with emoji, attach, camera and mic.
+- The tweet mockup now has the same action bar as X: replies, reposts, likes in pink, bookmarks, views and share. The bookmark count can be edited like the others.
+- The Chat mockup and Post mockup cards in the catalog have their own artwork instead of a blank placeholder.
+
+### Added
+
+- Voice messages in the chat mockup. The mic button beside a message turns it into an audio bubble with a play button, a waveform and the duration you set.
 
 ## 3.2.2 (2026-09-23)
 
