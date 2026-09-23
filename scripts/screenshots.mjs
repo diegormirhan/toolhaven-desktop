@@ -5,7 +5,10 @@
  * change to the interface.
  *
  *   npm run dev            # in one terminal
- *   node scripts/screenshots.mjs
+ *   node scripts/screenshots.mjs [url] [--lang pt]
+ *
+ * --lang pt captures the Portuguese interface into docs/screenshots/pt/, for the
+ * landing page's Portuguese version.
  */
 import { spawn } from "node:child_process";
 import { mkdir, rm, writeFile } from "node:fs/promises";
@@ -14,8 +17,12 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import os from "node:os";
 
-const url = process.argv[2] ?? "http://127.0.0.1:5173/";
-const outputDirectory = fileURLToPath(new URL("../docs/screenshots/", import.meta.url));
+const args = process.argv.slice(2);
+const language = args.includes("--lang") ? args[args.indexOf("--lang") + 1] : "en";
+const url = args.find((arg) => arg.startsWith("http")) ?? "http://127.0.0.1:5173/";
+const outputDirectory = fileURLToPath(
+  new URL(language === "en" ? "../docs/screenshots/" : `../docs/screenshots/${language}/`, import.meta.url),
+);
 const profileDirectory = path.join(os.tmpdir(), `toolhaven-shots-${process.pid}`);
 const port = 9333;
 
@@ -112,7 +119,8 @@ async function main() {
     const client = connect(await waitForDevTools());
     await client.ready;
 
-    for (const shot of shots) {
+    // The landing page only uses the two catalog shots in other languages.
+    for (const shot of language === "en" ? shots : shots.filter((s) => s.file.startsWith("catalog-"))) {
       const { targetId } = await client.send("Target.createTarget", { url: "about:blank" });
       const { sessionId } = await client.send("Target.attachToTarget", { targetId, flatten: true });
 
@@ -121,7 +129,11 @@ async function main() {
       // segment that is actually active, instead of leaving it on "System".
       await client.send(
         "Page.addScriptToEvaluateOnNewDocument",
-        { source: `localStorage.setItem("toolhaven.theme-preference", ${JSON.stringify(shot.theme)});` },
+        {
+          source:
+            `localStorage.setItem("toolhaven.theme-preference", ${JSON.stringify(shot.theme)});` +
+            `localStorage.setItem("toolhaven.language", ${JSON.stringify(language)});`,
+        },
         sessionId,
       );
       await client.send("Page.enable", {}, sessionId);
